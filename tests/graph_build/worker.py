@@ -16,8 +16,8 @@ for i in range(3):
     declaration = contract['Projects'][f'P{i}/P{i}.csproj']
     declaration['ReferenceBoundary'] = True
     declaration['DependencyCopies'] = {
-        f'P{i}/bin/Release/net10.0/P{dependency}.{extension}':
-        f'P{dependency}/bin/Release/net10.0/P{dependency}.{extension}'
+        f'P{i}/bin/Release/net11.0/P{dependency}.{extension}':
+        f'P{dependency}/bin/Release/net11.0/P{dependency}.{extension}'
         for dependency in range(i) for extension in ('dll', 'pdb')
     }
 if variant == 'body':
@@ -27,5 +27,5 @@ manifest.write_text(json.dumps(contract))
 report = root.parent / 'report.json'
 run(DOTNET, RUNNER, 'build', root, manifest, report, root.parent / 'snapshots')
 result = json.loads(report.read_text())
-assert run(DOTNET, root / 'P2/bin/Release/net10.0/P2.dll').stdout.strip() == ('2' if variant == 'body' else '1')
+assert run(DOTNET, root / 'P2/bin/Release/net11.0/P2.dll').stdout.strip() == ('2' if variant == 'body' else '1')
 print(json.dumps(result))

@@ -15,7 +15,7 @@ def main():
         package.mkdir()
         (package / 'empty').mkdir()
         (package / 'Fixture.Tools.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
-            '<TargetFramework>net10.0</TargetFramework><PackageId>Fixture.Tools</PackageId>'
+            '<TargetFramework>net11.0</TargetFramework><PackageId>Fixture.Tools</PackageId>'
             '</PropertyGroup><ItemGroup><None Include="Fixture.Tools.targets" Pack="true" '
             'PackagePath="buildTransitive/" /></ItemGroup></Project>')
         (package / 'Fixture.Tools.targets').write_text('''<Project>
@@ -34,10 +34,10 @@ def main():
         manifest = directory / 'contract.json'
         report = directory / 'report.json'
         cache = directory / 'snapshots'
-        manifest.write_text(json.dumps({'Version': 1, 'Entry': 'App.csproj', 'SdkVersion': '10.0.400',
+        manifest.write_text(json.dumps({'Version': 1, 'Entry': 'App.csproj', 'SdkVersion': '11.0.100',
             'Properties': {'Configuration': 'Release'}, 'SharedInputs': [],
             'Projects': {'App.csproj': {'Inputs': ['App.csproj', 'Program.cs'],
-                                      'OutputDirectories': ['bin/Release/net10.0', 'obj/Release/net10.0']}}}))
+                                      'OutputDirectories': ['bin/Release/net11.0', 'obj/Release/net11.0']}}}))
 
         def build(version, expected, selected_cache=cache):
             if root.exists():
@@ -47,13 +47,13 @@ def main():
             source.mkdir()
             shutil.copyfile(archives / f'Fixture.Tools.{version}.nupkg', source / f'Fixture.Tools.{version}.nupkg')
             (root / 'App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
-                '<TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup>'
+                '<TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup>'
                 f'<ItemGroup><PackageReference Include="Fixture.Tools" Version="{version}" /></ItemGroup></Project>')
             (root / 'Program.cs').write_text('System.Console.WriteLine(PackageApi.Value + GeneratedApi.Extra);')
             run(DOTNET, RUNNER, 'action', root, manifest, report, selected_cache)
-            assert run(DOTNET, root / 'bin/Release/net10.0/App.dll').stdout.strip() == str(expected)
-            assert (root / 'obj/Release/net10.0/Package.g.cs').is_file()
-            assert (root / 'bin/Release/net10.0/Fixture.Tools.dll').is_file()
+            assert run(DOTNET, root / 'bin/Release/net11.0/App.dll').stdout.strip() == str(expected)
+            assert (root / 'obj/Release/net11.0/Package.g.cs').is_file()
+            assert (root / 'bin/Release/net11.0/Fixture.Tools.dll').is_file()
             return json.loads(report.read_text()), {str(p.relative_to(root)): p.read_bytes()
                 for path in [root / 'bin/Release', root / 'obj/Release'] for p in path.rglob('*')
                 if p.is_file() and not p.name.endswith('.AssemblyReference.cache')}

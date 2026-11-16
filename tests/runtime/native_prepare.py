@@ -111,7 +111,7 @@ tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf result.tar -C
     for name,text in additions.items():
         entry=tarfile.TarInfo(name);data=text.encode();entry.size=len(data);entry.mode=0o644;archive.addfile(entry,io.BytesIO(data))
 shutil.copyfile(here/'NativeBuild.cs.txt',folder/'NativeBuild.cs')
-(folder/'Task.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup></Project>')
+(folder/'Task.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup></Project>')
 shutil.copyfile(here/'native_action.bzl',folder/'native_action.bzl')
 write_contract(folder)
 (folder/'BUILD.bazel').write_text('''load(":native_action.bzl","native_graph_driver","native_runtime")

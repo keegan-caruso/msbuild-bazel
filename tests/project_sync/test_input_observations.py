@@ -16,7 +16,7 @@ class InputObservationTests(unittest.TestCase):
         cls.directory = Path(cls.temporary.name)
         sources = ["tools/ProjectCache/FileObservation.cs", "tools/OutputOwnershipIndex.cs", "tools/GraphBuild/OutputOwnership.cs"]
         (cls.directory / "Controls.csproj").write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType>'
-            '<TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>'
+            '<TargetFramework>net11.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>'
             '</PropertyGroup><ItemGroup>' + ''.join(f'<Compile Include="{ROOT / source}" />' for source in sources) + '</ItemGroup></Project>')
         (cls.directory / "Program.cs").write_text(CONTROLS)
         result = subprocess.run(["bash", str(ROOT / "scripts/dotnet.sh"), "build", str(cls.directory / "Controls.csproj"),
@@ -26,7 +26,7 @@ class InputObservationTests(unittest.TestCase):
 
     def control(self, name):
         result = subprocess.run([str(Path(os.environ["RULES_MSBUILD_DOTNET_ROOT"]) / "dotnet"),
-            str(self.directory / "bin/Release/net10.0/Controls.dll"), name], capture_output=True, text=True)
+            str(self.directory / "bin/Release/net11.0/Controls.dll"), name], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return result.stdout
 

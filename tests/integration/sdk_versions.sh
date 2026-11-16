@@ -30,7 +30,7 @@ import json, os
 from pathlib import Path
 Path('global.json').write_text(json.dumps({'sdk':{'version':os.environ['SDK_TEST_VERSION'],'rollForward':'disable'}}))
 for p in Path('.').glob('*/*.csproj'):
-    p.write_text(p.read_text().replace('net10.0',os.environ['SDK_TEST_FRAMEWORK']))
+    p.write_text(p.read_text().replace('net11.0',os.environ['SDK_TEST_FRAMEWORK']))
 p=Path('MODULE.bazel');p.write_text(p.read_text().replace('global_json = "//:global.json",','global_json = "//:global.json", platforms = ["linux-arm64"], metadata_urls = ['+json.dumps(Path('sdk-metadata.json').resolve().as_uri())+'],') )
 Path('BUILD.bazel').write_text('''load("@rules_msbuild//msbuild:sync.bzl", "msbuild_sync")
 exports_files(["global.json"])

@@ -24,8 +24,8 @@ def main():
             declaration = contract['Projects'][f'P{i}/P{i}.csproj']
             declaration['ReferenceBoundary'] = True
             declaration['DependencyCopies'] = {
-                f'P{i}/bin/Release/net10.0/{prefix}P{dependency}.{extension}':
-                f'P{dependency}/bin/Release/net10.0/P{dependency}.{extension}'
+                f'P{i}/bin/Release/net11.0/{prefix}P{dependency}.{extension}':
+                f'P{dependency}/bin/Release/net11.0/P{dependency}.{extension}'
                 for dependency in range(i) for extension in ('dll', 'pdb') for prefix in ('', 'publish/')
             }
         manifest = work / 'contract.json'
@@ -52,7 +52,7 @@ def main():
                     for path in (root / relative).rglob('*') if path.is_file() and not path.name.endswith('.AssemblyReference.cache')}
 
         def execute(expected, publish=False):
-            app = root / ('P2/bin/Release/net10.0/publish/P2.dll' if publish else 'P2/bin/Release/net10.0/P2.dll')
+            app = root / ('P2/bin/Release/net11.0/publish/P2.dll' if publish else 'P2/bin/Release/net11.0/P2.dll')
             assert run(DOTNET, app).stdout.strip() == expected
 
         mode = ENV.get('RULES_MSBUILD_GRAPH_COPY_MODE')
@@ -65,10 +65,10 @@ def main():
         results['replay'] = build(expected=3)
         execute('1')
         # Writes through a replayed dependency must not mutate its producer or CAS.
-        producer = root / 'P0/bin/Release/net10.0/P0.dll'
+        producer = root / 'P0/bin/Release/net11.0/P0.dll'
         producer_bytes = producer.read_bytes()
         cached = {path: path.read_bytes() for path in (work / 'cache').rglob('*.dll')}
-        destination = root / 'P2/bin/Release/net10.0/P0.dll'
+        destination = root / 'P2/bin/Release/net11.0/P0.dll'
         with destination.open('r+b') as stream:
             stream.write(b'overwrite-linked-destination')
         assert producer.read_bytes() == producer_bytes
@@ -99,7 +99,7 @@ def main():
         failure = run(DOTNET, RUNNER, 'build', root, manifest, report, work / 'cache', 'Publish', success=False)
         assert 'Corrupt graph snapshot' in failure.stderr, failure.stderr
         # A sparse workspace must still have complete, validated cache snapshots.
-        omitted = {'P0/obj/Release/net10.0/P0.dll', 'P0/obj/Release/net10.0/P0.pdb'}
+        omitted = {'P0/obj/Release/net11.0/P0.dll', 'P0/obj/Release/net11.0/P0.pdb'}
         contract['Projects']['P0/P0.csproj']['ReplayOmissions'] = sorted(omitted)
         manifest.write_text(json.dumps(contract))
         results['omitted_seed'] = build(cache='omitted', expected=0)
@@ -114,14 +114,14 @@ def main():
         # Target-result metadata cannot reintroduce a consumer of an omitted file.
         stored_manifest = stored[0] / 'manifest.json'
         original_manifest = stored_manifest.read_text()
-        stored[1]['Targets'][0]['Items'][0]['Metadata']['RequiredFiles'] = 'unrelated;obj/Release/net10.0/P0.dll'
+        stored[1]['Targets'][0]['Items'][0]['Metadata']['RequiredFiles'] = 'unrelated;obj/Release/net11.0/P0.dll'
         stored_manifest.write_text(json.dumps(stored[1]))
         clean()
         failure = run(DOTNET, RUNNER, 'build', root, manifest, report, work / 'omitted', 'Build', success=False)
         assert 'Replay omission overlaps target-result metadata' in failure.stderr, failure.stderr
         stored_manifest.write_text(original_manifest)
         # Omitted payloads are still verified, even though consumers never copy them.
-        (stored[0] / 'P0/obj/Release/net10.0/P0.pdb').write_bytes(b'corrupt omitted payload')
+        (stored[0] / 'P0/obj/Release/net11.0/P0.pdb').write_bytes(b'corrupt omitted payload')
         clean()
         failure = run(DOTNET, RUNNER, 'build', root, manifest, report, work / 'omitted', 'Build', success=False)
         assert 'Corrupt graph snapshot' in failure.stderr, failure.stderr

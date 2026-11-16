@@ -8,8 +8,8 @@ import subprocess
 def verify_tools(expected_bazel=None, cwd=None):
     sdk = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']).resolve()
     sdk_version = subprocess.check_output([sdk/'dotnet', '--version'], cwd=cwd, text=True).strip()
-    if sdk_version != '10.0.400':
-        raise RuntimeError(f'Expected SDK 10.0.400; selected {sdk_version} at {sdk}')
+    if sdk_version != '11.0.100':
+        raise RuntimeError(f'Expected SDK 11.0.100; selected {sdk_version} at {sdk}')
     result = dict(sdkVersion=sdk_version, sdkRoot=str(sdk))
     if expected_bazel is not None:
         bazel = Path(os.environ['RULES_MSBUILD_BAZEL']).resolve()

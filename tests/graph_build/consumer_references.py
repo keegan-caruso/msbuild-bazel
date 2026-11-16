@@ -16,17 +16,17 @@ def main():
         root.mkdir()
         fixture(root)
         (root / 'Api').mkdir()
-        (root / 'Api/Api.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks><AssemblyName>P0</AssemblyName><ProduceOnlyReferenceAssembly>true</ProduceOnlyReferenceAssembly></PropertyGroup></Project>')
+        (root / 'Api/Api.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFrameworks>net11.0;net11.0-windows</TargetFrameworks><AssemblyName>P0</AssemblyName><ProduceOnlyReferenceAssembly>true</ProduceOnlyReferenceAssembly></PropertyGroup></Project>')
         api = root / 'Api/Code.cs'
         api.write_text('public class P0 { public static int Value() => throw null!; }')
         p0 = root / 'P0/P0.csproj'
-        p0.write_text(p0.read_text().replace('<TargetFramework>net10.0</TargetFramework>', '<TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks>').replace('</Project>', '<PropertyGroup><ProduceReferenceAssembly>false</ProduceReferenceAssembly></PropertyGroup><ItemGroup><ProjectReference Include="../Api/Api.csproj" ReferenceOutputAssembly="false" /></ItemGroup></Project>'))
+        p0.write_text(p0.read_text().replace('<TargetFramework>net11.0</TargetFramework>', '<TargetFrameworks>net11.0;net11.0-windows</TargetFrameworks>').replace('</Project>', '<PropertyGroup><ProduceReferenceAssembly>false</ProduceReferenceAssembly></PropertyGroup><ItemGroup><ProjectReference Include="../Api/Api.csproj" ReferenceOutputAssembly="false" /></ItemGroup></Project>'))
         p1 = root / 'P1/P1.csproj'
         p1.write_text(p1.read_text().replace('Include="../P0/P0.csproj"', 'Include="../P0/P0.csproj" Private="false"'))
         targets = root / 'Directory.Build.targets'
         targets.write_text('''<Project><Target Name="UseAuthoredApi" AfterTargets="FindReferenceAssembliesForReferences" Condition="'$(MSBuildProjectName)' == 'P1' or '$(MSBuildProjectName)' == 'P2'">
-<ItemGroup><ReferencePathWithRefAssemblies Remove="$(MSBuildThisFileDirectory)P0/bin/$(Configuration)/net10.0/P0.dll" />
-<ReferencePathWithRefAssemblies Include="$(MSBuildThisFileDirectory)Api/bin/$(Configuration)/net10.0/P0.dll" /></ItemGroup>
+<ItemGroup><ReferencePathWithRefAssemblies Remove="$(MSBuildThisFileDirectory)P0/bin/$(Configuration)/net11.0/P0.dll" />
+<ReferencePathWithRefAssemblies Include="$(MSBuildThisFileDirectory)Api/bin/$(Configuration)/net11.0/P0.dll" /></ItemGroup>
 </Target></Project>''')
         document = {'Directory.Build.targets': {'sha256': hashlib.sha256(targets.read_bytes()).hexdigest(), 'targets': ['UseAuthoredApi'], 'tasks': [], 'inputs': []}}
         mapping = {'projectDefaults': {'referenceBoundary': True, 'documents': document}, 'projects': {}}
@@ -36,8 +36,8 @@ def main():
 
         def sync(success=True):
             mapping_path.write_text(json.dumps(mapping))
-            return run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root,
-                       SDK / 'sdk/10.0.400', 'P0/P0.csproj', 'P2/P2.csproj', '--mappings', mapping_path, success=success)
+            return run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll', root,
+                       SDK / 'sdk/11.0.100', 'P0/P0.csproj', 'P2/P2.csproj', '--mappings', mapping_path, success=success)
 
         def build(hits, value, cache):
             for name in ['P0', 'P1', 'P2', 'Api']:
@@ -50,8 +50,8 @@ def main():
             # non-copying producer is supplied explicitly to this execution control.
             execution = base / 'execution'
             shutil.rmtree(execution, ignore_errors=True)
-            shutil.copytree(root / 'P2/bin/Release/net10.0', execution)
-            shutil.copyfile(root / 'P0/bin/Release/net10.0/P0.dll', execution / 'P0.dll')
+            shutil.copytree(root / 'P2/bin/Release/net11.0', execution)
+            shutil.copyfile(root / 'P0/bin/Release/net11.0/P0.dll', execution / 'P0.dll')
             (execution / 'P2.deps.json').unlink()
             assert run(DOTNET, execution / 'P2.dll').stdout.strip() == str(value)
             return {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
@@ -74,8 +74,8 @@ def main():
         build(0, 1, 'conservative')
         (root / 'P0/Code.cs').write_text('public class P0 { public static int Value() => 2; }')
         build(2, 2, 'conservative')
-        references = {'P0/P0.csproj': 'Api/bin/$(Configuration)/net10.0/P0.dll',
-                      'Api/Api.csproj': 'Api/bin/$(Configuration)/net10.0/P0.dll'}
+        references = {'P0/P0.csproj': 'Api/bin/$(Configuration)/net11.0/P0.dll',
+                      'Api/Api.csproj': 'Api/bin/$(Configuration)/net11.0/P0.dll'}
         for consumer in ['P1', 'P2']:
             mapping['projects'][f'{consumer}/{consumer}.csproj'] = {'referenceBoundary': True, 'documents': document, 'compilerReferences': references}
         sync()
@@ -103,10 +103,10 @@ def main():
         assert 'require graph contract version 8' in run(DOTNET, RUNNER, 'inspect', root, contract, report, success=False).stderr
         assert not report.exists()
         contract.write_text(current)
-        for producer, artifact, message in [('P2/P2.csproj', 'P2/bin/Release/net10.0/P2.dll', 'producer dependency closure'),
-                                            ('P0/P0.csproj', 'P2/bin/Release/net10.0/P2.dll', 'producer dependency closure'),
-                                            ('P0/P0.csproj', 'Api/bin/Release/net10.0/P0.pdb', 'managed DLL consumer'),
-                                            ('../P0.csproj', 'Api/bin/Release/net10.0/P0.dll', 'path')]:
+        for producer, artifact, message in [('P2/P2.csproj', 'P2/bin/Release/net11.0/P2.dll', 'producer dependency closure'),
+                                            ('P0/P0.csproj', 'P2/bin/Release/net11.0/P2.dll', 'producer dependency closure'),
+                                            ('P0/P0.csproj', 'Api/bin/Release/net11.0/P0.pdb', 'managed DLL consumer'),
+                                            ('../P0.csproj', 'Api/bin/Release/net11.0/P0.dll', 'path')]:
             mapping['projects']['P1/P1.csproj']['compilerReferences'] = {producer: artifact}
             assert message.lower() in sync(False).stderr.lower()
             assert contract.read_text() == current

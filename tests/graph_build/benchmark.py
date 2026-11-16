@@ -34,8 +34,8 @@ def main():
                 props = root / 'Directory.Build.props'
                 props.write_text(props.read_text().replace('</PropertyGroup>',
                     '<DisableTransitiveProjectReferences>true</DisableTransitiveProjectReferences></PropertyGroup>'))
-            run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll',
-                roots['cached'], SDK / 'sdk/10.0.400', f'P{args.projects - 1}/P{args.projects - 1}.csproj', )
+            run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll',
+                roots['cached'], SDK / 'sdk/11.0.100', f'P{args.projects - 1}/P{args.projects - 1}.csproj', )
             contract = json.loads((roots['cached'] / 'graph.generated.json').read_text())
             # Restore is outside this timing, so bind its existing files explicitly.
             for path, project in contract['Projects'].items():
@@ -52,8 +52,8 @@ def main():
                 project = contract['Projects'][f'P{i}/P{i}.csproj']
                 project['ReferenceBoundary'] = True
                 project['DependencyCopies'] = {
-                    f'P{i}/bin/Release/net10.0/P{dependency}.{extension}':
-                    f'P{dependency}/bin/Release/net10.0/P{dependency}.{extension}'
+                    f'P{i}/bin/Release/net11.0/P{dependency}.{extension}':
+                    f'P{dependency}/bin/Release/net11.0/P{dependency}.{extension}'
                     for dependency in range(i) for extension in ('dll', 'pdb')
                 }
         manifest = work / 'contract.json'
@@ -94,7 +94,7 @@ def main():
                     row = dict(build(name), edit=edit)
                     if name == 'cached' and not args.conservative:
                         assert row['misses'] == (1 if edit == 'body' else 2), row
-                    assert run(DOTNET, root / f'P{args.projects - 1}/bin/Release/net10.0/P{args.projects - 1}.dll').stdout.strip() == str(sample + 2)
+                    assert run(DOTNET, root / f'P{args.projects - 1}/bin/Release/net11.0/P{args.projects - 1}.dll').stdout.strip() == str(sample + 2)
                     rows.append(row)
         medians = {edit: {name: statistics.median(r['wallSeconds'] for r in rows if r['edit'] == edit and r['engine'] == name)
                          for name in roots} for edit in ('body', 'api')}

@@ -51,7 +51,7 @@ def main():
         work = Path(temporary)
         sources = [ROOT/'tools/ProjectCache'/name for name in ['RemoteSnapshotStore.cs', 'SnapshotPayloads.cs']]
         (work/'Probe.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
-            '<TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings>'
+            '<TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings>'
             '<Nullable>enable</Nullable></PropertyGroup><ItemGroup>' + ''.join(f'<Compile Include="{p}" />' for p in sources) + '</ItemGroup></Project>')
         (work/'Program.cs').write_text('''using RulesMSBuild.ProjectCache;
 using System.Text.Json;
@@ -88,7 +88,7 @@ Console.WriteLine(JsonSerializer.Serialize(new { managedGrowth = peak - baseline
             for shared in [False, True]:
                 seed(shared)
                 output = work/('shared' if shared else 'distinct')
-                result = run(DOTNET, work/'bin/Release/net10.0/Probe.dll', f'http://127.0.0.1:{server.server_port}/', output, 'shared' if shared else 'distinct')
+                result = run(DOTNET, work/'bin/Release/net11.0/Probe.dll', f'http://127.0.0.1:{server.server_port}/', output, 'shared' if shared else 'distinct')
                 observation = json.loads(result.stdout.strip().splitlines()[-1])
                 assert observation['managedGrowth'] < 24*1024*1024, observation
                 for i in range(8):

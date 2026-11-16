@@ -28,7 +28,7 @@ def main():
             file.write_text(text)
         package = base / 'package'
         package.mkdir()
-        (package / 'Number.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><Version>1.0.0</Version></PropertyGroup></Project>')
+        (package / 'Number.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework><Version>1.0.0</Version></PropertyGroup></Project>')
         (package / 'Code.cs').write_text('public static class Number { public static int Value => 40; }')
         run(DOTNET, 'pack', package / 'Number.csproj', '-o', root, '-p:UseSharedCompilation=false', '-p:NuGetAudit=false')
         archive = (root / 'Number.1.0.0.nupkg').read_bytes()
@@ -37,7 +37,7 @@ def main():
             f'local_path_override(module_name="rules_msbuild",path={json.dumps(str(ROOT))})\n'
             'dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\n'
             'dotnet.sdk(name="dotnet",global_json="//:global.json")\nuse_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
-        project = '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework>{}</PropertyGroup>{}</Project>'
+        project = '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework>{}</PropertyGroup>{}</Project>'
         put('Helper/Helper.csproj', project.format('', '<ItemGroup><PackageReference Include="Number" Version="1.0.0" /></ItemGroup>'))
         put('Helper/Code.cs', 'public static class Helper { public static int Value() => Number.Value; }')
         put('Tasks/Tasks.csproj', project.format('<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>', '<ItemGroup><ProjectReference Include="../Helper/Helper.csproj" /><Reference Include="$(MSBuildBinPath)/Microsoft.Build.Framework.dll" Private="false" /><Content Include="../delta.txt" Link="delta.txt" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>'))
@@ -59,14 +59,14 @@ public class Generate : ITask {
         put('App/Program.cs', 'System.Console.WriteLine(Generated.Value);')
         put('mapping.json', json.dumps({'projectDefaults': {'documents': {'App/App.csproj': {
             'sha256': hashlib.sha256(app.encode()).hexdigest(), 'targets': ['GenerateCode'], 'tasks': ['Generate'], 'inputs': []}}}}))
-        put('tool-contract.json', json.dumps(dict(Version=1, Entry='Tasks/Tasks.csproj', SdkVersion='10.0.400', Properties={'Configuration':'Release'}, SharedInputs=['global.json'], Projects={
-            'Helper/Helper.csproj': dict(Inputs=['Helper/Helper.csproj','Helper/Code.cs'],OutputDirectories=['Helper/bin/Release/net10.0','Helper/obj/Release/net10.0']),
-            'Tasks/Tasks.csproj': dict(Inputs=['Tasks/Tasks.csproj','Tasks/Code.cs','delta.txt'],OutputDirectories=['Tasks/bin/Release/net10.0','Tasks/obj/Release/net10.0'])})))
+        put('tool-contract.json', json.dumps(dict(Version=1, Entry='Tasks/Tasks.csproj', SdkVersion='11.0.100', Properties={'Configuration':'Release'}, SharedInputs=['global.json'], Projects={
+            'Helper/Helper.csproj': dict(Inputs=['Helper/Helper.csproj','Helper/Code.cs'],OutputDirectories=['Helper/bin/Release/net11.0','Helper/obj/Release/net11.0']),
+            'Tasks/Tasks.csproj': dict(Inputs=['Tasks/Tasks.csproj','Tasks/Code.cs','delta.txt'],OutputDirectories=['Tasks/bin/Release/net11.0','Tasks/obj/Release/net11.0'])})))
         authored = ('load("@rules_msbuild//msbuild:defs.bzl","msbuild_graph","msbuild_graph_layout","msbuild_graph_runner","msbuild_tool","msbuild_file_binding","msbuild_nuget_package","msbuild_graph_binary")\n'
             'load("@rules_msbuild//msbuild:sync.bzl","msbuild_sync")\n'
             f'msbuild_nuget_package(name="number",package_id="Number",version="1.0.0",archive="Number.1.0.0.nupkg",archive_sha256="{hashlib.sha256(archive).hexdigest()}",content_hash="{base64.b64encode(hashlib.sha512(archive).digest()).decode()}")\n'
             'msbuild_graph_runner(name="tool_runner")\n'
-            'msbuild_graph(name="tasks",runner=":tool_runner",contract="tool-contract.json",srcs=["global.json","Helper/Helper.csproj","Helper/Code.cs","Tasks/Tasks.csproj","Tasks/Code.cs","delta.txt"],packages=["Number.1.0.0.nupkg"],project_outputs={"Tasks/Tasks.csproj|net10.0":["Tasks/bin/Release/net10.0","Tasks.dll","Library"]})\n'
+            'msbuild_graph(name="tasks",runner=":tool_runner",contract="tool-contract.json",srcs=["global.json","Helper/Helper.csproj","Helper/Code.cs","Tasks/Tasks.csproj","Tasks/Code.cs","delta.txt"],packages=["Number.1.0.0.nupkg"],project_outputs={"Tasks/Tasks.csproj|net11.0":["Tasks/bin/Release/net11.0","Tasks.dll","Library"]})\n'
             'msbuild_graph_layout(name="task_layout",graph=":tasks",project="Tasks/Tasks.csproj")\n'
             'msbuild_tool(name="tool",layout=":task_layout",entry_point="Tasks.dll")\n'
             'msbuild_file_binding(name="binding",tool=":tool",property_name="TaskLocation")\n'
@@ -103,7 +103,7 @@ public class Generate : ITask {
                 report = base / 'report.json'
                 run(DOTNET, RUNNER, 'action', replay, root / 'graph.generated.json', report, base / 'snapshots')
                 assert json.loads(report.read_text())['hits'] == hits
-                assert run(DOTNET, replay / 'App/bin/Release/net10.0/App.dll').stdout.strip() == str(value)
+                assert run(DOTNET, replay / 'App/bin/Release/net11.0/App.dll').stdout.strip() == str(value)
             replay_build(41, 0)
             replay_build(41, 1)
             put('Helper/Code.cs', 'public static class Helper { public static int Value() => Number.Value+1; }')

@@ -21,8 +21,8 @@ def main():
         for index in range(3):
             declaration = contract['Projects'][f'P{index}/P{index}.csproj']
             declaration['ReferenceBoundary'] = True
-            declaration['DependencyCopies'] = {f'P{index}/bin/Release/net10.0/P{dependency}.{extension}':
-                f'P{dependency}/bin/Release/net10.0/P{dependency}.{extension}'
+            declaration['DependencyCopies'] = {f'P{index}/bin/Release/net11.0/P{dependency}.{extension}':
+                f'P{dependency}/bin/Release/net11.0/P{dependency}.{extension}'
                 for dependency in range(index) for extension in ['dll', 'pdb']}
         project = root / 'P0/P0.csproj'
         project.write_text(project.read_text().replace('</Project>',
@@ -49,10 +49,10 @@ def main():
         source = root / 'P0/Code.cs'
         source.write_text('public class P0 { public static int Value() => 2; }')
         body = build(2)
-        assert run(DOTNET, root / 'P2/bin/Release/net10.0/P2.dll').stdout.strip() == '2'
+        assert run(DOTNET, root / 'P2/bin/Release/net11.0/P2.dll').stdout.strip() == '2'
         source.write_text('public class P0 { public static int Value() => 2; public static int Extra() => 3; }')
         build(1)
-        app = root / 'P2/bin/Release/net10.0/P2.dll'
+        app = root / 'P2/bin/Release/net11.0/P2.dll'
         app.write_bytes(b'corrupt retained output')
         stale = app.parent / 'obsolete.txt'
         stale.write_text('stale')
@@ -63,7 +63,7 @@ def main():
         app.chmod(original_mode ^ 0o111)
         build(3)
         assert app.stat().st_mode & 0o777 == original_mode
-        producer = root / 'P0/bin/Release/net10.0/P0.dll'
+        producer = root / 'P0/bin/Release/net11.0/P0.dll'
         copied = app.parent / 'P0.dll'
         copied.unlink()
         os.link(producer, copied)
@@ -112,11 +112,11 @@ def main():
                                               for key, value in declaration['DependencyCopies'].items()}
         changed = build(0)
         assert not changed['retainedState'] and not producer.parent.exists()
-        assert run(DOTNET, root / 'P2/bin/Debug/net10.0/P2.dll').stdout.strip() == '2'
+        assert run(DOTNET, root / 'P2/bin/Debug/net11.0/P2.dll').stdout.strip() == '2'
         build(0, target='Publish')
         published = build(3, target='Publish')
         assert published['retainedState']
-        assert run(DOTNET, root / 'P2/bin/Debug/net10.0/publish/P2.dll').stdout.strip() == '2'
+        assert run(DOTNET, root / 'P2/bin/Debug/net11.0/publish/P2.dll').stdout.strip() == '2'
         print(json.dumps({'warm': warm, 'body': body, 'repair': repair, 'interruptedRecovery': recovered}, indent=2))
         print('PASS: retained hits, fresh misses, body/API propagation, corrupt/obsolete output repair, hard-link isolation, ownership rejection, concurrent lease, SIGKILL recovery configuration cleanup and Publish reuse')
 

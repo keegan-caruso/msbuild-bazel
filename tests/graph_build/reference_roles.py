@@ -22,8 +22,8 @@ def main():
             'Include="../P0/P0.csproj" Aliases="Hidden" Private="false"'))
         (root / 'P0/Code.cs').write_text('public class P0 { public const int Value = 1; }')
         (root / 'P1/Code.cs').write_text('extern alias Hidden; public class P1 { public static int Value() => Hidden::P0.Value; }')
-        run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll',
-            root, SDK / 'sdk/10.0.400', 'P2/P2.csproj', )
+        run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll',
+            root, SDK / 'sdk/11.0.100', 'P2/P2.csproj', )
         contract = root / 'graph.generated.json'
         report = base / 'report.json'
 
@@ -33,9 +33,9 @@ def main():
                     shutil.rmtree(root / f'P{index}' / folder, ignore_errors=True)
             run(DOTNET, RUNNER, 'action', root, contract, report, base / 'cache')
             assert json.loads(report.read_text())['hits'] == hits, report.read_text()
-            output = root / 'P2/bin/Release/net10.0'
+            output = root / 'P2/bin/Release/net11.0'
             assert not (output / 'P0.dll').exists()
-            assert not (root / 'P1/bin/Release/net10.0/P0.dll').exists()
+            assert not (root / 'P1/bin/Release/net11.0/P0.dll').exists()
             assert run(DOTNET, output / 'P2.dll').stdout.strip() == str(value)
         build(1, 0)
         build(1, 3)

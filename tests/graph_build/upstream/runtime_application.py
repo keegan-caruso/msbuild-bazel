@@ -22,7 +22,7 @@ def main():
     root, native = args.workspace.resolve(), args.native_workspace.resolve()
     assert not (root / 'app').exists() and not (root / 'runtime').exists()
     contract = json.loads((root / 'graph.generated.json').read_text())
-    assert contract['SdkVersion'] == '10.0.400'
+    assert contract['SdkVersion'] == '11.0.100'
     if (root/'runtime-product.json').exists():
         if args.include_private_frameworks:
             parser.error('The complete product selects its upstream framework producers')
@@ -70,7 +70,7 @@ def main():
     project = app / 'App.csproj'
     project.write_text(project.read_text().replace('<OutputType>Exe</OutputType>',
         '<OutputType>Exe</OutputType><UseAppHost>false</UseAppHost><RuntimeFrameworkVersion>10.0.0</RuntimeFrameworkVersion>'))
-    (app / 'contract.json').write_text(json.dumps(dict(Version=1, Entry='App.csproj', SdkVersion='10.0.400',
+    (app / 'contract.json').write_text(json.dumps(dict(Version=1, Entry='App.csproj', SdkVersion='11.0.100',
         Properties=dict(Configuration='Release'), SharedInputs=[], Projects={'App.csproj': dict(
             Inputs=['App.csproj', 'Program.cs'], OutputDirectories=['bin/Release/net10.0', 'obj/Release/net10.0'])}), indent=2) + '\n')
     # All graph actions remain at the workspace root; the app's source_root

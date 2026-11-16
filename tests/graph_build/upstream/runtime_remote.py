@@ -58,7 +58,7 @@ def main():
     contract = json.loads((root / 'graph.generated.json').read_text())
     nodes = [(project, variant) for project, declaration in contract['Projects'].items()
              for variant in declaration.get('Configurations') or [declaration]]
-    assert contract['SdkVersion'] == '10.0.400' and contract['Properties']['TargetOS'] == 'linux' and contract['Properties']['TargetArchitecture'] == 'arm64'
+    assert contract['SdkVersion'] == '11.0.100' and contract['Properties']['TargetOS'] == 'linux' and contract['Properties']['TargetArchitecture'] == 'arm64'
     count = sum(bool(node['OutputDirectories'] or node.get('OutputFiles')) for _, node in nodes)
     if args.slice == 'runtime-suites':
         mutation = json.loads(Path(__file__).with_name('runtime_source_host_edit.json').read_text())

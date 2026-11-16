@@ -38,11 +38,11 @@ def main():
             'msbuild_graph_runner(name="runner")\n'
             'msbuild_graph(name="app",runner=":runner",contract="contract.json",'
             'srcs=glob(["P*/*.cs","P*/*.csproj"])+["Directory.Build.props","global.json"])\n'
-            'msbuild_graph_test(name="app_test",graph=":app",assembly="P2/bin/Release/net10.0/P2.dll")\n')
+            'msbuild_graph_test(name="app_test",graph=":app",assembly="P2/bin/Release/net11.0/P2.dll")\n')
         if '--sync' in sys.argv:
             other = workspace / 'Other'
             other.mkdir()
-            (other / 'Other.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup></Project>')
+            (other / 'Other.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup></Project>')
             (other / 'Code.cs').write_text('System.Console.WriteLine("other");')
             authored = ('load("@rules_msbuild//msbuild:sync.bzl","msbuild_sync")\n'
                         'msbuild_sync(name="sync",projects=["P2/P2.csproj","Other/Other.csproj"])\n')

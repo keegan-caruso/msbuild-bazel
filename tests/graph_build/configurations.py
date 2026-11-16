@@ -15,17 +15,17 @@ def main():
         root = directory / 'workspace'
         root.mkdir()
         (root / 'Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
-            '<TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks>'
+            '<TargetFrameworks>net11.0;net11.0-windows</TargetFrameworks>'
             '</PropertyGroup></Project>')
         (root / 'Code.cs').write_text('public class Library { public static int Value() => 1; }')
         run(DOTNET, 'restore', root / 'Library.csproj', '--source', root, '-p:NuGetAudit=false')
-        contract = {'Version': 2, 'Entry': 'Library.csproj', 'SdkVersion': '10.0.400',
+        contract = {'Version': 2, 'Entry': 'Library.csproj', 'SdkVersion': '11.0.100',
             'Properties': {'Configuration': 'Release'}, 'SharedInputs': [],
             'Projects': {'Library.csproj': {'Inputs': sorted(str(p.relative_to(root)) for p in root.rglob('*') if p.is_file()),
                 'OutputDirectories': [], 'Configurations': [
                     {'Properties': {'TargetFramework': framework}, 'Inputs': [],
                      'OutputDirectories': [f'bin/Release/{framework}', f'obj/Release/{framework}'] if framework else []}
-                    for framework in ['', 'net10.0', 'net10.0-windows']]}}}
+                    for framework in ['', 'net11.0', 'net11.0-windows']]}}}
         manifest = directory / 'contract.json'
         report = directory / 'report.json'
 
@@ -35,7 +35,7 @@ def main():
 
         invoke(contract, 'build')
         assert json.loads(report.read_text())['misses'] == 2
-        for framework in ['net10.0', 'net10.0-windows']:
+        for framework in ['net11.0', 'net11.0-windows']:
             assert (root / f'bin/Release/{framework}/Library.dll').is_file()
         shutil.rmtree(root / 'bin')
         shutil.rmtree(root / 'obj/Release')
@@ -49,7 +49,7 @@ def main():
         missing['Projects']['Library.csproj']['Configurations'].pop()
         assert 'matched 0' in invoke(missing, success=False).stderr
         overlap = copy.deepcopy(contract)
-        overlap['Projects']['Library.csproj']['Configurations'][2]['OutputDirectories'] = ['bin/Release/net10.0']
+        overlap['Projects']['Library.csproj']['Configurations'][2]['OutputDirectories'] = ['bin/Release/net11.0']
         assert 'Overlapping output' in invoke(overlap, success=False).stderr
         legacy = copy.deepcopy(contract)
         legacy['Version'] = 1

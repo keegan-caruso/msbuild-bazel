@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 SDK = Path(os.environ["RULES_MSBUILD_DOTNET_ROOT"])
-RUNNER = ROOT / "tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll"
+RUNNER = ROOT / "tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll"
 
 
 class GraphSyncTests(unittest.TestCase):
@@ -21,12 +21,12 @@ class GraphSyncTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory(prefix="graph-sync-unit-")
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
-        self.project = '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup></Project>'
+        self.project = '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup></Project>'
         (self.root / "App.csproj").write_text(self.project)
         (self.root / "Program.cs").write_text('System.Console.WriteLine(1);')
 
     def sync(self, mappings=None, flags=(), success=True):
-        args = [str(SDK / "dotnet"), str(RUNNER), str(self.root), str(SDK / "sdk/10.0.400"), "App.csproj"]
+        args = [str(SDK / "dotnet"), str(RUNNER), str(self.root), str(SDK / "sdk/11.0.100"), "App.csproj"]
         if mappings is not None:
             (self.root / "mappings.json").write_text(mappings if isinstance(mappings, str) else json.dumps(mappings))
             args += ["--mappings", "mappings.json"]
@@ -101,7 +101,7 @@ class GraphSyncTests(unittest.TestCase):
                 (self.root/document).unlink()
 
     def test_opt_in_profiling_preserves_declarations(self):
-        command = [str(SDK / 'dotnet'), str(RUNNER), str(self.root), str(SDK / 'sdk/10.0.400'), 'App.csproj']
+        command = [str(SDK / 'dotnet'), str(RUNNER), str(self.root), str(SDK / 'sdk/11.0.100'), 'App.csproj']
         expected = None
         for enabled in [None, '1']:
             environment = dict(os.environ, DOTNET_ROOT=str(SDK))
@@ -331,7 +331,7 @@ class GraphSyncTests(unittest.TestCase):
             generated = {name: (self.root / name).read_bytes() for name in ['graph.generated.json', 'graph.generated.bzl']}
             for name in generated:
                 (self.root / name).unlink()
-            runner = ROOT / 'tools/GraphBuild/bin/Release/net10.0/GraphBuild.dll'
+            runner = ROOT / 'tools/GraphBuild/bin/Release/net11.0/GraphBuild.dll'
             payload = base / 'contract.json'
             prepared = base / 'prepared'
             report = base / 'report.json'
@@ -418,7 +418,7 @@ class GraphSyncTests(unittest.TestCase):
             self.assertIn('empty-tree', data['InputDirectories'])
             shutil.copytree(tree, self.root / 'inputs')
             (self.root / 'empty-tree').mkdir()
-            graph_runner = ROOT / 'tools/GraphBuild/bin/Release/net10.0/GraphBuild.dll'
+            graph_runner = ROOT / 'tools/GraphBuild/bin/Release/net11.0/GraphBuild.dll'
             def build(failure=None):
                 # Clear products so each row must run the project-cache decision.
                 for path in ['bin', 'obj']:
@@ -447,7 +447,7 @@ class GraphSyncTests(unittest.TestCase):
 
     def test_analyzer_project_reference_uses_implementation(self):
         (self.root / 'Generator').mkdir()
-        (self.root / 'Generator/Generator.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')
+        (self.root / 'Generator/Generator.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup></Project>')
         (self.root / 'Generator/Code.cs').write_text('public class Generator {}')
         (self.root / 'App.csproj').write_text(self.project.replace('</Project>',
             '<ItemGroup><ProjectReference Include="Generator/Generator.csproj" ReferenceOutputAssembly="false" OutputItemType="Analyzer" /></ItemGroup></Project>'))
@@ -470,7 +470,7 @@ class GraphSyncTests(unittest.TestCase):
 
     def test_stale_inputs_require_resync(self):
         self.sync()
-        (self.root / "App.csproj").write_text(self.project.replace("net10.0", "net9.0"))
+        (self.root / "App.csproj").write_text(self.project.replace("net11.0", "net9.0"))
         self.assertIn("stale", self.sync(flags=["--check"], success=False).lower())
 
     def source_group(self):
@@ -520,16 +520,16 @@ class GraphSyncTests(unittest.TestCase):
 
     def test_globs_preserve_configuration_specific_input_sets(self):
         directory = self.source_group()
-        (self.root / "App.csproj").write_text(self.project.replace('<TargetFramework>net10.0</TargetFramework>',
-            '<TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks>').replace('</Project>',
-            '<ItemGroup Condition="&apos;$(TargetFramework)&apos; == &apos;net10.0&apos;"><Compile Remove="LongDirectoryPrefix/Sources/Source00.cs" /></ItemGroup></Project>'))
+        (self.root / "App.csproj").write_text(self.project.replace('<TargetFramework>net11.0</TargetFramework>',
+            '<TargetFrameworks>net11.0;net11.0-windows</TargetFrameworks>').replace('</Project>',
+            '<ItemGroup Condition="&apos;$(TargetFramework)&apos; == &apos;net11.0&apos;"><Compile Remove="LongDirectoryPrefix/Sources/Source00.cs" /></ItemGroup></Project>'))
         self.sync()
         self.assertIn('"LongDirectoryPrefix/Sources/*.cs"', (self.root / "graph.generated.bzl").read_text())
         variants = json.loads((self.root / "graph.generated.json").read_text())["Projects"]["App.csproj"]["Configurations"]
         selected = {variant["Properties"].get("TargetFramework", ""): variant["Inputs"] for variant in variants}
         source = "LongDirectoryPrefix/Sources/Source00.cs"
-        self.assertNotIn(source, selected["net10.0"])
-        self.assertIn(source, selected["net10.0-windows"])
+        self.assertNotIn(source, selected["net11.0"])
+        self.assertIn(source, selected["net11.0-windows"])
 
     def test_reviewed_compile_globs_keep_generated_files_stable(self):
         directory = self.source_group()
@@ -647,17 +647,17 @@ class GraphSyncTests(unittest.TestCase):
 
     def test_compile_globs_remain_configuration_specific(self):
         self.source_group()
-        (self.root / "App.csproj").write_text(self.project.replace('<TargetFramework>net10.0</TargetFramework>',
-            '<TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks>').replace('</Project>',
-            '<ItemGroup Condition="&apos;$(TargetFramework)&apos; == &apos;net10.0&apos;"><Compile Remove="LongDirectoryPrefix/Sources/Source00.cs" /></ItemGroup></Project>'))
-        mappings = {"projects": {"App.csproj": {"frameworkOverrides": {"net10.0-windows":
+        (self.root / "App.csproj").write_text(self.project.replace('<TargetFramework>net11.0</TargetFramework>',
+            '<TargetFrameworks>net11.0;net11.0-windows</TargetFrameworks>').replace('</Project>',
+            '<ItemGroup Condition="&apos;$(TargetFramework)&apos; == &apos;net11.0&apos;"><Compile Remove="LongDirectoryPrefix/Sources/Source00.cs" /></ItemGroup></Project>'))
+        mappings = {"projects": {"App.csproj": {"frameworkOverrides": {"net11.0-windows":
                     {"compileGlobs": ["LongDirectoryPrefix/Sources/*.cs"]}}}}}
         self.sync(mappings)
         variants = json.loads((self.root / "graph.generated.json").read_text())["Projects"]["App.csproj"]["Configurations"]
         selected = {variant["Properties"].get("TargetFramework", ""): variant for variant in variants}
-        self.assertNotIn("CompileGlobs", selected["net10.0"])
-        self.assertEqual(selected["net10.0-windows"]["CompileGlobs"], ["LongDirectoryPrefix/Sources/*.cs"])
-        self.assertNotIn("LongDirectoryPrefix/Sources/Source00.cs", selected["net10.0-windows"]["Inputs"])
+        self.assertNotIn("CompileGlobs", selected["net11.0"])
+        self.assertEqual(selected["net11.0-windows"]["CompileGlobs"], ["LongDirectoryPrefix/Sources/*.cs"])
+        self.assertNotIn("LongDirectoryPrefix/Sources/Source00.cs", selected["net11.0-windows"]["Inputs"])
 
     def test_removed_backend_mappings_fail(self):
         for field in ["packages", "tests"]:
@@ -700,21 +700,21 @@ class GraphSyncTests(unittest.TestCase):
     def test_explicit_dependency_copies_preserve_ownership_and_require_review(self):
         library = self.root / 'Library'
         library.mkdir()
-        (library / 'Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')
+        (library / 'Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup></Project>')
         (library / 'Code.cs').write_text('public class Library {}')
         (self.root / 'App.csproj').write_text(self.project.replace('</Project>', '<ItemGroup><ProjectReference Include="Library/Library.csproj" /></ItemGroup></Project>'))
-        destination = 'bin/$(Configuration)/net10.0/Library.dll'
-        source = 'Library/bin/$(Configuration)/net10.0/Library.dll'
+        destination = 'bin/$(Configuration)/net11.0/Library.dll'
+        source = 'Library/bin/$(Configuration)/net11.0/Library.dll'
         binding = {'referenceBoundary': True, 'dependencyCopies': {destination: source}}
         mapping = {'projects': {'App.csproj': binding}}
         self.sync(mapping)
         contract = (self.root / 'graph.generated.json').read_text()
         variants = json.loads(contract)['Projects']['App.csproj']['Configurations']
-        self.assertEqual(variants[0]['DependencyCopies']['bin/Release/net10.0/Library.dll'], 'Library/bin/Release/net10.0/Library.dll')
+        self.assertEqual(variants[0]['DependencyCopies']['bin/Release/net11.0/Library.dll'], 'Library/bin/Release/net11.0/Library.dll')
         for destination, source in [('../outside/Library.dll', source),
-                                    ('bin/Release/net10.0/Library.dll', 'bin/Release/net10.0/App.dll'),
-                                    ('bin/Release/net10.0/Library.dll', 'Library/bin/Release/net10.0/Library.pdb'),
-                                    ('unowned/Library.dll', 'Library/bin/Release/net10.0/Library.dll')]:
+                                    ('bin/Release/net11.0/Library.dll', 'bin/Release/net11.0/App.dll'),
+                                    ('bin/Release/net11.0/Library.dll', 'Library/bin/Release/net11.0/Library.pdb'),
+                                    ('unowned/Library.dll', 'Library/bin/Release/net11.0/Library.dll')]:
             with self.subTest(destination=destination, source=source):
                 binding['dependencyCopies'] = {destination: source}
                 self.sync(mapping, success=False)
@@ -735,7 +735,7 @@ class GraphSyncTests(unittest.TestCase):
     def test_resolved_compiler_inputs_use_private_qualification_build(self):
         library = self.root / 'Library'
         library.mkdir()
-        (library / 'Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')
+        (library / 'Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup></Project>')
         (library / 'Code.cs').write_text('public class Library {}')
         (self.root / 'App.csproj').write_text(self.project.replace('</Project>', '<ItemGroup><Compile Remove="Library/**/*.cs" /><ProjectReference Include="Library/Library.csproj" /></ItemGroup></Project>'))
         (self.root / 'Program.cs').write_text('System.Console.WriteLine(new Library());')
@@ -746,8 +746,8 @@ class GraphSyncTests(unittest.TestCase):
         self.assertEqual(contract['Version'], 10)
         app = contract['Projects']['App.csproj']['Configurations'][0]
         self.assertTrue(app['CompilerReferencesComplete'])
-        self.assertEqual(app['CompilerReferences'], {'Library/Library.csproj': 'Library/obj/Release/net10.0/ref/Library.dll'})
-        self.assertEqual(app['DependencyCopies']['bin/Release/net10.0/Library.dll'], 'Library/bin/Release/net10.0/Library.dll')
+        self.assertEqual(app['CompilerReferences'], {'Library/Library.csproj': 'Library/obj/Release/net11.0/ref/Library.dll'})
+        self.assertEqual(app['DependencyCopies']['bin/Release/net11.0/Library.dll'], 'Library/bin/Release/net11.0/Library.dll')
         self.assertFalse((self.root / 'bin').exists())
         self.assertFalse((library / 'obj').exists())
         self.sync(flags=flags + ['--check'])
@@ -763,7 +763,7 @@ class GraphSyncTests(unittest.TestCase):
             directory.mkdir()
             reference = '<ItemGroup><ProjectReference Include="../C/C.csproj" /></ItemGroup>' if dependency else ''
             (directory / (name + '.csproj')).write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
-                '<TargetFramework>net10.0</TargetFramework><GenerateDocumentationFile>true</GenerateDocumentationFile>'
+                '<TargetFramework>net11.0</TargetFramework><GenerateDocumentationFile>true</GenerateDocumentationFile>'
                 '<ProduceReferenceAssembly>false</ProduceReferenceAssembly></PropertyGroup>' + reference + '</Project>')
             (directory / 'Code.cs').write_text('public static class ' + name + ' { public static int Value() => 1; }')
         (self.root / 'App.csproj').write_text(self.project.replace('</Project>',
@@ -921,7 +921,7 @@ class GraphSyncTests(unittest.TestCase):
 
     @unittest.skipUnless(os.path.isfile("/usr/bin/bwrap"), "Linux qualification sandbox required")
     def test_qualification_restore_cache_keeps_package_sdk_resolution(self):
-        (self.root / 'global.json').write_text(json.dumps({'sdk': {'version': '10.0.400'},
+        (self.root / 'global.json').write_text(json.dumps({'sdk': {'version': '11.0.100'},
             'msbuild-sdks': {'Microsoft.DotNet.Arcade.Sdk': '1.0.0'}}))
         (self.root / 'App.csproj').write_text(self.project.replace('<PropertyGroup>',
             '<Import Project="Sdk.props" Sdk="Microsoft.DotNet.Arcade.Sdk" /><PropertyGroup>', 1))
@@ -957,18 +957,18 @@ class GraphSyncTests(unittest.TestCase):
             directory = self.root / name
             directory.mkdir()
             (directory / (name + '.csproj')).write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
-                '<TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')
+                '<TargetFramework>net11.0</TargetFramework></PropertyGroup></Project>')
             (directory / 'Code.cs').write_text('public class ' + name + ' {}')
         (self.root / 'App.csproj').write_text(self.project.replace('</Project>', '<ItemGroup>'
             '<Compile Remove="A/**;B/**;D/**" /><ProjectReference Include="B/B.csproj" /></ItemGroup></Project>'))
         target = ('<Project><Target Name="SharedProduct" AfterTargets="Build" Condition="&apos;$(MSBuildProjectName)&apos; == &apos;B&apos;">'
-            '<MakeDir Directories="$(MSBuildThisFileDirectory)A/bin/Release/net10.0" />'
-            '<WriteLinesToFile File="$(MSBuildThisFileDirectory)A/bin/Release/net10.0/shared.txt" Lines="shared" Overwrite="true" />'
+            '<MakeDir Directories="$(MSBuildThisFileDirectory)A/bin/Release/net11.0" />'
+            '<WriteLinesToFile File="$(MSBuildThisFileDirectory)A/bin/Release/net11.0/shared.txt" Lines="shared" Overwrite="true" />'
             '</Target></Project>')
         (self.root / 'Directory.Build.targets').write_text(target)
         mapping = {'projectDefaults': {'referenceBoundary': True, 'documents': {'Directory.Build.targets': {
             'sha256': hashlib.sha256(target.encode()).hexdigest(), 'targets': ['SharedProduct'], 'tasks': [], 'inputs': []}}},
-            'projects': {'B/B.csproj': {'outputFiles': ['A/bin/Release/net10.0/shared.txt']}}}
+            'projects': {'B/B.csproj': {'outputFiles': ['A/bin/Release/net11.0/shared.txt']}}}
         with tempfile.TemporaryDirectory(prefix='qualification-overlap-') as directory:
             for warm in [False, True]:
                 output = self.sync(mapping, flags=['A/A.csproj', 'D/D.csproj', '--package-build', '--resolve-references', '--qualification-cache', directory])
@@ -1010,7 +1010,7 @@ class GraphSyncTests(unittest.TestCase):
             directory = self.root / name
             directory.mkdir()
             (directory / (name + '.csproj')).write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
-                '<TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks>' + properties + '</PropertyGroup></Project>')
+                '<TargetFrameworks>net11.0;net11.0-windows</TargetFrameworks>' + properties + '</PropertyGroup></Project>')
             (directory / 'Code.cs').write_text('/// <summary>Public dependency.</summary>\npublic class ' + name + ' {}')
             references.append('<ProjectReference Include="' + name + '/' + name + '.csproj" />')
         (self.root / 'App.csproj').write_text(self.project.replace('</Project>',
@@ -1025,10 +1025,10 @@ class GraphSyncTests(unittest.TestCase):
             expected = actual
         selected = json.loads(actual[0])['Projects']['App.csproj']['Configurations'][0]
         self.assertEqual(selected['CompilerReferences'], {
-            'First/First.csproj': 'First/bin/Release/net10.0/First.dll',
-            'Second/Second.csproj': 'Second/obj/Release/net10.0/ref/Second.dll'})
-        self.assertEqual(selected['DependencyCopies']['bin/Release/net10.0/Second.xml'],
-            'Second/bin/Release/net10.0/Second.xml')
+            'First/First.csproj': 'First/bin/Release/net11.0/First.dll',
+            'Second/Second.csproj': 'Second/obj/Release/net11.0/ref/Second.dll'})
+        self.assertEqual(selected['DependencyCopies']['bin/Release/net11.0/Second.xml'],
+            'Second/bin/Release/net11.0/Second.xml')
         self.assertFalse((self.root / 'bin').exists())
         self.assertFalse((self.root / 'First/obj').exists())
         if os.path.isfile('/usr/bin/bwrap'):
@@ -1044,7 +1044,7 @@ class GraphSyncTests(unittest.TestCase):
             directory = self.root / name
             directory.mkdir()
             reference = '<ItemGroup><ProjectReference Include="../Library/Library.csproj" /></ItemGroup>' if name == 'Peer' else ''
-            (directory / (name + '.csproj')).write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>' + reference + '</Project>')
+            (directory / (name + '.csproj')).write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup>' + reference + '</Project>')
             (directory / 'Code.cs').write_text('public class ' + name + ' {}')
         (self.root / 'App.csproj').write_text(self.project.replace('</Project>',
             '<ItemGroup><Compile Remove="Library/**/*.cs;Peer/**/*.cs" /><ProjectReference Include="Library/Library.csproj" /></ItemGroup></Project>'))
@@ -1064,7 +1064,7 @@ class GraphSyncTests(unittest.TestCase):
         contract = json.loads((self.root / 'graph.generated.json').read_text())
         for project in ['App.csproj', 'Peer/Peer.csproj']:
             self.assertEqual(contract['Projects'][project]['Configurations'][0]['CompilerReferences'],
-                {'Library/Library.csproj': 'Library/obj/Release/net10.0/ref/Library.dll'})
+                {'Library/Library.csproj': 'Library/obj/Release/net11.0/ref/Library.dll'})
         self.sync(mapping, flags=flags + ['--check'])
         self.assertFalse((self.root / 'obj').exists())
         self.assertFalse((self.root / 'Library/obj').exists())
@@ -1072,10 +1072,10 @@ class GraphSyncTests(unittest.TestCase):
     def test_multiple_restore_roots_keep_properties_and_fail_atomically(self):
         peer = self.root / 'Peer'
         peer.mkdir()
-        (peer / 'Peer.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks></PropertyGroup></Project>')
+        (peer / 'Peer.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFrameworks>net11.0;net11.0-windows</TargetFrameworks></PropertyGroup></Project>')
         (peer / 'Code.cs').write_text('public class Peer {}')
         (self.root / 'App.csproj').write_text(self.project.replace('</Project>', '<ItemGroup><Compile Remove="Peer/**" /></ItemGroup></Project>'))
-        (self.root / 'packages.lock.json').write_text('{"version":1,"dependencies":{"net10.0":{}}}')
+        (self.root / 'packages.lock.json').write_text('{"version":1,"dependencies":{"net11.0":{}}}')
         targets = ('<Project><Target Name="CheckRestoreProperties" BeforeTargets="Restore">'
             '<Error Condition="\'$(RoundTrip)\' != \'a;b,c%z\'" Text="Lost property escaping" />'
             '<Error Condition="\'$(MSBuildProjectName)\' == \'Peer\' and \'$(RootOnly)\' != \'peer\'" Text="Lost root override" />'
@@ -1090,7 +1090,7 @@ class GraphSyncTests(unittest.TestCase):
             'documents': {'Directory.Build.targets': {'sha256': hashlib.sha256(targets.encode()).hexdigest(),
                 'targets': ['CheckRestoreProperties'], 'tasks': [], 'inputs': []}}},
             'entryProperties': {'Peer/Peer.csproj': {'RootOnly': 'peer'}}}
-        flags = ['Peer/Peer.csproj', '--package-build', '--framework', 'net10.0', '--resolve-references']
+        flags = ['Peer/Peer.csproj', '--package-build', '--framework', 'net11.0', '--resolve-references']
         self.sync(mapping, flags=flags)
         generated = {name: (self.root / name).read_bytes() for name in ['graph.generated.json', 'graph.generated.bzl']}
         self.sync(mapping, flags=flags + ['--check'])
@@ -1103,24 +1103,24 @@ class GraphSyncTests(unittest.TestCase):
     def test_resolved_compiler_inputs_reject_conflicting_manual_selection(self):
         library = self.root / 'Library'
         library.mkdir()
-        (library / 'Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')
+        (library / 'Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup></Project>')
         (library / 'Code.cs').write_text('public class Library {}')
         (self.root / 'App.csproj').write_text(self.project.replace('</Project>', '<ItemGroup><Compile Remove="Library/**/*.cs" /><ProjectReference Include="Library/Library.csproj" /></ItemGroup></Project>'))
         (self.root / 'Program.cs').write_text('System.Console.WriteLine(new Library());')
-        mapping = {'projects': {'App.csproj': {'referenceBoundary': True, 'compilerReferences': {'Library/Library.csproj': 'Library/bin/Release/net10.0/Library.dll'}}}}
+        mapping = {'projects': {'App.csproj': {'referenceBoundary': True, 'compilerReferences': {'Library/Library.csproj': 'Library/bin/Release/net11.0/Library.dll'}}}}
         self.assertIn('differ from SDK selection', self.sync(mapping, flags=['--package-build', '--resolve-references'], success=False))
 
     def test_resolved_compiler_inputs_select_multi_target_configuration(self):
         library = self.root / 'Library'
         library.mkdir()
-        (library / 'Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFrameworks>net10.0-windows;net10.0</TargetFrameworks></PropertyGroup></Project>')
+        (library / 'Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFrameworks>net11.0-windows;net11.0</TargetFrameworks></PropertyGroup></Project>')
         (library / 'Code.cs').write_text('public class Library {}')
         (self.root / 'App.csproj').write_text(self.project.replace('</Project>', '<ItemGroup><Compile Remove="Library/**/*.cs" /><ProjectReference Include="Library/Library.csproj" /></ItemGroup></Project>'))
         (self.root / 'Program.cs').write_text('System.Console.WriteLine(new Library());')
         self.sync(flags=['--package-build', '--resolve-references'])
         contract = json.loads((self.root / 'graph.generated.json').read_text())
         app = contract['Projects']['App.csproj']['Configurations'][0]
-        self.assertEqual(app['CompilerReferences'], {'Library/Library.csproj': 'Library/obj/Release/net10.0/ref/Library.dll'})
+        self.assertEqual(app['CompilerReferences'], {'Library/Library.csproj': 'Library/obj/Release/net11.0/ref/Library.dll'})
         self.assertEqual(len(contract['Projects']['Library/Library.csproj']['Configurations']), 3)
 
     def test_qualification_rejects_input_mutation_without_touching_sources(self):
@@ -1146,15 +1146,15 @@ class GraphSyncTests(unittest.TestCase):
         self.addCleanup(hidden.cleanup)
         source = Path(hidden.name)
         (source / 'empty').mkdir()
-        (source / 'Hidden.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')
+        (source / 'Hidden.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup></Project>')
         (source / 'Code.cs').write_text('public class Hidden {}')
         built = subprocess.run([str(SDK / 'dotnet'), 'build', str(source / 'Hidden.csproj'), '-c', 'Release', '-p:UseSharedCompilation=false', '-p:NuGetAudit=false', '-p:RestoreSources=' + str(source / 'empty')], capture_output=True, text=True)
         self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
         library = self.root / 'Library'
         library.mkdir()
-        (library / 'Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')
+        (library / 'Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup></Project>')
         (library / 'Code.cs').write_text('public class Library {}')
-        shutil.copyfile(source / 'bin/Release/net10.0/Hidden.dll', library / 'Hidden.dll')
+        shutil.copyfile(source / 'bin/Release/net11.0/Hidden.dll', library / 'Hidden.dll')
         project = self.project.replace('</Project>', '<ItemGroup><Compile Remove="Library/**/*.cs" /><None Remove="Library/**" /><ProjectReference Include="Library/Library.csproj" /></ItemGroup><Target Name="InjectHidden" BeforeTargets="FindReferenceAssembliesForReferences"><ItemGroup><ReferencePath Include="Library/Hidden.dll"><Aliases>hidden</Aliases></ReferencePath></ItemGroup></Target></Project>')
         (self.root / 'App.csproj').write_text(project)
         mapping = {'projectDefaults': {'referenceBoundary': True}, 'projects': {'App.csproj': {'documents': {'App.csproj': {'sha256': hashlib.sha256(project.encode()).hexdigest(), 'targets': ['InjectHidden'], 'tasks': [], 'inputs': []}}}}}
@@ -1166,18 +1166,18 @@ class GraphSyncTests(unittest.TestCase):
         for name in ['First', 'Second']:
             directory = self.root / name
             directory.mkdir()
-            (directory / (name + '.csproj')).write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><AssemblyName>Shared</AssemblyName></PropertyGroup></Project>')
+            (directory / (name + '.csproj')).write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework><AssemblyName>Shared</AssemblyName></PropertyGroup></Project>')
             (directory / 'Code.cs').write_text('public class ' + name + ' {}')
         references = ''.join('<ProjectReference Include="' + name + '/' + name + '.csproj" />' for name in ['First', 'Second'])
         (self.root / 'App.csproj').write_text(self.project.replace('</Project>', '<ItemGroup>' + references + '</ItemGroup></Project>'))
         mapping = {'projects': {'App.csproj': {'referenceBoundary': True}}}
         self.assertIn('Ambiguous graph dependency copy', self.sync(mapping, success=False))
         mapping['projects']['App.csproj']['dependencyCopies'] = {
-            'bin/$(Configuration)/net10.0/' + destination + 'Shared.' + extension: 'First/bin/$(Configuration)/net10.0/Shared.' + extension
+            'bin/$(Configuration)/net11.0/' + destination + 'Shared.' + extension: 'First/bin/$(Configuration)/net11.0/Shared.' + extension
             for destination in ['', 'publish/'] for extension in ['dll', 'pdb', 'xml']}
         self.sync(mapping)
         variant = json.loads((self.root / 'graph.generated.json').read_text())['Projects']['App.csproj']['Configurations'][0]
-        self.assertEqual(set(variant['DependencyCopies'].values()), {'First/bin/Release/net10.0/Shared.' + extension for extension in ['dll', 'pdb', 'xml']})
+        self.assertEqual(set(variant['DependencyCopies'].values()), {'First/bin/Release/net11.0/Shared.' + extension for extension in ['dll', 'pdb', 'xml']})
 
 
 if __name__ == "__main__":
