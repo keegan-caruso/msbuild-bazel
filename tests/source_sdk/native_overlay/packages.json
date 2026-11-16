@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "packages": [
+    {
+      "name": "cpio",
+      "version": "2.15+dfsg-2.1ubuntu0.1",
+      "architecture": "arm64",
+      "sha256": "2d73dad1a6f264096ad1c5e12245274d3a129c1cc5d1852b0dc8b256fcfe7f53"
+    },
+    {
+      "name": "file",
+      "version": "1:5.46-5build2",
+      "architecture": "arm64",
+      "sha256": "a7b8d193389275b5d4bafe35f3c1312c54767e9cddabaa309d9cb68c2f3ebc97"
+    },
+    {
+      "name": "gettext-base",
+      "version": "0.23.2-1",
+      "architecture": "arm64",
+      "sha256": "513c94e640b4a2a8bceeba66e902f79d6a15b771fe4216213902ed714be3f099"
+    },
+    {
+      "name": "gettext",
+      "version": "0.23.2-1",
+      "architecture": "arm64",
+      "sha256": "58ec45fd6a70e3980f84fa388111229023c8463bde75b37aa4a3d3145c49b086"
+    },
+    {
+      "name": "libbrotli-dev",
+      "version": "1.2.0-3ubuntu0.1",
+      "architecture": "arm64",
+      "sha256": "f5f86517deeb5e21037a2c9cf27edc31fc0b8dfba2e13013281efd9b2ff18c0f"
+    },
+    {
+      "name": "liblldb-18-dev",
+      "version": "1:18.1.8-20ubuntu8",
+      "architecture": "arm64",
+      "sha256": "01dd73eb3d0d0f99e6e683e4e9c9fcdbd9d01d810a9c7d704a6da61bcc49ee05"
+    },
+    {
+      "name": "liblldb-18",
+      "version": "1:18.1.8-20ubuntu8",
+      "architecture": "arm64",
+      "sha256": "b5e146b0c48d2d58b6b4b3a704cdcd17b083c30038bdf2e8daf0049a0dfb8838"
+    },
+    {
+      "name": "libmagic-mgc",
+      "version": "1:5.46-5build2",
+      "architecture": "arm64",
+      "sha256": "6cf1a96a2616f85ffbb4085042cf376955dc29931463607a9349f50a4896d179"
+    },
+    {
+      "name": "libmagic1t64",
+      "version": "1:5.46-5build2",
+      "architecture": "arm64",
+      "sha256": "2723d2908ae17c08cefa545c2266bbb958a85095c56a933e1140ed370b30e438"
+    },
+    {
+      "name": "libncurses6",
+      "version": "6.6+20251231-1",
+      "architecture": "arm64",
+      "sha256": "bfd06b2b37cde0c1eec67b834b057253e256a032571be549afc58c7c4909ff0c"
+    },
+    {
+      "name": "libpython3.14",
+      "version": "3.14.4-1ubuntu0.2",
+      "architecture": "arm64",
+      "sha256": "a449408c4497f010bda98928d31e00d133fff5be22832d0551c521b3d4de4842"
+    },
+    {
+      "name": "lldb-18",
+      "version": "1:18.1.8-20ubuntu8",
+      "architecture": "arm64",
+      "sha256": "16421c24d497d42d9ff7d69456e7f41dea065ebc16c24d810396edc75ad38ce5"
+    },
+    {
+      "name": "locales",
+      "version": "2.43-2ubuntu2.7",
+      "architecture": "all",
+      "sha256": "0526da2cefd0cb496155110fe8d4e0f2add71b4e6d0f5682da3b7c8a8930e746"
+    },
+    {
+      "name": "pigz",
+      "version": "2.8-1build1",
+      "architecture": "arm64",
+      "sha256": "fed6a8021d6556d2365632dea0f75a2e76f9a8f5bd81bf7e799fca600b278364"
+    },
+    {
+      "name": "python-is-python3",
+      "version": "3.13.3-1+build1",
+      "architecture": "all",
+      "sha256": "733e1cc5816c66e0abc0b5adab1ffa7acb29cae3a87ae8d4f2f8f50c2b5127d2"
+    },
+    {
+      "name": "python3-lldb-18",
+      "version": "1:18.1.8-20ubuntu8",
+      "architecture": "arm64",
+      "sha256": "103a07f99ea756e6e980edf4590735610959c8ec21fcfd581e7515dcb46d1ed7"
+    },
+    {
+      "name": "time",
+      "version": "1.9-0.4",
+      "architecture": "arm64",
+      "sha256": "42b28fb94531e6386036b52b879c386952c3156746f6e62551ef5817548b0959"
+    }
+  ]
+}

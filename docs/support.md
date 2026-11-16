@@ -681,6 +681,8 @@ Core/ASP.NET runtimes **10.0.0**. Its controller remains SDK 10.0.400; the upstr
 bootstrap SDK and source-built bootstrap artifacts are declared inputs. The
 captured native root matches its sealed-root preflight, and actual C/C++ compiler
 logs select LLVM 18. This is qualification tooling, not a general SDK source rule.
+The [native prerequisite overlay and sealed-root probe](../tests/source_sdk/native_overlay/README.md)
+record the Ubuntu 26 / LLVM 18 package identities and observed root hash.
 
 After stopping the producer, a fresh read-only consumer recovered the complete
 `SourceSdkBuild`, SDK layouts and graph actions from HTTP with the same SDK archive
