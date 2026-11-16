@@ -33,7 +33,7 @@ def main():
         if result.returncode:
             raise SystemExit(f"{name} failed: {args.directory / (name + '.log')}")
         print(f"PASS {name}", flush=True)
-    for name, target in [("quickstart", "//tests/integration:quickstart")] + ([("workers", "//tests/integration:workers"), ("evaluation_worker", "//tests/integration:evaluation_worker")] if args.linux_workers else []):
+    for name, target in [("quickstart", "//tests/integration:quickstart")] + ([("workers", "//tests/integration:workers"), ("evaluation_worker", "//tests/integration:evaluation_worker"), ("worker_defaults", "//tests/integration:worker_defaults")] if args.linux_workers else []):
         with (args.directory / (name + ".log")).open("w") as log:
             result = subprocess.run(["bash", str(ROOT / "scripts/bazel.sh"), "test", target, "--test_output=errors"], cwd=ROOT, env=os.environ, stdout=log, stderr=subprocess.STDOUT)
         if result.returncode:

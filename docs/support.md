@@ -6,7 +6,7 @@ Current baseline: SDK **10.0.400**, Bazel **9.3.2** only. Bazel 8.x is no longer
 records that selection and rejects resume with a different version. Historical
 qualification and timing pins below describe their original runs, not 9.3.2
 qualification. The release gates in [the work queue](../WORK_QUEUE.md) track current
-requalification; current Linux worker and source-runtime checks remain pending.
+remaining SDK and platform requalification; each result below retains its recorded scope.
 
 Inputs, packages, tool layouts, generated files and output ownership must be explicit. Sync does not trace arbitrary task reads or acquire
 missing packages.
@@ -889,6 +889,39 @@ a fresh snapshot through the shared HTTPS service; payload SHA256 matched. This
 cross-host check uses a synthetic snapshot, not a whole graph or Linux workers.
 Linux qualification remains pending the new build server.
 
+## Linux worker qualification
+
+Ubuntu 26.04 ARM64, SDK **10.0.400** and Bazel **9.3.2** pass the cached and
+zero-budget worker fixtures plus retained evaluation: actual Build/Publish byte
+parity, body/API edits, failed compilation and clean retries. Forced worker tests
+passed **2/2** (105.1 / 104.4 seconds); retained evaluation passed in **75.8 seconds**.
+The fixture checks the exact private worker HOME/application-data layout and
+per-project working directory, with a positive proof that the worker branch ran.
+
+Actual Linux process controls pass bounded noisy output, active deadlines,
+cancellation, descendant cleanup and retained-protocol rejection. The real broker
+also passes live cancellation, failed-output publication isolation, fresh retries,
+private-input exclusion, idle-crash lease reclamation and normal-exit cleanup. Its
+controlled child replaces MSBuild; this does not qualify cancellation initiated by
+Bazel during every staging/publication phase. Synchronous filesystem operations
+remain noninterruptible. Publication-queue controls verify bounded concurrency and
+draining after capture/publication failures separately.
+
+`//tests/integration:worker_defaults` passes in **62.2 seconds**: an unforced Build
+uses the actual Bazel worker runner on the qualified execution platform, then a body
+edit reuses two projects and recompiles one. Target-only declarations, explicit
+worker/stable-path opt-outs and ordinary Restore/Pack/Publish remain non-worker;
+explicit worker Publish remains selectable. Existing generated wrappers need a sync
+rerun to adopt [automatic defaults](api.md#caching-and-workers).
+
+These are small correctness controls with a four-CPU/six-GiB guest, two Bazel jobs,
+one local test and one worker. The qualification copy explicitly applies those
+nested resource limits; test expectations are unchanged. SDK 11 worker qualification
+is pending, and this ARM64 evidence does not qualify x64, macOS workers or RBE.
+Run the portable and broker controls via
+`python3 tests/graph_build/acceptance.py OUTPUT --linux-workers` after building the
+runner in the qualified ARM64 environment.
+
 ## Bounded native regression controls
 
 Project-cache payload transfers use 64 KiB buffers and one transfer budget per
@@ -909,7 +942,8 @@ request. These bounds apply to child execution and diagnostics, not the complete
 staging/publication lifecycle; synchronous filesystem operations are not immediately
 interruptible. Native fake-child controls cover noisy/hung/failed children,
 descendant cleanup, cancellation, protocol rejection and fresh retries. Actual
-Linux/Bazel sandbox cancellation remains deferred under the worker release gate.
+Linux broker cancellation is qualified above; cancellation initiated by Bazel
+across the complete sandbox lifecycle remains unqualified.
 
 Qualification shares raw content/mode observations within each before/after-Build
 verification phase, preserving both existing digest encodings. It never reuses
