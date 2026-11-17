@@ -53,7 +53,8 @@ is recorded in results and does not perform that check. The closure helper
 rewrites its rules override to `../rules`, so the workspace and frozen rules
 checkout must be siblings as shown, or that override must be independently
 validated against the supplied rules checkout. Results and output base must be
-fresh and outside the workspace. The harness checks reviewed edit inputs against the closure manifest, the existing
+fresh and outside the workspace. The harness reads runtime test evidence from Bazel local-file output entries or an
+undeclared-outputs ZIP. The harness checks reviewed edit inputs against the closure manifest, the existing
 qualification exemption, independent baseline binary hashes, forced tests,
 source implementation/reference hashes and stable worker identities. It restores
 edited files and their original modes/timestamps after the run. Its summary and
