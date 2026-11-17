@@ -67,14 +67,44 @@ def brokers(base):
 
 
 def runtime_proof(records, destination):
-    event = next(r for r in records if r.get('id', {}).get('testResult', {}).get('label') == '//:runtime_test')
-    output = next(o for o in event['testResult']['testActionOutput'] if o['name'].endswith('outputs.zip'))
-    uri = urlsplit(output['uri'])
-    assert uri.scheme == 'file' and uri.netloc in ['', 'localhost']
-    with zipfile.ZipFile(unquote(uri.path)) as z:
-        name = next(n for n in z.namelist() if n.rsplit('/', 1)[-1] == 'runtime.json')
-        proof = json.loads(z.read(name))
-        logs = {n: z.read(n).decode() for n in z.namelist() if n.endswith(('.launcher.log', '.sdk-absent.log', '.package-sdk-absent.log'))}
+    events = [r for r in records if r.get('id', {}).get('testResult', {}).get('label') == '//:runtime_test']
+    assert len(events) == 1
+    outputs = events[0]['testResult']['testActionOutput']
+    expected = ('runtime.json', 'runtime.launcher.log', 'runtime.sdk-absent.log',
+                'runtime.package-sdk-absent.log')
+
+    def local_file(entry):
+        uri = urlsplit(entry['uri'])
+        assert uri.scheme == 'file' and uri.netloc in ('', 'localhost') and not uri.query and not uri.fragment
+        path = Path(unquote(uri.path))
+        assert path.is_absolute() and '..' not in path.parts and not path.is_symlink() and path.is_file()
+        return path
+
+    archives = [o for o in outputs if o['name'].endswith('outputs.zip')]
+    direct = [o for o in outputs if o['name'] in {'test.outputs/' + name for name in expected}]
+    assert not (archives and direct), 'Ambiguous runtime outputs'
+    if archives:
+        assert len(archives) == 1
+        with zipfile.ZipFile(local_file(archives[0])) as archive:
+            contents = {}
+            for expected_name in expected:
+                matches = [name for name in archive.namelist() if name.rsplit('/', 1)[-1] == expected_name]
+                assert len(matches) == 1 and '..' not in Path(matches[0]).parts
+                contents[expected_name] = archive.read(matches[0])
+    else:
+        assert len(direct) == len(expected)
+        contents, parent = {}, None
+        for output in direct:
+            name = output['name'].removeprefix('test.outputs/')
+            assert name not in contents
+            path = local_file(output)
+            assert path.name == name and path.parent.name == 'test.outputs' and not path.parent.is_symlink()
+            assert parent is None or path.parent == parent
+            parent = path.parent
+            contents[name] = path.read_bytes()
+        assert set(contents) == set(expected)
+    proof = json.loads(contents['runtime.json'])
+    logs = {name: contents[name].decode() for name in expected[1:]}
     destination.write_text(json.dumps(proof, indent=2))
     assert proof['managed'] > 0 and proof['native'] > 0 and proof['sdkAbsentExecution'] and proof['packageVerified']
     assert len(logs) == 3
