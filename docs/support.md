@@ -278,6 +278,7 @@ SDK **11.0.100** / runtime **11.0.0** and Bazel **9.3.2** pass these checks:
 | Ubuntu 26.04 ARM64, four CPUs / 6 GiB | Owned checks including all 61 ProjectSync controls available at that revision, real broker lifetime/preparation, cached and uncached workers, evaluation worker, quickstart and automatic worker defaults. The default-worker body edit reuses two projects and compiles one. |
 | Ubuntu 26.04 AMD64 under Rosetta, four CPUs / 6 GiB | Fresh prebuilt toolchain image, public quickstart sync/check, app greeting and forced executable test. |
 | Native Ubuntu 26.04 x64, four CPUs / 6 GiB | Full owned gate without skips, nine broker/transfer/input controls, and stopped-seed fresh-output HTTP graph recovery with forced test execution and zero consumer PUTs. |
+| Ubuntu 26.04 ARM64 source producer, four CPUs / 12 GiB | Official source-to-app setup, managed compilation, runtime packaging, two forced tests and retained host launcher. The upstream product remains .NET 10; see [product qualification](#complete-source-runtime-product). |
 
 The Rosetta integration-test archive helper fails in GNU tar while following Bazel
 input symlinks (`Function not implemented`); it does not reach the test. The direct
@@ -870,8 +871,8 @@ For the generated net10 app, a newer bootstrap SDK selects its net10 targeting
 pack versions from its bundled SDK properties. The application graph declares
 only the matching packages from the verified NuGet lock and records their archive
 hashes in its contract. Portable controls cover selection, the SDK 10 no-package
-path and rejection of mismatched or ambiguous inputs; full SDK 11 source-runtime
-qualification remains a separate gate.
+path and rejection of mismatched or ambiguous inputs. The complete SDK 11
+bootstrap workflow also passes the product checks below.
 
 The [source-to-app workflow](../examples/source-runtime-app/README.md) acquires the
 pinned source and bootstrap SDK, updates packages, qualifies the graph, and builds
@@ -922,7 +923,28 @@ root reported Ubuntu 26.04, Clang 18.1.8 and GNU coreutils 9.7. Reproduce with
 This checks toolchain closure and compiler selection; the full runtime product
 requires the separately budgeted source-to-app workflow above.
 
-The full Ubuntu 26.04 ARM64 workflow passed on four CPUs / 8 GiB, SDK
+The official workflow with SDK **11.0.100** passes on Ubuntu 26.04 ARM64,
+four CPUs / **12 GiB**, Bazel **9.3.2** and Apple Container **1.7.1**
+(initializer **0.54.0**). It compiled the managed graph, assembled the runtime
+archive and actually executed both product tests. The retained host launcher also
+verified all 172 source-framework members. The exported archive contains 649
+verified file hashes/modes and has SHA256
+`aaecfc189f42d0793acc273199ad50d46aa873b765ad4d21741291df27bf3f3f`.
+Qualification and some build actions were recovered from cache; this is a complete
+product check, not a cold-build measurement. No guest OOM events occurred.
+
+With that producer stopped, a fresh consumer on a separate Mac passed the official
+read-only workflow. A second fresh output base recovered all three graph actions,
+Restore, all three native producers and native version generation from the remote
+cache. Toolchain package extraction was prepared separately; the runtime build
+then prohibited cache misses. Both product tests actually executed, all 649 file
+hashes/modes and the archive matched the producer, and the retained host launcher
+passed. Across the complete consumer and verification window, the unchanged cache
+server recorded 27,622 additional GETs and zero completed PUTs. These are correctness
+results, not a paired timing comparison. Both Apple hosts used Container 1.7.1
+and initializer 0.54.0.
+
+Earlier, the full Ubuntu 26.04 ARM64 workflow passed on four CPUs / 8 GiB, SDK
 **10.0.400** and Bazel **9.3.2**. It built CoreCLR/JIT, native libraries and the
 host with Clang **18.1.8**, then built the managed graph with **563 misses / zero
 project-cache hits**. Both `//:app_test` and `//:runtime_test` actually executed:
@@ -1169,8 +1191,10 @@ verification phase, preserving both existing digest encodings. It never reuses
 pre-Build observations after Build. A shared immutable multi-owner path index
 preserves distinct policies: qualification excludes ambiguous owners and their
 consumers; execution rejects overlapping outputs. Native sync/compiler-copy,
-mode/mutation and randomized ownership controls pass; Linux-only seeded-cache
-qualification remains unrun.
+mode/mutation and randomized ownership controls pass. Native Ubuntu 26.04 x64
+with SDK 11.0.100 also passes all 63 ProjectSync controls without skips, including
+seeded qualification reuse, SDK inventory preservation and overlapping-owner
+exclusion; see the [platform matrix](#sdk-11-platform-qualification).
 
 Runtime layout selection indexes tree members by selected ancestor prefixes,
 retaining nested selections and member ordering. Native Bazel 9.3.2 analysis and
@@ -1178,7 +1202,9 @@ graph-layout controls pass. Package extraction hashes into a private staged arch
 then uses that same handle for ZIP validation, extraction and retained archive bytes;
 a final source check precedes completion metadata. Native artifact controls cover
 locked/generated identities, tampering, traversal, validation markers and retained
-bytes. Neither change implies source-runtime or Linux qualification.
+bytes. The [platform matrix](#sdk-11-platform-qualification) records native Linux
+artifact controls separately; these small controls do not establish a full
+source-runtime product.
 
 Run the portable controls with the pinned SDK and fresh temporary fixtures:
 
