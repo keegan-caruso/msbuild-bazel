@@ -41,6 +41,36 @@ class RuntimeSourceTrialTests(unittest.TestCase):
             self.assertEqual(linked.read_bytes(), b'original')
             self.assertEqual(sorted(p.name for p in root.iterdir()), ['retained.cs', 'source.cs'])
 
+    def test_brokers_find_renamed_java_for_owned_base_only(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            proc = root/'proc'
+            proc.mkdir()
+            base = root/'owned-base'
+            base.mkdir()
+            other = root/'owned-base-other'
+            other.mkdir()
+            java = root/'java'
+            java.touch()
+            dotnet = root/'dotnet'
+            dotnet.touch()
+
+            def process(pid, parent, executable, cwd, args):
+                folder = proc/str(pid)
+                folder.mkdir()
+                (folder/'exe').symlink_to(executable)
+                (folder/'cwd').symlink_to(cwd)
+                (folder/'status').write_text('Name:\tfixture\nPPid:\t' + str(parent) + '\n')
+                (folder/'cmdline').write_bytes(b'\0'.join(os.fsencode(x) for x in args) + b'\0')
+
+            process(20, 1, java, root, ['bazel(workspace)', '--output_base='+str(base)])
+            process(21, 20, dotnet, base, ['dotnet', 'worker', '/tool/graph_runner.runner/GraphBuild.dll'])
+            process(22, 1, java, root, ['bazel(other)', '--output_base='+str(other)])
+            process(23, 22, dotnet, other, ['dotnet', 'worker', '/tool/graph_runner.runner/GraphBuild.dll'])
+            process(24, 1, dotnet, base, ['dotnet', 'worker', '/tool/graph_runner.runner/GraphBuild.dll'])
+            process(25, 20, dotnet, base, ['dotnet', 'worker', '/tool/driver_runner.runner/GraphBuild.dll'])
+            self.assertEqual(trials.brokers(base, proc), [21])
+
     def test_runtime_proof_reads_zip_and_direct_outputs(self):
         proof = {'managed': 2, 'native': 1, 'sdkAbsentExecution': True, 'packageVerified': True}
         files = {'runtime.json': json.dumps(proof), 'runtime.launcher.log': 'launcher',

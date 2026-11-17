@@ -8,6 +8,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import stat
@@ -39,16 +40,18 @@ def replace_input(path, data, attributes=None):
         temporary.unlink(missing_ok=True)
 
 
-def brokers(base):
+def brokers(base, proc_root=Path('/proc')):
     found, processes, servers = [], {}, set()
-    for process in Path('/proc').glob('[0-9]*'):
+    base_arg = re.compile(rb'(?:^|[=,:])' + re.escape(os.fsencode(base)) + rb'(?:$|/)')
+    for process in proc_root.glob('[0-9]*'):
         try:
             args = process.joinpath('cmdline').read_bytes().split(b'\0')
             cwd = process.joinpath('cwd').resolve(strict=True)
             parent = next(int(line.split()[1]) for line in process.joinpath('status').read_text().splitlines() if line.startswith('PPid:'))
             pid = int(process.name)
             processes[pid] = (parent, args)
-            if args and args[0].rsplit(b'/', 1)[-1] == b'java' and (cwd.is_relative_to(base) or any(str(base).encode() in arg for arg in args)):
+            executable = process.joinpath('exe').resolve(strict=True)
+            if executable.name == 'java' and (cwd.is_relative_to(base) or any(base_arg.search(arg) for arg in args)):
                 servers.add(pid)
         except (OSError, ValueError):
             continue
