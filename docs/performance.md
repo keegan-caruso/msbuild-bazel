@@ -876,6 +876,47 @@ interruption evidence and guest memory observations. No uninterrupted total or
 comparison with the historical HTTP-warm timings below is claimed. Source, SDK
 and native producer boundaries are in [support](support.md#complete-source-runtime-product).
 
+#### Complete-product Pipelines body edits
+
+A separate instrumented trial used the complete Ubuntu 26.04 ARM64 source
+runtime and app, SDK 11.0.100, Bazel 9.3.2, and the net10 source product at
+[rules revision `ae39665`](https://github.com/keegan-caruso/msbuild-bazel/tree/ae3966592cb1294d7f1af6f290ab91a8b5ab34e9).
+The Apple Container worker was configured for four CPUs and 12 GiB; the guest
+reported five online CPUs. A fresh input-only workspace and output base used
+seeded remote actions, remote project-cache read-only mode, and no Bazel uploads.
+The run used one build job, one local test job, and one worker instance per
+worker key; two broker processes remained stable across all cases. The separately
+measured baseline populated the local project cache; it is not a cold-cache
+measurement.
+
+| Phase | Wall time | Project-cache results |
+| --- | ---: | --- |
+| Baseline | 1,483.45 s | 0 hits / 563 misses |
+| Five body edits | p50 88.44 s; p95 100.65 s | 554 hits / 9 misses in every edit |
+
+The p95 is the maximum under nearest-rank calculation for five samples. Each
+case ran both app and runtime tests. Across the five edits, the source graph
+had five owner variants; the nine aggregate misses do not identify which
+variants missed. The broker processes and Pipelines reference DLL remained
+stable. Each edit produced a different implementation DLL, and both normal
+and SDK-absent executions loaded its verified hash. Native outputs and CoreLib
+remained unchanged. The private fixture adds a probe and baseline marker; these
+are not paired raw-MSBuild timings or a speedup comparison.
+
+At 0.5-second sampling, guest available memory reached a minimum of 4.89 GiB
+during the baseline and 6.99 GiB across the body edits; sampled cgroup memory
+events showed no OOM. At measured command boundaries, the owned workspace and
+output base occupied at most 7.80 GiB, excluding other guest and host storage.
+
+The manual [trial harness](../tests/graph_build/upstream/README.md) requires a
+qualified product and input-only closure, independently verified runtime-test
+oracle, and exact qualification mappings. This run used mappings SHA-256
+`cafe5a24781427a70d25e43d538969fadd21a5fe9e9047263b98ad9b23af01cf`
+and corrected harness SHA-256
+`40fe40321b73286914d830843f139fd6cf9468367bc5775294f181d99235e613`;
+the corrected harness is available in [PR #204](https://github.com/keegan-caruso/msbuild-bazel/pull/204). The production rules
+and trial harness are separate inputs.
+
 #### Historical Ubuntu 22.04 qualification
 
 One correctness run on Ubuntu 22.04 ARM64, four CPUs / 8 GiB, SDK 10.0.400 and
