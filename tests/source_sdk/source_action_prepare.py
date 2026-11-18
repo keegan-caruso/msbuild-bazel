@@ -94,6 +94,22 @@ def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False):
     ''') % ('system_bwrap=True,' if system_bwrap else '', configuration['cpu'], configuration['rid']))
 
 
+def build_script(architecture="arm64"):
+    platform_configuration(architecture)
+    return build_prefix(architecture) + '''
+    export DOTNET_PROCESSOR_COUNT=2 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_GENERATE_ASPNET_CERTIFICATE=false NuGetAudit=false
+    patch -p1 < identitymodel.patch
+    ./prep-source-build.sh --no-sdk --no-bootstrap --no-artifacts --no-prebuilts > preparation.log 2>&1 || { tail -100 preparation.log; exit 1; }
+    /usr/bin/time -v -o build.time ./build.sh -sb --clean-while-building --configuration Release --arch ''' + architecture + ''' --official-build-id 20251023.11 --branding rtm --source-repository https://github.com/dotnet/dotnet --source-version b0f34d51fccc69fd334253924abd8d6853fad7aa /p:BuildInParallel=false > build.log 2>&1 || { tail -120 build.log; grep -R -m2 "error NU" artifacts/log src/source-build-reference-packages/artifacts/log 2>/dev/null | head -40 || true; exit 1; }
+    mapfile -t archives < <(find artifacts/assets/Release/Sdk -name 'dotnet-sdk-*.tar.gz')
+    test "${#archives[@]}" = 1
+    mkdir result
+    cp "${archives[0]}" result/sdk.tar.gz
+    artifacts/obj/extracted-dotnet-sdk/dotnet --info > sdk-info.txt
+    tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf result.tar preparation.log build.log build.time sdk-info.txt artifacts/log
+    '''
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('source_archive', type=Path)
@@ -152,18 +168,7 @@ def main():
         archive.add(baseline / '.dotnet', arcname='.dotnet', filter=normalize)
         archive.add(bootstrap_archive, arcname='prereqs/packages/archive/Private.SourceBuilt.Artifacts.Bootstrap.tar.gz', filter=normalize)
 
-    script = build_prefix() + '''
-    export DOTNET_PROCESSOR_COUNT=2 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_GENERATE_ASPNET_CERTIFICATE=false NuGetAudit=false
-    patch -p1 < identitymodel.patch
-    ./prep-source-build.sh --no-sdk --no-bootstrap --no-artifacts --no-prebuilts > preparation.log 2>&1 || { tail -100 preparation.log; exit 1; }
-    /usr/bin/time -v -o build.time ./build.sh -sb --clean-while-building --configuration Release --arch ''' + a.architecture + ''' --official-build-id 20251023.11 --branding rtm --source-repository https://github.com/dotnet/dotnet --source-version b0f34d51fccc69fd334253924abd8d6853fad7aa /p:BuildInParallel=false > build.log 2>&1 || { tail -120 build.log; grep -R -m2 "error NU" artifacts/log src/source-build-reference-packages/artifacts/log 2>/dev/null | head -40 || true; exit 1; }
-    mapfile -t archives < <(find artifacts/assets/Release/Sdk -name 'dotnet-sdk-*.tar.gz')
-    test "${#archives[@]}" = 1
-    mkdir result
-    cp "${archives[0]}" result/sdk.tar.gz
-    artifacts/obj/extracted-dotnet-sdk/dotnet --info > sdk-info.txt
-    tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf result.tar preparation.log build.log build.time sdk-info.txt artifacts/log
-    '''
+    script = build_script(a.architecture)
     with tarfile.open(a.source_archive, 'r|gz') as original, tarfile.open(w / 'sources.tar', 'w') as archive:
         for entry in original:
             parts = entry.name.split('/', 1)

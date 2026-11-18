@@ -80,6 +80,14 @@ class SourceActionTemplatesTests(unittest.TestCase):
                 download(destination, pin)
             self.assertEqual(destination.read_bytes(), b'corrupt!')
 
+    def test_build_script_passes_selected_architecture_to_native_boundary(self):
+        for architecture in ['arm64', 'x64']:
+            with patch.object(source_action_prepare, 'build_prefix', return_value='# native boundary\n') as prefix:
+                script = source_action_prepare.build_script(architecture)
+                prefix.assert_called_once_with(architecture)
+                self.assertTrue(script.startswith('# native boundary\n'))
+                self.assertIn('--arch ' + architecture + ' --official-build-id', script)
+
     def test_arm64_default_template_bytes_are_unchanged(self):
         with tempfile.TemporaryDirectory() as temporary:
             workspace = Path(temporary)
