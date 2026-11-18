@@ -13,6 +13,7 @@ from source_runtime.common import read_recipe
 from source_runtime import native
 sys.path.insert(0, str(ROOT/'tests/graph_build/upstream'))
 from runtime_product_declarations import declare_product
+from runtime_product_test import sdk_absent_system_arguments
 
 
 class RuntimeArchitectureTests(unittest.TestCase):
@@ -38,6 +39,12 @@ class RuntimeArchitectureTests(unittest.TestCase):
             self.assertEqual(x64['projectDefaults']['properties']['TargetArchitecture'], 'x64')
             self.assertEqual(set(arm['projects']), set(x64['projects']))
             self.assertEqual(json.loads(json.dumps(arm).replace('arm64', 'x64')), x64)
+
+    def test_sdk_absent_namespace_keeps_x64_elf_interpreter_path(self):
+        arm = sdk_absent_system_arguments('linux-arm64')
+        x64 = sdk_absent_system_arguments('linux-x64')
+        self.assertNotIn('/lib64', arm)
+        self.assertEqual(x64, arm + ['--ro-bind', '/lib64', '/lib64'])
 
     def test_product_composition_rejects_mixed_architectures(self):
         with tempfile.TemporaryDirectory() as temporary:
