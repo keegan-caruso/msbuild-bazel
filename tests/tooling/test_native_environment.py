@@ -57,6 +57,18 @@ class NativeEnvironmentTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             load_catalog('amd64')
 
+    def test_sdk_native_catalog_preserves_overlay_and_transitive_version_pairs(self):
+        value = load_catalog('x64', sdk=True)
+        packages = {item['name']: item for item in value['packages']}
+        for name in ['cpio', 'file', 'gettext', 'libbrotli-dev', 'liblldb-18-dev',
+                     'lldb-18', 'locales', 'pigz', 'python-is-python3', 'time', 'curl', 'ca-certificates']:
+            self.assertIn(name, packages)
+        self.assertEqual(packages['libpython3.14']['version'], packages['libpython3.14-stdlib']['version'])
+        self.assertEqual(packages['locales']['version'], packages['libc6']['version'])
+        self.assertEqual(packages['libc6-dev']['version'], packages['libc6']['version'])
+        with self.assertRaises(ValueError):
+            load_catalog('arm64', sdk=True)
+
     def test_native_catalog_rejects_mixed_architecture_and_changed_identity(self):
         original = load_catalog('x64')
         for field, value in [('architecture', 'arm64'), ('sha256', 'invalid'),
@@ -72,7 +84,7 @@ class NativeEnvironmentTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 load_catalog('x64')
         aliases = (ROOT / 'tests/runtime/native_inputs.bzl').read_text()
-        self.assertIn('"lib64": "usr/lib64"', aliases)
+        self.assertIn('aliases["lib64"] = "usr/lib64"', aliases)
 
     def test_aliases_resolve_to_selected_family_without_default_compiler(self):
         aliases = (ROOT / 'tests/runtime/native_inputs.bzl').read_text()

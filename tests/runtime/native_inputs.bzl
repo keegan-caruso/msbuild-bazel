@@ -84,17 +84,49 @@ def native_inputs(name, commit, packages, architecture = "arm64"):
         stamp = 0,
     )
     if packages:
-        # Package maintainer scripts are not run; declare tzdata localtime as UTC.
-        msbuild_native_toolchain_packages(name = "tools", packages = packages, archive = True, exclude_prefixes = ["usr/share/locale", "usr/share/man", "usr/share/info", "usr/share/doc"], symlinks = {"etc/localtime": "usr/share/zoneinfo/Etc/UTC", "usr/bin/sh": "usr/bin/bash", "usr/bin/cc": "usr/bin/gcc", "usr/bin/c++": "usr/bin/g++", "usr/bin/awk": "usr/bin/mawk", "usr/bin/clang": "usr/bin/clang-18", "usr/bin/clang++": "usr/bin/clang++-18", "usr/bin/clang-cpp": "usr/bin/clang-cpp-18", "usr/bin/lld": "usr/bin/lld-18", "usr/bin/ld.lld": "usr/bin/ld.lld-18", "usr/bin/llvm-ar": "usr/bin/llvm-ar-18", "usr/bin/llvm-nm": "usr/bin/llvm-nm-18", "usr/bin/llvm-objcopy": "usr/bin/llvm-objcopy-18", "usr/bin/llvm-objdump": "usr/bin/llvm-objdump-18", "usr/bin/llvm-ranlib": "usr/bin/llvm-ranlib-18", "usr/bin/llvm-readelf": "usr/bin/llvm-readelf-18", "usr/bin/llvm-strip": "usr/bin/llvm-strip-18", "usr/bin/llvm-config": "usr/bin/llvm-config-18", "usr/bin/llvm-profdata": "usr/bin/llvm-profdata-18", "usr/sbin/rmt": "usr/sbin/rmt-tar"})
-        native.filegroup(name = "toolchain_files", srcs = [":tools"], output_group = "archive")
-        pkg_tar(
-            name = "toolchain",
-            deps = [":toolchain_files"],
-            symlinks = dict({"bin": "usr/bin", "lib": "usr/lib", "sbin": "usr/sbin"}, **({"lib64": "usr/lib64"} if architecture == "x64" else {})),
-            empty_dirs = ["source", "proc", "dev", "tmp"],
-            preserve_mode = True,
-            mtime = 0,
-            portable_mtime = False,
-            stamp = 0,
-        )
+        native_toolchain_inputs(name = "toolchain", packages = packages, architecture = architecture)
         native_sandbox(name = "bwrap", driver = ":driver", root = ":tools")
+
+def native_toolchain_inputs(name, packages, architecture = "arm64", sdk = False):
+    """Assemble a pinned compiler root without source/version generation.
+
+    Args:
+        name: Final toolchain archive target; companion targets use fixed names.
+        packages: Verified package labels mapped to SHA-256 hashes.
+        architecture: Native producer architecture, arm64 or x64.
+        sdk: Include deterministic SDK prerequisite setup.
+    """
+    if architecture not in ["arm64", "x64"]:
+        fail("Unsupported native runtime architecture: " + architecture)
+
+    # Package maintainer scripts are not run; declare tzdata localtime as UTC.
+    msbuild_native_toolchain_packages(name = "tools", packages = packages, archive = True, exclude_prefixes = ["usr/share/locale", "usr/share/man", "usr/share/info", "usr/share/doc"] + (["usr/lib/ssl/cert.pem"] if sdk else []), symlinks = {"etc/localtime": "usr/share/zoneinfo/Etc/UTC", "usr/bin/sh": "usr/bin/bash", "usr/bin/cc": "usr/bin/gcc", "usr/bin/c++": "usr/bin/g++", "usr/bin/awk": "usr/bin/mawk", "usr/bin/clang": "usr/bin/clang-18", "usr/bin/clang++": "usr/bin/clang++-18", "usr/bin/clang-cpp": "usr/bin/clang-cpp-18", "usr/bin/lld": "usr/bin/lld-18", "usr/bin/ld.lld": "usr/bin/ld.lld-18", "usr/bin/llvm-ar": "usr/bin/llvm-ar-18", "usr/bin/llvm-nm": "usr/bin/llvm-nm-18", "usr/bin/llvm-objcopy": "usr/bin/llvm-objcopy-18", "usr/bin/llvm-objdump": "usr/bin/llvm-objdump-18", "usr/bin/llvm-ranlib": "usr/bin/llvm-ranlib-18", "usr/bin/llvm-readelf": "usr/bin/llvm-readelf-18", "usr/bin/llvm-strip": "usr/bin/llvm-strip-18", "usr/bin/llvm-config": "usr/bin/llvm-config-18", "usr/bin/llvm-profdata": "usr/bin/llvm-profdata-18", "usr/sbin/rmt": "usr/sbin/rmt-tar"})
+    native.filegroup(name = "toolchain_files", srcs = [":tools"], output_group = "archive")
+    files = {}
+    if sdk:
+        # ca-certificates' postinst normally creates this concatenation. Inputs
+        # come only from the declared package root, sorted by certificate path.
+        native.genrule(
+            name = "certificate_bundle",
+            srcs = [":tools"],
+            outs = ["ca-certificates.crt"],
+            cmd = "find -L $(location :tools)/usr/share/ca-certificates -type f -name '*.crt' | LC_ALL=C sort | xargs cat > $@; test -s $@",
+        )
+        files[":certificate_bundle"] = "etc/ssl/certs/ca-certificates.crt"
+    aliases = {"bin": "usr/bin", "lib": "usr/lib", "sbin": "usr/sbin"}
+    if architecture == "x64":
+        aliases["lib64"] = "usr/lib64"
+    if sdk:
+        # OpenSSL's certificate alias is valid only after the bundle is added.
+        aliases["usr/lib/ssl/cert.pem"] = "../../../etc/ssl/certs/ca-certificates.crt"
+    pkg_tar(
+        name = name,
+        files = files,
+        deps = [":toolchain_files"],
+        symlinks = aliases,
+        empty_dirs = ["source", "proc", "dev", "tmp"],
+        preserve_mode = True,
+        mtime = 0,
+        portable_mtime = False,
+        stamp = 0,
+    )

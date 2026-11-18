@@ -9,10 +9,14 @@ LLVM_MAJOR = 18
 LLVM_VERSION = '18.1.8'
 
 
-def load_catalog(architecture='arm64'):
+def load_catalog(architecture='arm64', sdk=False):
     if architecture not in ('arm64', 'x64'):
         raise ValueError('Unsupported native runtime architecture: ' + architecture)
     filename = 'native-packages-x64.json' if architecture == 'x64' else 'native-packages.json'
+    if sdk:
+        if architecture != 'x64':
+            raise ValueError('Declared SDK package catalog currently requires x64')
+        filename = 'native-packages-sdk-x64.json'
     value = json.loads((Path(__file__).parent / filename).read_text())
     if value['platform'] != 'linux-' + architecture or value['distribution'] != 'ubuntu-26.04':
         raise ValueError('Native package catalog platform/distribution differs')
@@ -28,7 +32,12 @@ def load_catalog(architecture='arm64'):
             raise ValueError('Native package SHA-256 is invalid: ' + package['name'])
         if not package['url'].startswith('https://archive.ubuntu.com/ubuntu/pool/') or not package['url'].endswith('_' + package['architecture'] + '.deb'):
             raise ValueError('Native package URL is not the official Ubuntu archive')
-    for name in ('clang-18', 'lld-18', 'llvm-18', 'libclang-rt-18-dev'):
+    compiler_packages = ['clang-18', 'lld-18', 'llvm-18', 'libclang-rt-18-dev']
+    if sdk:
+        compiler_packages += ['lldb-18', 'liblldb-18', 'liblldb-18-dev', 'python3-lldb-18']
+    if not set(compiler_packages) <= set(names):
+        raise ValueError('Native package catalog omits selected LLVM tools')
+    for name in compiler_packages:
         if next(package for package in packages if package['name'] == name)['version'] != '1:18.1.8-20ubuntu8':
             raise ValueError('Native LLVM package pin differs: ' + name)
     return value
