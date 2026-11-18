@@ -69,11 +69,11 @@ def simulate_transaction(command, environment, allowed):
     validate_transaction(output, allowed)
 
 
-def validate_base(reference, release, architecture, clang_version):
+def validate_base(reference, release, architecture, clang_version, expected_architecture="arm64"):
     if not re.fullmatch(r'[^\s@]+@sha256:[0-9a-f]{64}', reference):
         raise ValueError('NATIVE_BASE must be an immutable image reference')
-    if release.get('ID') != 'ubuntu' or release.get('VERSION_ID') != '26.04' or architecture != 'arm64':
-        raise ValueError('Source SDK overlay requires Ubuntu 26.04 ARM64')
+    if release.get('ID') != 'ubuntu' or release.get('VERSION_ID') != '26.04' or architecture != expected_architecture or expected_architecture not in ('arm64', 'amd64'):
+        raise ValueError('Source SDK overlay requires Ubuntu 26.04 with the selected native architecture')
     if 'clang version 18.1.8' not in clang_version:
         raise ValueError('Source SDK overlay requires Clang 18.1.8')
 
@@ -83,12 +83,13 @@ def main():
         raise ValueError('Expected immutable NATIVE_BASE image reference')
     release = dict(line.split('=', 1) for line in Path('/etc/os-release').read_text().splitlines() if '=' in line)
     release = {key: value.strip('\"') for key, value in release.items()}
-    validate_base(sys.argv[1], release,
-                  subprocess.check_output(['dpkg', '--print-architecture'], text=True).strip(),
-                  subprocess.check_output(['clang-18', '--version'], text=True))
-    manifest = json.loads(MANIFEST.read_text())
+    architecture = subprocess.check_output(['dpkg', '--print-architecture'], text=True).strip()
+    manifest_path = MANIFEST if architecture == 'arm64' else MANIFEST.with_name('packages-' + architecture + '.json')
+    validate_base(sys.argv[1], release, architecture,
+                  subprocess.check_output(['clang-18', '--version'], text=True), architecture)
+    manifest = json.loads(manifest_path.read_text())
     packages = manifest['packages']
-    if manifest['version'] != 1 or len(packages) != 17:
+    if manifest['version'] != 1 or len(packages) != {'arm64': 17, 'amd64': 18}[architecture]:
         raise ValueError('Unexpected prerequisite manifest')
     names = [p['name'] for p in packages]
     if len(set(names)) != len(names):
@@ -96,7 +97,7 @@ def main():
     for p in packages:
         if (set(p) != {'name', 'version', 'architecture', 'sha256'} or
                 not re.fullmatch(r'[a-z0-9][a-z0-9+.-]*', p['name']) or
-                p['architecture'] not in ('arm64', 'all') or
+                p['architecture'] not in (architecture, 'all') or
                 not re.fullmatch(r'[0-9a-f]{64}', p['sha256'])):
             raise ValueError('Invalid prerequisite package metadata')
     os.environ['DEBIAN_FRONTEND'] = 'noninteractive'

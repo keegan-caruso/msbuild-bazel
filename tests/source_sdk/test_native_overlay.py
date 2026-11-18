@@ -27,6 +27,13 @@ class NativeOverlayTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 installer.validate_base(*args)
 
+    def test_x64_base_is_explicit_and_cannot_accept_arm64(self):
+        reference = 'local/base@sha256:' + 'a'*64
+        release = {'ID': 'ubuntu', 'VERSION_ID': '26.04'}
+        installer.validate_base(reference, release, 'amd64', 'clang version 18.1.8', 'amd64')
+        with self.assertRaises(ValueError):
+            installer.validate_base(reference, release, 'arm64', 'clang version 18.1.8', 'amd64')
+
     def test_archive_bytes_and_identity_must_both_match(self):
         with tempfile.TemporaryDirectory() as temporary:
             archive = Path(temporary)/'package.deb'
@@ -74,6 +81,20 @@ class NativeOverlayTests(unittest.TestCase):
             with self.assertRaises(subprocess.CalledProcessError):
                 installer.simulate_transaction(['apt-get', 'install'], {}, set())
         self.assertEqual(output.getvalue(), 'missing archive detail\n')
+
+    def test_x64_catalog_has_same_package_versions_and_native_architectures(self):
+        arm = json.loads(installer.MANIFEST.read_text())['packages']
+        amd = json.loads(installer.MANIFEST.with_name('packages-amd64.json').read_text())['packages']
+        self.assertEqual([(p['name'], p['version']) for p in arm],
+                         [(p['name'], p['version']) for p in amd if p['name'] != 'libipt2'])
+        self.assertEqual(len(amd), 18)
+        self.assertIn('libipt2', {p['name'] for p in amd})
+        self.assertTrue(all(p['architecture'] in ('amd64', 'all') for p in amd))
+        for left, right in zip(arm, amd):
+            if right['architecture'] == 'all':
+                self.assertEqual(left['sha256'], right['sha256'])
+            else:
+                self.assertNotEqual(left['sha256'], right['sha256'])
 
     def test_recorded_overlay_has_exact_unique_packages(self):
         manifest = json.loads(installer.MANIFEST.read_text())

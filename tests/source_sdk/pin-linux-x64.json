@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "platform": "linux-x64",
+  "bootstrapSdk": {
+    "url": "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.100-rc.2.25502.107/dotnet-sdk-10.0.100-rc.2.25502.107-linux-x64.tar.gz",
+    "sha256": "6ae8bf1826fe95ba66cce48296c9d66cb59d1d4c5c24063e07b0fce4ff38b7e6",
+    "bytes": 238718991
+  },
+  "controllerSdk": {
+    "url": "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.400/dotnet-sdk-10.0.400-linux-x64.tar.gz",
+    "sha256": "7ad9d2db01512e41fd580a0630321bb70cd062d7fe4c5badfb4ce81ec1eddbb8",
+    "bytes": 240133692,
+    "runtimeVersion": "10.0.11"
+  },
+  "previouslySourceBuiltArtifacts": {
+    "url": "https://builds.dotnet.microsoft.com/dotnet/source-build/Private.SourceBuilt.Artifacts.10.0.100-rc.2.25502.107.centos.10-x64.tar.gz",
+    "sha256": "e3a81803d77e47a81572096eaa26439259e67eab825b6fd676abd61524c7f5ee",
+    "bytes": 1414330752
+  },
+  "sourceRevision": "b0f34d51fccc69fd334253924abd8d6853fad7aa"
+}

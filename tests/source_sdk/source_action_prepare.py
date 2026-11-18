@@ -5,6 +5,7 @@ claim incremental component scheduling. Input archives retain separate source,
 bootstrap and native-tool identities.
 """
 import argparse
+import base64
 import io
 import json
 from pathlib import Path
@@ -34,7 +35,31 @@ def normalize(entry):
     return entry
 
 
-def write_bazel_files(w, rules):
+def platform_configuration(architecture):
+    platforms = {
+        "arm64": ("aarch64", "aarch64"),
+        "x64": ("x86_64", "x86_64"),
+    }
+    if architecture not in platforms:
+        raise ValueError("Unsupported source SDK architecture: " + architecture)
+    machine, cpu = platforms[architecture]
+    return {"architecture": architecture, "machine": machine, "cpu": cpu,
+            "rid": "linux-" + architecture}
+
+
+def validate_bootstrap_host(path, architecture):
+    # The .NET host must match the selected native producer, independently of version.
+    with path.open('rb') as stream:
+        header = stream.read(20)
+    platform_configuration(architecture)
+    expected = 183 if architecture == 'arm64' else 62
+    if (len(header) != 20 or header[:6] != b'\x7fELF\x02\x01' or
+            int.from_bytes(header[18:20], 'little') != expected):
+        raise ValueError('Bootstrap SDK host architecture mismatch')
+
+
+def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False):
+    configuration = platform_configuration(architecture)
     (w / 'MODULE.bazel').write_text(textwrap.dedent('''\
     module(name="source_sdk_action")
     bazel_dep(name="platforms",version="1.0.0")
@@ -60,19 +85,53 @@ def write_bazel_files(w, rules):
     msbuild_graph_test(name="smoke",graph=":graph",project="App.csproj")
     '''))
 
+    if architecture == "x64":
+        pin = json.loads(Path(__file__).with_name('pin-linux-x64.json').read_text())
+        controller = pin['controllerSdk']
+        integrity = 'sha256-' + base64.b64encode(bytes.fromhex(controller['sha256'])).decode()
+        module = w / 'MODULE.bazel'
+        module.write_text(module.read_text().replace(
+            'dotnet.sdk(name="controller",version="10.0.400",platforms=["linux-arm64"])',
+            'dotnet.sdk_archive(name="controller",version="10.0.400",runtime_version=' +
+            json.dumps(controller['runtimeVersion']) + ',platform="linux-x64",urls=[' +
+            json.dumps(controller['url']) + '],integrity=' + json.dumps(integrity) + ')'))
+    for name in ("MODULE.bazel", "BUILD.bazel"):
+        path = w / name
+        path.write_text(path.read_text().replace("linux-arm64", configuration["rid"])
+                        .replace("cpu:aarch64", "cpu:" + configuration["cpu"]))
+    if system_bwrap:
+        path = w / 'BUILD.bazel'
+        path.write_text(path.read_text().replace('source_sdk(name="sdk",',
+                                                'source_sdk(name="sdk",system_bwrap=True,'))
+
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('source_archive', type=Path)
     p.add_argument('prepared_baseline', type=Path)
     p.add_argument('directory', type=Path)
+    p.add_argument('--native-tools', type=Path)
+    p.add_argument('--native-tools-sha256')
+    p.add_argument('--sandbox', type=Path)
+    p.add_argument('--sandbox-sha256')
+    p.add_argument('--system-bwrap', action='store_true')
+    p.add_argument('--architecture', choices=['arm64', 'x64'], default='arm64')
     a = p.parse_args()
-    assert platform.system() == 'Linux' and platform.machine() == 'aarch64'
+    configuration = platform_configuration(a.architecture)
+    if platform.system() != 'Linux' or platform.machine() != configuration['machine']:
+        raise ValueError('Source SDK preparation requires native ' + configuration['rid'])
+    for path, expected, name in [(a.native_tools, a.native_tools_sha256, 'native tools'),
+                                 (a.sandbox, a.sandbox_sha256, 'sandbox')]:
+        if bool(path) != bool(expected) or (path and digest(path) != expected):
+            raise ValueError('Explicit ' + name + ' requires its matching SHA256')
+    if a.architecture == 'x64' and not (a.native_tools and a.sandbox):
+        raise ValueError('x64 preparation requires declared native tools and sandbox inputs')
     here = Path(__file__).resolve().parent
     rules = here.parents[1]
     pin = json.loads((here / 'pin.json').read_text())
     assert digest(a.source_archive) == pin['sourceArchive']['sha256']
     baseline = a.prepared_baseline.resolve()
+    validate_bootstrap_host(baseline / '.dotnet/dotnet', a.architecture)
     bootstrap_version = subprocess.check_output(
         [baseline / '.dotnet/dotnet', '--version'], cwd='/tmp', text=True).strip()
     if bootstrap_version != pin['bootstrapSdkVersion']:
@@ -81,15 +140,22 @@ def main():
     w.mkdir(parents=True, exist_ok=False)
 
 
-    with tarfile.open(w / 'native.tar', 'w') as archive:
-        for name in ['usr', 'bin', 'lib', 'sbin', 'etc/alternatives', 'etc/ld.so.conf',
-                     'etc/ld.so.conf.d', 'etc/ld.so.cache', 'etc/os-release', 'etc/ssl/certs', 'etc/ssl/openssl.cnf',
-                     'etc/passwd', 'etc/group', 'etc/nsswitch.conf']:
-            archive.add('/' + name, arcname=name, filter=normalize)
-        for name in ['source', 'proc', 'dev', 'tmp']:
-            entry = tarfile.TarInfo(name)
-            entry.type, entry.mode = tarfile.DIRTYPE, 0o755
-            archive.addfile(normalize(entry))
+    if a.native_tools:
+        shutil.copyfile(a.native_tools, w / 'native.tar')
+        if digest(w / 'native.tar') != a.native_tools_sha256:
+            raise ValueError('Native tools changed while staging')
+    else:
+        with tarfile.open(w / 'native.tar', 'w') as archive:
+            for name in ['usr', 'bin', 'lib', 'sbin', 'etc/alternatives', 'etc/ld.so.conf',
+                         'etc/ld.so.conf.d', 'etc/ld.so.cache', 'etc/os-release', 'etc/ssl/certs', 'etc/ssl/openssl.cnf',
+                         'etc/passwd', 'etc/group', 'etc/nsswitch.conf']:
+                archive.add('/' + name, arcname=name, filter=normalize)
+            if Path('/lib64').exists():
+                archive.add('/lib64', arcname='lib64', filter=normalize)
+            for name in ['source', 'proc', 'dev', 'tmp']:
+                entry = tarfile.TarInfo(name)
+                entry.type, entry.mode = tarfile.DIRTYPE, 0o755
+                archive.addfile(normalize(entry))
 
     bootstrap_archive = baseline / 'prereqs/packages/archive/Private.SourceBuilt.Artifacts.Bootstrap.tar.gz'
     assert bootstrap_archive.is_file()
@@ -109,6 +175,7 @@ def main():
     artifacts/obj/extracted-dotnet-sdk/dotnet --info > sdk-info.txt
     tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf result.tar preparation.log build.log build.time sdk-info.txt artifacts/log
     '''
+    script = script.replace('--arch arm64', '--arch ' + a.architecture)
     with tarfile.open(a.source_archive, 'r|gz') as original, tarfile.open(w / 'sources.tar', 'w') as archive:
         for entry in original:
             parts = entry.name.split('/', 1)
@@ -123,21 +190,25 @@ def main():
             entry = tarfile.TarInfo(name)
             entry.size, entry.mode = len(data), 0o644
             archive.addfile(normalize(entry), io.BytesIO(data))
-    shutil.copy2('/usr/bin/bwrap', w / 'bwrap')
+    shutil.copy2(a.sandbox or '/usr/bin/bwrap', w / 'bwrap')
+    if a.sandbox and digest(w / 'bwrap') != a.sandbox_sha256:
+        raise ValueError('Sandbox changed while staging')
     shutil.copyfile(here / 'source_action.bzl', w / 'source_action.bzl')
     shutil.copyfile(rules / 'tests/runtime/NativeBuild.cs.txt', w / 'Driver.cs')
     (w / 'Driver.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><Nullable>enable</Nullable></PropertyGroup></Project>')
-    write_bazel_files(w, rules)
+    write_bazel_files(w, rules, a.architecture, a.system_bwrap)
     (w / 'App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><UseAppHost>false</UseAppHost><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup><ItemGroup><Compile Include="App.cs" /></ItemGroup></Project>')
     (w / 'App.cs').write_text('System.Console.WriteLine("SDK_FROM_SOURCE="+System.Environment.Version); return System.Environment.Version.ToString()=="10.0.0" ? 0 : 1;')
     (w / 'app-contract.json').write_text(json.dumps(dict(Version=1,Entry='App.csproj',SdkVersion='10.0.100',Properties={'Configuration':'Release'},SharedInputs=[],Projects={'App.csproj':dict(Inputs=['App.csproj','App.cs'],OutputDirectories=['bin/Release/net10.0','obj/Release/net10.0'])})))
-    report = {'nativeEnvironmentSha256': digest(rules / 'tests/runtime/native_environment.py'),
+    report = {'platform': configuration['rid'], 'systemBwrap': a.system_bwrap,
+              'nativeToolsSource': 'declared-archive' if a.native_tools else 'captured-environment',
+              'nativeEnvironmentSha256': digest(rules / 'tests/runtime/native_environment.py'),
               'sourceRevision': pin['sourceRevision'], 'sourceArchiveSha256': pin['sourceArchive']['sha256'],
               'bootstrapArtifactsSha256': digest(bootstrap_archive),
               'bootstrapSdkVersion': bootstrap_version,
               'inputs': {name: {'sha256': digest(w / name), 'bytes': (w / name).stat().st_size}
                          for name in ['sources.tar', 'bootstrap.tar', 'native.tar', 'bwrap']},
-              'nativePackages': subprocess.check_output(['dpkg-query', '-W'], text=True).splitlines()}
+              'nativePackages': None if a.native_tools else subprocess.check_output(['dpkg-query', '-W'], text=True).splitlines()}
     (w / 'acquisition.json').write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps({key: value for key, value in report.items() if key != 'nativePackages'}, indent=2), flush=True)
 
