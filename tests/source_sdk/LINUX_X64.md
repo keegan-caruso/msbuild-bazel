@@ -97,13 +97,52 @@ SDK registration. `--system-bwrap` opts into the shared driver's verified packag
 remains an input and must match. There is no security-policy change or fallback.
 Omit the option where the declared executable is already permitted.
 
-Run the generated `//:smoke` with the repository Bazel wrapper or explicit pinned
-Bazel executable, conservative resource limits and the shared bounded cache. Its
-source action builds the VMR offline inside the read-only declared native root;
-its produced SDK then compiles and executes the net10 smoke app. Preserve the
-source action archive hash, acquisition report, build log/time, actual smoke test
-output and execution log. Native x64 qualification remains pending until those
-steps actually pass; stopped-producer read-only recovery is a separate check.
+Start directly with the generated `//:smoke` target. SDK layout consumes its
+producer in the execution configuration; prebuilding top-level `:sdk` or
+`:evidence` selects a different configuration and compiles the SDK again. Give
+the first smoke command the full producer deadline, then retain the same startup
+options, workspace, output base and action options for subsequent consumers:
+
+```sh
+rules_repo=/path/to/msbuild-bazel
+cd /path/to/fresh-action
+timeout --kill-after=30 7200 "$rules_repo/scripts/bazel-launcher.sh" \
+  --batch --host_jvm_args=-Xmx1024m \
+  --output_base=/build/fresh-sdk-base --output_user_root=/build/fresh-sdk-user \
+  --ignore_all_rc_files test //:smoke --jobs=2 --local_test_jobs=1 \
+  --lockfile_mode=off --disk_cache= --remote_cache= \
+  --nocache_test_results --test_output=all \
+  --execution_log_json_file=/build/fresh-sdk-smoke.execution.json
+```
+
+This correctness command uses fresh Bazel roots and disables external action
+caches. It builds the VMR offline inside the declared read-only root, then
+compiles and executes the net10 app with its produced SDK. Require exactly one
+executed `SourceSdkBuild` in that execution log. Both its SDK archive and
+`result.tar` are emitted by the same action; locate the single pair below
+`bazel-out/*/bin/sdk.generated/`, including the execution-configuration directory.
+Do not invoke another target to obtain the evidence archive.
+
+The consumer driver accepts matching startup options and rejects new source
+producer execution when reuse is required:
+
+```sh
+RULES_MSBUILD_BAZEL="$rules_repo/scripts/bazel-launcher.sh" \
+  python3 "$rules_repo/tests/source_sdk/consumer_scenarios.py" /build/fresh-sdk-consumers \
+  --workspace="$PWD" --output-base=/build/fresh-sdk-base --batch \
+  --bazel-startup-option=--host_jvm_args=-Xmx1024m \
+  --bazel-startup-option=--output_user_root=/build/fresh-sdk-user \
+  --require-source-reuse --bazel-option=--local_test_jobs=1 \
+  --bazel-option=--disk_cache= --bazel-option=--remote_cache= \
+  --bazel-option=--nocache_test_results
+```
+
+The SDK reports distro RID `ubuntu.26.04-x64`, SDK `10.0.100` and Core/ASP.NET
+runtimes `10.0.0`; its toolchain registration uses the base platform `linux-x64`.
+This does not qualify execution on older distributions. Preserve the archive
+hash, acquisition report, build log/time, actual smoke output and execution log.
+Native direct producer/consumer qualification remains pending until that complete
+sequence passes; stopped-producer read-only recovery is a separate check.
 
 The connected bootstrap step additionally needs outbound access to the pinned
 Microsoft archive URLs and the public NuGet feeds selected by the VMR. Record its
