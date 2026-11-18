@@ -1,4 +1,4 @@
-"""Declared preparation for the pinned Linux ARM64 native runtime producers."""
+"""Declared preparation for the pinned Linux ARM64/x64 native runtime producers."""
 
 load("@rules_msbuild//msbuild:defs.bzl", "MSBuildLayoutInfo", "msbuild_native_toolchain_packages")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
@@ -51,14 +51,17 @@ native_sandbox = rule(
     toolchains = [_TOOLCHAIN],
 )
 
-def native_inputs(name, commit, packages):
+def native_inputs(name, commit, packages, architecture = "arm64"):
     """Prepare versioned sources and native tools as cacheable build outputs.
 
     Args:
         name: Source archive target name.
         commit: Pinned upstream source commit.
         packages: Verified native package labels mapped to their SHA-256 hashes.
+        architecture: Native producer architecture, arm64 or x64.
     """
+    if architecture not in ["arm64", "x64"]:
+        fail("Unsupported native runtime architecture: " + architecture)
     native_versions(
         name = "versions",
         driver = ":driver",
@@ -87,7 +90,7 @@ def native_inputs(name, commit, packages):
         pkg_tar(
             name = "toolchain",
             deps = [":toolchain_files"],
-            symlinks = {"bin": "usr/bin", "lib": "usr/lib", "sbin": "usr/sbin"},
+            symlinks = dict({"bin": "usr/bin", "lib": "usr/lib", "sbin": "usr/sbin"}, **({"lib64": "usr/lib64"} if architecture == "x64" else {})),
             empty_dirs = ["source", "proc", "dev", "tmp"],
             preserve_mode = True,
             mtime = 0,
