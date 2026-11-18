@@ -1,5 +1,6 @@
 """Architecture closure for the native Linux source-runtime entry point."""
 import json
+import base64
 from pathlib import Path
 import subprocess
 import sys
@@ -23,7 +24,8 @@ class RuntimeArchitectureTests(unittest.TestCase):
         self.assertEqual(x64['platform'], 'linux-x64')
         pins = json.loads((ROOT/'scripts/toolchains.json').read_text())['dotnet']
         self.assertEqual(x64['sdk']['urls'], [pins['url']])
-        self.assertEqual(x64['sdk']['sha256'], pins['sha256'])
+        self.assertEqual(x64['sdk']['integrity'], 'sha256-' + base64.b64encode(bytes.fromhex(pins['sha256'])).decode())
+        self.assertEqual(set(x64['sdk']), {'version', 'runtime_version', 'platform', 'urls', 'integrity'})
         with self.assertRaisesRegex(ValueError, 'architecture'):
             read_recipe('riscv64')
 
