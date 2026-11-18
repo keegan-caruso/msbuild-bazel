@@ -33,7 +33,9 @@ def main():
             entry.type, entry.mode = tarfile.DIRTYPE, 0o755
             archive.addfile(normalize(entry))
     subprocess.run(['tar', '--same-permissions', '-xf', str(native_archive), '-C', str(root)], check=True)
-    script = build_prefix() + '''
+    deb_architecture = subprocess.check_output(['dpkg', '--print-architecture'], text=True).strip()
+    architecture = {'arm64': 'arm64', 'amd64': 'x64'}[deb_architecture]
+    script = build_prefix(architecture) + '''
 for tool in file cpio python clang-18 clang++-18 lld-18 llvm-config-18 lldb-18 msgfmt localedef pigz time; do command -v "$tool"; done
 file /bin/sh
 file /usr/bin/file | grep 'ELF 64-bit'
