@@ -47,7 +47,7 @@ def _source_sdk(ctx):
     evidence = ctx.actions.declare_file(ctx.label.name + ".generated/result.tar")
     ctx.actions.run(
         executable = bootstrap.directory.path + "/dotnet",
-        arguments = [driver.path + "/Driver.dll", ctx.file.sandbox.path, ctx.file.native_tools.path, ctx.file.sources.path, "/source/build-native.sh", evidence.path, archive.path, "--bootstrap", ctx.file.bootstrap.path],
+        arguments = [driver.path + "/Driver.dll", ctx.file.sandbox.path, ctx.file.native_tools.path, ctx.file.sources.path, "/source/build-native.sh", evidence.path, archive.path, "--bootstrap", ctx.file.bootstrap.path] + (["--system-bwrap"] if ctx.attr.system_bwrap else []),
         inputs = depset([driver, ctx.file.sandbox, ctx.file.native_tools, ctx.file.sources, ctx.file.bootstrap], transitive = [bootstrap.files]),
         outputs = [archive, evidence],
         mnemonic = "SourceSdkBuild",
@@ -59,6 +59,7 @@ def _source_sdk(ctx):
 source_sdk = rule(
     implementation = _source_sdk,
     attrs = {
+        "system_bwrap": attr.bool(doc = "Verify and use root-owned packaged /usr/bin/bwrap; no fallback."),
         "driver_sdk": attr.label(providers = [MSBuildRuntimeInfo], mandatory = True, cfg = "exec"),
         "driver_project": attr.label(allow_single_file = True, mandatory = True),
         "driver_source": attr.label(allow_single_file = True, mandatory = True),

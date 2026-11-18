@@ -1,6 +1,6 @@
 # Source SDK native prerequisite overlay
 
-This qualification-only overlay adds the recorded Ubuntu 26.04 ARM64
+This qualification-only overlay adds the recorded Ubuntu 26.04 ARM64 or AMD64
 source-SDK prerequisites to a locally built runtime native image. It is not a
 published image and does not install an SDK or build one. Build the base from
 `containers/runtime-demo.Dockerfile`, then identify that local image by its
@@ -18,12 +18,14 @@ rm "$base_context/Dockerfile"
 rmdir "$base_context"
 # Set NATIVE_BASE to the local image name followed by @sha256:<inspected digest>.
 container image inspect source-sdk-native-base
+# Register the local digest alias so Apple Container does not look it up remotely.
+container image tag source-sdk-native-base "$NATIVE_BASE"
 container build --platform linux/arm64 --cpus 2 --memory 4G \
   --build-arg "NATIVE_BASE=$NATIVE_BASE" --tag source-sdk-native-overlay \
   tests/source_sdk/native_overlay
 ```
 
-The [manifest](packages.json) records the 17 exact overlay archives, versions,
+The [ARM64 manifest](packages.json) and [AMD64 manifest](packages-amd64.json) record the exact overlay archives, versions,
 architectures and SHA256 values from the qualified build. The installer obtains
 each exact version using authenticated APT metadata, checks its bytes and Debian
 identity before installation, and rejects an install transaction that requires
@@ -62,3 +64,19 @@ archive SHA256 `e043c131f157a4dfd8f66bfe6016b95ee301d0265b075a69b5c84dd9577c45a2
 These identify the recorded run, not a promise that a newly resolved base will
 produce identical bytes. Historical Ubuntu 22 SDK results retain their original
 scope. The preflight checks prerequisites; it does not itself produce an SDK.
+
+For a native Linux x64 producer, build the same base and overlay with Docker on
+Ubuntu 26.04 x64. Use `docker build --platform linux/amd64` for both builds and
+pass an immutable `NATIVE_BASE` as above. The installer selects the AMD64 catalog
+from the actual Debian architecture and rejects foreign package architectures.
+The AMD64 archive hashes were checked against downloaded Ubuntu archive bytes;
+this prepares a recipe, and does not qualify a completed x64 image or source build.
+The sealed root includes `/lib64` when present so the x64 ELF loader remains
+available. Run `preflight.py` inside the fresh x64 image with Bubblewrap permitted
+before starting the source build. The 17 shared overlay versions match ARM64
+exactly; AMD64 also pins LLDB's Intel Processor Trace dependency `libipt2`.
+The base APT closure still needs its own captured inventory and native-root hash.
+
+Native x64 source-SDK acquisition and producer commands are documented in
+[the x64 producer recipe](../LINUX_X64.md). ARM64 component scheduling experiments
+remain a separate scope.

@@ -23,6 +23,8 @@ def main():
     names = ['usr', 'bin', 'lib', 'sbin', 'etc/alternatives', 'etc/ld.so.conf',
              'etc/ld.so.conf.d', 'etc/ld.so.cache', 'etc/os-release', 'etc/ssl/certs',
              'etc/ssl/openssl.cnf', 'etc/passwd', 'etc/group', 'etc/nsswitch.conf']
+    if Path('/lib64').exists():
+        names.append('lib64')
     with tarfile.open(native_archive, 'w') as archive:
         for name in names:
             archive.add('/' + name, arcname=name, filter=normalize)
