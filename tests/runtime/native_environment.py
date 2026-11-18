@@ -26,7 +26,7 @@ def load_catalog(architecture='arm64'):
             raise ValueError('Native package architecture differs: ' + package['name'])
         if not re.fullmatch(r'[a-f0-9]{64}', package['sha256']):
             raise ValueError('Native package SHA-256 is invalid: ' + package['name'])
-        if not package['url'].startswith('https://archive.ubuntu.com/ubuntu/pool/'):
+        if not package['url'].startswith('https://archive.ubuntu.com/ubuntu/pool/') or not package['url'].endswith('_' + package['architecture'] + '.deb'):
             raise ValueError('Native package URL is not the official Ubuntu archive')
     for name in ('clang-18', 'lld-18', 'llvm-18', 'libclang-rt-18-dev'):
         if next(package for package in packages if package['name'] == name)['version'] != '1:18.1.8-20ubuntu8':

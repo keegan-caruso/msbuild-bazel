@@ -260,14 +260,6 @@
       "licensePath": "usr/share/doc/g++-x86-64-linux-gnu/copyright"
     },
     {
-      "name": "gawk",
-      "version": "1:5.3.2-1ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gawk/gawk_5.3.2-1ubuntu1_amd64.deb",
-      "sha256": "76e64dda8fcbc3c04437085b01b0761552d9b4e7e90817aa56d478b275619736",
-      "licensePath": "usr/share/doc/gawk/copyright"
-    },
-    {
       "name": "gcc",
       "version": "4:15.2.0-5ubuntu1",
       "architecture": "amd64",
@@ -1643,5 +1635,9 @@
       "sha256": "601b9f92a04ea9ff7de6f60f60c34f2e2743f9c478125ac9e413f29a1fa728d9",
       "licensePath": "usr/share/doc/zlib1g-dev/copyright"
     }
-  ]
+  ],
+  "metadataRelease": {
+    "url": "https://archive.ubuntu.com/ubuntu/dists/resolute/Release",
+    "sha256": "596ee4cea058f74d59e2180532c89904e306d90725d42162eda82c01d4370834"
+  }
 }
