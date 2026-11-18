@@ -77,7 +77,8 @@ Use this scenario when your workspace has an SDK source producer. The public
 qualification tooling, with pinned source/bootstrap/native inputs; there is no
 general SDK source-build macro. This section shows the handoff, not a standalone
 SDK build recipe. Run this qualified scenario on Linux ARM64; the values below
-match the source-built SDK 10.0.100.
+match the source-built SDK 10.0.100. For the separately qualified native Ubuntu
+26.04 x64 coarse producer and consumers, use the [x64 recipe](../../tests/source_sdk/LINUX_X64.md).
 
 **1. Select bootstrap and application SDKs separately.** Keep the rules dependency
 and override from the downloaded scenario; replace its SDK registration with:

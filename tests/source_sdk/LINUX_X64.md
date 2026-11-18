@@ -1,10 +1,11 @@
 # Native Linux x64 source SDK recipe
 
 This recipe prepares the coarse SDK 10.0.100 source action on Ubuntu 26.04 x64,
-with Clang 18.1.8. It preserves the ARM64 defaults. A successful acquisition or
-emulated tool probe does not qualify a native SDK build, cache recovery, component
-scheduling, signing, or upstream test parity. The component graph/replay helpers
-remain ARM64-only. The source revision and archive identity remain in `pin.json`;
+with Clang 18.1.8 and Bazel 9.3.2. Native smoke-first production and local
+package/Razor/Publish consumers pass; [pins, archive identities and limits](../../docs/support.md#native-ubuntu-2604-x64-sdk)
+record the qualification. It preserves the ARM64 defaults. Acquisition or emulated
+probes alone do not establish production, recovery or upstream test parity. The
+component graph/replay helpers remain ARM64-only. The source revision and archive identity remain in `pin.json`;
 the historical `qualifiedSdkBundle` and `qualificationImage` there describe ARM64.
 
 Acquire bootstrap inputs on any download-capable machine, before starting the
@@ -50,12 +51,13 @@ preparation skips that step when its raw archive is already present. The helper
 verifies the raw pin before the project replaces it and records the generated
 archive digest and member identities in `VMR/artifacts/log/bootstrap-inputs.json`.
 Preserve that report and `prep-bootstrap.log`; restored feed packages are connected
-inputs. No VMR source patch or full SDK build is involved.
+inputs. Bootstrap generation does not patch the VMR or run a full SDK build; the
+later producer retains the [IdentityModel version patch](patches/identitymodel-file-version.patch).
 From that VMR run `./prep-source-build.sh --no-bootstrap --bootstrap-rid linux-x64`. This is
 input acquisition, rather than successful source-build evidence.
 
 Assemble the separate SDK native package closure on Ubuntu 26.04 x64. Prerequisites
-are Python, `dpkg-deb`, a host C compiler for Bazel's Python launchers, the pinned
+are Python, `dpkg-deb`, host GCC/G++ for Bazel's launchers, the pinned
 SDK/Bazel bootstrap tools, download access and a case-sensitive output filesystem.
 Docker is not required. The sealed probe requires nested namespaces and a permitted
 Bubblewrap launcher; `--system-bwrap` verifies the packaged launcher against the
@@ -141,13 +143,16 @@ The SDK reports distro RID `ubuntu.26.04-x64`, SDK `10.0.100` and Core/ASP.NET
 runtimes `10.0.0`; its toolchain registration uses the base platform `linux-x64`.
 This does not qualify execution on older distributions. Preserve the archive
 hash, acquisition report, build log/time, actual smoke output and execution log.
-Native direct producer/consumer qualification remains pending until that complete
-sequence passes; stopped-producer read-only recovery is a separate check.
+This complete smoke-first sequence passed at rules revision
+`de47cfe1df06e6ec82d14aff56425af6e6227b93`, with one real source action and no
+additional source execution during the consumer scenarios. A separate exact-archive
+handoff also passed. Stopped-producer read-only recovery remains unqualified for
+x64; these runs make no speedup or byte-reproducibility claim.
 
 The connected bootstrap step additionally needs outbound access to the pinned
 Microsoft archive URLs and the public NuGet feeds selected by the VMR. Record its
 Restore assets/logs and generated Bootstrap archive digest. A producer qualification
 run needs sufficient disk space for the native root, VMR, bootstrap and full source
-build (the bounded job checks 100 GiB available), plus time to build the complete
-upstream SDK. Successful input assembly and emulated probes do not replace that
+build (the bounded qualification job required at least 70 GiB available), plus
+time to build the complete upstream SDK. Successful input assembly and emulated probes do not replace that
 native execution result.
