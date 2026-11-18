@@ -38,7 +38,20 @@ RULES_MSBUILD_SOURCE_SDK_ARCH=x64 bash tests/source_sdk/baseline.sh \
 To run only connected preparation, verify acquisition, extract the pinned
 bootstrap SDK into `VMR/.dotnet`, and copy the pinned previously source-built
 archive into `VMR/prereqs/packages/archive/`, retaining its original filename.
-From that VMR run `./prep-source-build.sh --bootstrap-rid linux-x64`. This is
+With the raw archive staged, generate its portable bootstrap explicitly:
+
+```sh
+python3 tests/source_sdk/prepare_x64_bootstrap.py /path/to/fresh-vmr
+```
+
+This runs the pinned VMR's unchanged bootstrap project through `dotnet restore`,
+with the same staging and properties as upstream `BootstrapArtifacts`. Upstream
+preparation skips that step when its raw archive is already present. The helper
+verifies the raw pin before the project replaces it and records the generated
+archive digest and member identities in `VMR/artifacts/log/bootstrap-inputs.json`.
+Preserve that report and `prep-bootstrap.log`; restored feed packages are connected
+inputs. No VMR source patch or full SDK build is involved.
+From that VMR run `./prep-source-build.sh --no-bootstrap --bootstrap-rid linux-x64`. This is
 input acquisition, rather than successful source-build evidence.
 
 Assemble the separate SDK native package closure on Ubuntu 26.04 x64. Prerequisites
