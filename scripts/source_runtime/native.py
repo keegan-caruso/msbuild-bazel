@@ -18,12 +18,12 @@ LIBRARIES = dict(system_native='libSystem.Native.so', compression='libSystem.IO.
 HOST = dict(muxer='dotnet', fxr='libhostfxr.so', policy='libhostpolicy.so')
 
 
-def prepare_inputs(output, source, toolchain=None, sandbox=None, architecture='arm64'):
+def prepare_inputs(output, source, toolchain=None, sandbox=None, architecture='arm64', system_bwrap=False):
     output.mkdir(parents=True,exist_ok=False)
     recipe=read_recipe(architecture)
     if digest(source)!=recipe['source']['sha256']:
         raise ValueError('Source archive differs from the pinned runtime')
-    value=dict(architecture=architecture, source=dict(urls=[source.resolve().as_uri(),recipe['source']['url']],sha256=recipe['source']['sha256'],commit=recipe['source']['revision']))
+    value=dict(systemBwrap=system_bwrap, architecture=architecture, source=dict(urls=[source.resolve().as_uri(),recipe['source']['url']],sha256=recipe['source']['sha256'],commit=recipe['source']['revision']))
     if toolchain:
         if not sandbox:
             raise ValueError('Provide a sandbox executable with the native toolchain archive')
@@ -79,7 +79,7 @@ def declare_inputs(root, preparation):
         ('host',HOST,'./src/native/corehost/build.sh -clang18 -arm64 -release -commithash '+commit+' -numproc 4 -ninja\nmkdir result\n'+''.join('cp artifacts/bin/linux-arm64.Release/corehost/'+name+' result/\n' for name in HOST.values())),
     ]:
         (folder/(component+'.sh')).write_text(build_prefix(architecture)+script.replace('arm64', architecture)+'tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf result.tar -C result .\n')
-        lines.append('native_runtime(name='+json.dumps('runtime_'+component)+',driver=":driver",sandbox='+json.dumps(sandbox)+',toolchain_archive='+json.dumps(toolchain)+',source_archive=":sources",script='+json.dumps(component+'.sh')+',products='+json.dumps(products)+')')
+        lines.append('native_runtime(name='+json.dumps('runtime_'+component)+',driver=":driver",sandbox='+json.dumps(sandbox)+',toolchain_archive='+json.dumps(toolchain)+',source_archive=":sources",system_bwrap='+str(value.get('systemBwrap', False))+',script='+json.dumps(component+'.sh')+',products='+json.dumps(products)+')')
         for group in products:
             label=group if component=='coreclr' else component+'_'+group
             lines.append('filegroup(name='+json.dumps(label)+',srcs=['+json.dumps(':runtime_'+component)+'],output_group='+json.dumps(group)+',visibility=["//visibility:public"])')

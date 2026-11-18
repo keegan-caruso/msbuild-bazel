@@ -36,6 +36,7 @@ def main():
     parser.add_argument('--host-space-path', type=Path, help='physical host filesystem mount when running inside a VM')
     parser.add_argument('--source-archive', type=Path, help='optional cached copy of the pinned runtime source')
     parser.add_argument('--native-toolchain', type=Path, help='optional previously recorded native tool filesystem archive')
+    parser.add_argument('--system-bwrap', action='store_true', default=None, help='explicitly launch root-owned /usr/bin/bwrap after matching its SHA-256 to the declared sandbox')
     parser.add_argument('--sandbox', type=Path, help='bubblewrap paired with --native-toolchain')
     args, application = parser.parse_known_args()
     if application and application[0] == '--':
@@ -47,6 +48,8 @@ def main():
         if address.scheme not in ['http','https'] or not address.hostname or address.username or address.password or address.query or address.fragment:
             parser.error('--cache-url requires an HTTP(S) endpoint without embedded credentials')
     if platform.system() == 'Darwin':
+        if args.system_bwrap:
+            parser.error('--system-bwrap requires native Linux')
         from source_runtime import apple
         if args.run or args.test:
             raise SystemExit(apple.operate(args, application))
@@ -57,6 +60,8 @@ def main():
     if args.run or args.test:
         state = json.loads((args.output/'setup.json').read_text())
         bazel_cache_read_only(state.get('identity', state), args.bazel_cache_read_only)
+        if args.system_bwrap is not None and args.system_bwrap != state.get('identity', {}).get('systemBwrap', False):
+            parser.error('System Bubblewrap policy differs from the completed setup')
         if not state.get('ready'):
             parser.error('Complete setup first, using --resume after interruption')
         command, cwd, env = build_command(args.output.resolve(), 'run' if args.run else 'test', application)

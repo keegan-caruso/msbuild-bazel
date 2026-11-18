@@ -83,6 +83,8 @@ def declare_product(root, native, product):
     (app/'contract.json').write_text(json.dumps(app_contract,indent=2)+'\n')
     shutil.copyfile(app/'runtime_product.bzl', root/'runtime_product.bzl')
     shutil.copyfile(Path(__file__).with_name('runtime_product_test.py'),root/'runtime_product_test.py')
+    shutil.copyfile(ROOT/'tests/runtime/system_bwrap.py',root/'system_bwrap.py')
+    system_bwrap = json.loads((native/'inputs.json').read_text()).get('systemBwrap', False) if (native/'inputs.json').exists() else False
     shared='shared/Microsoft.NETCore.App/10.0.0/'
     files={'//native:'+group:shared+name for group,name in coreclr.items() if group!='host'}
     files.update({'//libraries:'+group:shared+name for group,name in libraries.items()})
@@ -96,4 +98,4 @@ def declare_product(root, native, product):
         module.write('bazel_dep(name="platforms",version="1.0.0")\nbazel_dep(name="rules_pkg",version="1.3.0")\nbazel_dep(name="rules_python",version="1.7.0")\n')
     with (root/'BUILD.bazel').open('a') as build:
         build.write('\nload(":runtime_product.bzl","source_runtime_application")\nsource_runtime_application(name="app",projects='+
-            json.dumps(projects)+',runtime_identifier='+json.dumps(platform)+',native_files='+json.dumps(files)+',provenance='+repr(provenance)+',reference_packs='+json.dumps(labels)+')\n')
+            json.dumps(projects)+',system_bwrap='+str(system_bwrap)+',runtime_identifier='+json.dumps(platform)+',native_files='+json.dumps(files)+',provenance='+repr(provenance)+',reference_packs='+json.dumps(labels)+')\n')
