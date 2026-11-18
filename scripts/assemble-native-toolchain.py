@@ -17,7 +17,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tests/runtime'))
-from native_environment import load_catalog, build_prefix
+from native_environment import load_catalog, build_prefix, sdk_account_check
 
 
 def digest(path):
@@ -66,6 +66,7 @@ clang-18 /source/basic.c -o /source/basic
 /source/basic
 '''
     if sdk:
+        script += sdk_account_check()
         script += '''
 for tool in file cpio python lldb-18 msgfmt localedef pigz time curl; do command -v "$tool"; done
 file /usr/bin/file | grep 'ELF 64-bit.*x86-64'
