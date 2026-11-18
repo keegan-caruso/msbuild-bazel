@@ -15,6 +15,6 @@
     "urls": [
       "https://builds.dotnet.microsoft.com/dotnet/Sdk/11.0.100/dotnet-sdk-11.0.100-linux-x64.tar.gz"
     ],
-    "sha256": "6fdb8822f47ccdba28f507dcd5d92e632d5b99cd27908d6838f0cc575be33baf"
+    "integrity": "sha256-b9uIIvR8zboo9Qfc1dkuYy1bmc0nkI1oOPDMV1vjO68="
   }
 }
