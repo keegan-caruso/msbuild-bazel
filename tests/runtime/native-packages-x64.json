@@ -93,10 +93,10 @@
     },
     {
       "name": "bubblewrap",
-      "version": "0.11.1-1",
+      "version": "0.11.1-1ubuntu0.3",
       "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/b/bubblewrap/bubblewrap_0.11.1-1_amd64.deb",
-      "sha256": "090bb705b6d49213b288f19d78be78a55a1b72843efb12eae73ab5cca0f54b8d",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/b/bubblewrap/bubblewrap_0.11.1-1ubuntu0.3_amd64.deb",
+      "sha256": "d3a6c1b6b0e0474eaed6dbd055c0d601fd875af153976a0dc4aae75f4ea10868",
       "licensePath": "usr/share/doc/bubblewrap/copyright"
     },
     {
