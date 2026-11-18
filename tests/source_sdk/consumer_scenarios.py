@@ -3,6 +3,8 @@
 Run against source_action_prepare.py's produced SDK workspace/toolchain.
 """
 import argparse
+import hashlib
+import xml.etree.ElementTree as ET
 import json
 import os
 from pathlib import Path
@@ -14,9 +16,20 @@ import zipfile
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('directory', type=Path)
 parser.add_argument('--sdk-bundle', type=Path, help='Previously qualified source-produced SDK component bundle; verified against pin.json')
+parser.add_argument('--workspace', type=Path, help='Existing source_action_prepare.py workspace')
+parser.add_argument('--output-base', type=Path, help='Reuse the producer output base to avoid rebuilding the SDK')
+parser.add_argument('--batch', action='store_true')
+parser.add_argument('--bazel-option', action='append', default=[])
+parser.add_argument('--jobs', type=int, default=2)
+parser.add_argument('--timeout', type=int, default=600)
 a = parser.parse_args()
+if a.workspace and a.sdk_bundle:
+    parser.error('--workspace and --sdk-bundle are mutually exclusive')
+if a.jobs < 1 or a.timeout < 1:
+    parser.error('--jobs and --timeout must be positive')
 folder = a.directory.resolve()
-w = folder / 'source'
+folder.mkdir(parents=True, exist_ok=True)
+w = a.workspace.resolve() if a.workspace else folder / 'source'
 if a.sdk_bundle:
     assert platform.system() == 'Linux' and platform.machine() == 'aarch64'
     from source_action_recovery import digest
@@ -108,7 +121,8 @@ put('BUILD.bazel', '\n'.join([
  'msbuild_graph_test(name="razor_test",graph=":razor_graph",project="RazorApp.csproj")',
  'msbuild_graph(name="publish_graph",target="Publish",runner=":runner",contract="publish.json",source_root="scenarios",srcs='+json.dumps(publish_inputs)+',publish_outputs={"Publish.csproj|net10.0":["bin/Publish/publish","Publish.dll","Exe"]})',
  'msbuild_graph_layout(name="publish",graph=":publish_graph",project="Publish.csproj")','']))
-base = [os.environ['RULES_MSBUILD_BAZEL'], '--output_base=' + str(folder / 'base'), '--ignore_all_rc_files']
+base = ([os.environ['RULES_MSBUILD_BAZEL']] + (['--batch'] if a.batch else []) +
+        ['--output_base=' + str(a.output_base.resolve() if a.output_base else folder / 'base'), '--ignore_all_rc_files'])
 reports = []
 try:
     for case, command, targets, marker in [
@@ -116,14 +130,24 @@ try:
         ('razor', 'test', ['//scenarios:razor_test'], '<p>source SDK razor</p>'),
         ('publish', 'build', ['//scenarios:publish'], None),
     ]:
-        result = subprocess.run(base + [command, *targets, '--jobs=2', '--lockfile_mode=off'] +
+        result = subprocess.run(base + [command, *targets, '--jobs=' + str(a.jobs), '--lockfile_mode=off',
+                                 '--execution_log_json_file=' + str(folder / (case + '.execution.json'))] + a.bazel_option +
                                 (['--test_output=all'] if command == 'test' else []), cwd=w,
-                                capture_output=True, text=True, timeout=600)
+                                capture_output=True, text=True, timeout=a.timeout)
         output = result.stdout + result.stderr
         (folder / (case + '.log')).write_text(output)
         assert result.returncode == 0 and (marker is None or marker in output), output[-7000:]
         reports.append({'case': case, 'exitCode': result.returncode})
         print(case, result.returncode, flush=True)
+    package = w / 'bazel-bin/scenarios/pack/SourceSdk.Package.1.0.0.nupkg'
+    with zipfile.ZipFile(package) as archive:
+        specifications = [name for name in archive.namelist() if name.endswith('.nuspec')]
+        assert len(specifications) == 1, specifications
+        metadata = {node.tag.rsplit('}', 1)[-1]: node.text for node in ET.fromstring(archive.read(specifications[0])).iter()}
+        assert metadata['id'] == 'SourceSdk.Package' and metadata['version'] == '1.0.0', metadata
+        assert archive.read('lib/net10.0/Package.dll').startswith(b'MZ'), archive.namelist()
+    reports.append({'case': 'inspect-package', 'id': metadata['id'], 'version': metadata['version'],
+                    'sha256': hashlib.sha256(package.read_bytes()).hexdigest()})
     published = w / 'bazel-bin/scenarios/publish.layout'
     result = subprocess.run([w / 'bazel-bin/produced_runtime.runtime/dotnet', published / 'Publish.dll'], capture_output=True, text=True)
     assert result.returncode == 0 and result.stdout.strip() == 'SOURCE_SDK_PUBLISH', result

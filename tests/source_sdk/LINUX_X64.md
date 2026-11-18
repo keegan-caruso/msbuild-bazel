@@ -41,9 +41,20 @@ archive into `VMR/prereqs/packages/archive/`, retaining its original filename.
 From that VMR run `./prep-source-build.sh --bootstrap-rid linux-x64`. This is
 input acquisition, rather than successful source-build evidence.
 
-Assemble the separate SDK native package closure with the declared package
-assembly workflow. It produces `native.tar`, `bwrap`, and an acquisition report
-without requiring Docker on the producer machine. Use the report's exact hashes;
+Assemble the separate SDK native package closure on Ubuntu 26.04 x64. Prerequisites
+are Python, `dpkg-deb`, a host C compiler for Bazel's Python launchers, the pinned
+SDK/Bazel bootstrap tools, download access and a case-sensitive output filesystem.
+Docker is not required. The sealed probe requires nested namespaces and a permitted
+Bubblewrap launcher; `--system-bwrap` verifies the packaged launcher against the
+declared bytes without changing host policy.
+
+```sh
+bash scripts/setup.sh --toolchain-only
+python3 scripts/assemble-native-toolchain.py /build/fresh-native \
+  --architecture=x64 --sdk --probe --system-bwrap
+```
+
+This produces `native.tar`, `bwrap`, and `receipt.json`. Use the report's exact hashes;
 do not capture the native host's `/usr` as the x64 SDK toolchain. The
 [overlay recipe](native_overlay/README.md) provides an independent OCI/preflight
 control and exact supplemental package pins. The complete package assembly must
@@ -73,3 +84,11 @@ its produced SDK then compiles and executes the net10 smoke app. Preserve the
 source action archive hash, acquisition report, build log/time, actual smoke test
 output and execution log. Native x64 qualification remains pending until those
 steps actually pass; stopped-producer read-only recovery is a separate check.
+
+The connected bootstrap step additionally needs outbound access to the pinned
+Microsoft archive URLs and the public NuGet feeds selected by the VMR. Record its
+Restore assets/logs and generated Bootstrap archive digest. A producer qualification
+run needs sufficient disk space for the native root, VMR, bootstrap and full source
+build (the bounded job checks 100 GiB available), plus time to build the complete
+upstream SDK. Successful input assembly and emulated probes do not replace that
+native execution result.
