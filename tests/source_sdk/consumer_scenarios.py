@@ -20,6 +20,8 @@ parser.add_argument('--workspace', type=Path, help='Existing source_action_prepa
 parser.add_argument('--output-base', type=Path, help='Reuse the producer output base to avoid rebuilding the SDK')
 parser.add_argument('--batch', action='store_true')
 parser.add_argument('--bazel-option', action='append', default=[])
+parser.add_argument('--bazel-startup-option', action='append', default=[])
+parser.add_argument('--require-source-reuse', action='store_true', help='Reject a newly executed source SDK producer in consumer evidence')
 parser.add_argument('--jobs', type=int, default=2)
 parser.add_argument('--timeout', type=int, default=600)
 a = parser.parse_args()
@@ -121,7 +123,7 @@ put('BUILD.bazel', '\n'.join([
  'msbuild_graph_test(name="razor_test",graph=":razor_graph",project="RazorApp.csproj")',
  'msbuild_graph(name="publish_graph",target="Publish",runner=":runner",contract="publish.json",source_root="scenarios",srcs='+json.dumps(publish_inputs)+',publish_outputs={"Publish.csproj|net10.0":["bin/Publish/publish","Publish.dll","Exe"]})',
  'msbuild_graph_layout(name="publish",graph=":publish_graph",project="Publish.csproj")','']))
-base = ([os.environ['RULES_MSBUILD_BAZEL']] + (['--batch'] if a.batch else []) +
+base = ([os.environ['RULES_MSBUILD_BAZEL']] + a.bazel_startup_option + (['--batch'] if a.batch else []) +
         ['--output_base=' + str(a.output_base.resolve() if a.output_base else folder / 'base'), '--ignore_all_rc_files'])
 reports = []
 try:
@@ -137,6 +139,11 @@ try:
         output = result.stdout + result.stderr
         (folder / (case + '.log')).write_text(output)
         assert result.returncode == 0 and (marker is None or marker in output), output[-7000:]
+        if a.require_source_reuse:
+            from source_action_recovery import actions
+            producers = [row for row in actions(folder / (case + '.execution.json'))
+                         if row['mnemonic'] == 'SourceSdkBuild']
+            assert all(row['cacheHit'] for row in producers), producers
         reports.append({'case': case, 'exitCode': result.returncode})
         print(case, result.returncode, flush=True)
     package = w / 'bazel-bin/scenarios/pack/SourceSdk.Package.1.0.0.nupkg'
