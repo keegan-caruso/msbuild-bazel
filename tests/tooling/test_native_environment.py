@@ -5,12 +5,14 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
+import copy
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts'))
 sys.path.insert(0, str(ROOT / 'tests/runtime'))
 from source_runtime.native import declare_inputs
-from native_environment import build_prefix, LLVM_MAJOR, LLVM_VERSION
+from native_environment import build_prefix, load_catalog, LLVM_MAJOR, LLVM_VERSION
 
 
 class NativeEnvironmentTests(unittest.TestCase):
@@ -39,6 +41,38 @@ class NativeEnvironmentTests(unittest.TestCase):
                 self.assertIn('export PATH=/usr/lib/llvm-18/bin:$PATH', body)
                 self.assertIn(f'clang version {LLVM_VERSION}', body)
                 subprocess.run(['bash', '-n', str(script)], check=True)
+
+    def test_native_catalogs_match_selected_architecture_and_compiler(self):
+        for architecture, deb_architecture in [('arm64', 'arm64'), ('x64', 'amd64')]:
+            value = load_catalog(architecture)
+            self.assertEqual(value['platform'], 'linux-' + architecture)
+            self.assertTrue(all(item['architecture'] in (deb_architecture, 'all') for item in value['packages']))
+            self.assertFalse({item['name'] for item in value['packages']} & {'rust-coreutils', 'coreutils-from-uutils'})
+        script = build_prefix('x64')
+        self.assertIn('test "$(uname -m)" = x86_64', script)
+        self.assertIn('^x86_64-.*linux-gnu$', script)
+        subprocess.run(['bash', '-n'], input=script, text=True, check=True)
+        with self.assertRaises(ValueError):
+            build_prefix('amd64')
+        with self.assertRaises(ValueError):
+            load_catalog('amd64')
+
+    def test_native_catalog_rejects_mixed_architecture_and_changed_identity(self):
+        original = load_catalog('x64')
+        for field, value in [('architecture', 'arm64'), ('sha256', 'invalid'),
+                             ('url', 'https://example.invalid/package.deb')]:
+            changed = copy.deepcopy(original)
+            changed['packages'][0][field] = value
+            with patch.object(Path, 'read_text', return_value=json.dumps(changed)):
+                with self.assertRaises(ValueError):
+                    load_catalog('x64')
+        changed = copy.deepcopy(original)
+        next(item for item in changed['packages'] if item['name'] == 'clang-18')['version'] = '18.0'
+        with patch.object(Path, 'read_text', return_value=json.dumps(changed)):
+            with self.assertRaises(ValueError):
+                load_catalog('x64')
+        aliases = (ROOT / 'tests/runtime/native_inputs.bzl').read_text()
+        self.assertIn('"lib64": "usr/lib64"', aliases)
 
     def test_aliases_resolve_to_selected_family_without_default_compiler(self):
         aliases = (ROOT / 'tests/runtime/native_inputs.bzl').read_text()
