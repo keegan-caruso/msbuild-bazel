@@ -9,14 +9,31 @@ import subprocess
 import tarfile
 import tempfile
 
+from system_bwrap import select_sandbox
+
+
+def sdk_absent_system_arguments(platform):
+    if platform not in ('linux-arm64', 'linux-x64'):
+        raise ValueError('Unsupported runtime platform')
+    directories = ['/usr', '/lib', '/etc']
+    if platform == 'linux-x64':
+        # The x64 ELF interpreter is /lib64/ld-linux-x86-64.so.2. Ubuntu's
+        # merged-usr alias must remain visible in this SDK-absent namespace.
+        directories.append('/lib64')
+    return [argument for directory in directories for argument in ['--ro-bind', directory, directory]]
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ['runtime','graph','app','package','sandbox','inventory']:
         parser.add_argument('--'+name,type=Path,required=True)
+    parser.add_argument('--system-bwrap', action='store_true')
     parser.add_argument('--native',action='append',default=[])
     args=parser.parse_args()
-    assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
+    inventory=json.loads(args.inventory.read_text())
+    platform=inventory['platform']
+    assert platform in ('linux-arm64', 'linux-x64')
+    assert os.uname().sysname == 'Linux' and os.uname().machine == {'linux-arm64': 'aarch64', 'linux-x64': 'x86_64'}[platform]
     host=args.runtime.resolve(strict=True)
     app=args.app.resolve(strict=True)
     graph=args.graph.resolve(strict=True)/'workspace'
@@ -69,8 +86,8 @@ def main():
                             text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=60)
     report.with_suffix('.launcher.log').write_text(result.stdout)
     loaded = observe(result, host, None)
-    command = [str(args.sandbox.resolve(strict=True)), '--die-with-parent', '--unshare-all', '--new-session', '--cap-drop', 'ALL',
-               '--ro-bind', '/usr', '/usr', '--ro-bind', '/lib', '/lib', '--ro-bind', '/etc', '/etc',
+    command = [str(select_sandbox(args.sandbox.resolve(strict=True), args.system_bwrap)), '--die-with-parent', '--unshare-all', '--new-session', '--cap-drop', 'ALL',
+               *sdk_absent_system_arguments(platform),
                '--proc', '/proc', '--dev', '/dev', '--tmpfs', '/tmp', '--dir', '/opt',
                '--ro-bind', str(host), '/runtime', '--ro-bind', str(app), '/app', '--clearenv',
                '--setenv', 'DOTNET_ROOT', '/missing-sdk', '--setenv', 'DOTNET_MULTILEVEL_LOOKUP', '1',
@@ -110,7 +127,7 @@ def main():
             env=dict(os.environ, DOTNET_ROOT=str(host), DOTNET_MULTILEVEL_LOOKUP='1'))
         report.with_suffix('.missing-coreclr.log').write_text(rejected.stdout)
         assert rejected.returncode != 0 and 'Could not resolve CoreCLR path' in rejected.stdout, rejected.stdout
-    report.write_text(json.dumps(dict(platform='linux-arm64', binaryHashes=actual, managed=len(manifest['managed']),
+    report.write_text(json.dumps(dict(platform=platform, binaryHashes=actual, managed=len(manifest['managed']),
         native=len(manifest['native']), loadedSourceComponents=loaded, sdkAbsentLoadedSourceComponents=isolated_loaded,
         missingCoreclrExit=rejected.returncode, sdkAbsentExecution=True,
         packageVerified=package_verified,

@@ -333,7 +333,7 @@ class SourceRuntimeSetupTests(unittest.TestCase):
                 str(output), '--restore-reuse']
             rejected = subprocess.run(command, text=True, capture_output=True)
             self.assertEqual(rejected.returncode, 2)
-            self.assertIn('--prepared-restore and --platform=linux-arm64', rejected.stderr)
+            self.assertIn('--prepared-restore and a Linux platform', rejected.stderr)
             self.assertFalse(output.exists())
             subprocess.run(command + ['--prepared-restore', '--platform=linux-arm64'], check=True)
             mapping = json.loads(output.read_text())

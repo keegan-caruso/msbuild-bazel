@@ -5,12 +5,14 @@ using System.Diagnostics;
 using System.Formats.Tar;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 
 // Qualification adapter: all native programs, headers and sources are declared
 // archives. The nested namespace exposes only those inputs and writable scratch.
 public sealed class NativeBuild
 {
     public string Sandbox { get; set; } = null!;
+    public bool SystemBwrap { get; set; }
     public string Toolchain { get; set; } = null!;
     public string Sources { get; set; } = null!;
     public string? Bootstrap { get; set; }
@@ -21,6 +23,8 @@ public sealed class NativeBuild
     public string[] Products { get; set; } = [];
     public static void Main(string[] args)
     {
+        var systemBwrap = args.Length != 0 && args[^1] == "--system-bwrap";
+        if (systemBwrap) args = args[..^1];
         string? bootstrap = null;
         string? scriptFile = null;
         var dependencies = new List<string>();
@@ -37,7 +41,42 @@ public sealed class NativeBuild
         }
         dependencies.Reverse();
         if (args.Length < 6) throw new ArgumentException("Expected sandbox, toolchain, sources, script, archive and product outputs");
-        new NativeBuild { Bootstrap = bootstrap, ScriptFile = scriptFile, Dependencies = dependencies.ToArray(), Sandbox = Path.GetFullPath(args[0]), Toolchain = Path.GetFullPath(args[1]), Sources = Path.GetFullPath(args[2]), Script = args[3], Output = Path.GetFullPath(args[4]), Products = args.Skip(5).Select(Path.GetFullPath).ToArray() }.Execute();
+        new NativeBuild { SystemBwrap = systemBwrap, Bootstrap = bootstrap, ScriptFile = scriptFile, Dependencies = dependencies.ToArray(), Sandbox = Path.GetFullPath(args[0]), Toolchain = Path.GetFullPath(args[1]), Sources = Path.GetFullPath(args[2]), Script = args[3], Output = Path.GetFullPath(args[4]), Products = args.Skip(5).Select(Path.GetFullPath).ToArray() }.Execute();
+    }
+    public static string SelectSandbox(string declared, bool systemBwrap)
+    {
+        if (!systemBwrap) return declared;
+        const string launcher = "/usr/bin/bwrap";
+        if (!OperatingSystem.IsLinux()) throw new InvalidOperationException("--system-bwrap requires Linux");
+        foreach (var path in new[] { "/", "/usr", "/usr/bin", launcher, "/usr/bin/stat" })
+        {
+            if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
+                throw new InvalidOperationException("System Bubblewrap path must not be a symlink: " + path);
+            if ((File.GetUnixFileMode(path) & (UnixFileMode.GroupWrite | UnixFileMode.OtherWrite)) != 0)
+                throw new InvalidOperationException("System Bubblewrap path must not be group/other writable: " + path);
+        }
+        // Ubuntu's packaged launcher has a path-bound AppArmor profile. Its
+        // root-owned OS installation is an explicit execution prerequisite;
+        // all compiler inputs and the required launcher bytes remain declared.
+        var stat = new ProcessStartInfo("/usr/bin/stat") { RedirectStandardOutput = true, RedirectStandardError = true };
+        foreach (var argument in new[] { "-c", "%u", "--", "/", "/usr", "/usr/bin", launcher, "/usr/bin/stat" }) stat.ArgumentList.Add(argument);
+        using (var process = Process.Start(stat)!)
+        {
+            var owners = process.StandardOutput.ReadToEnd().Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            var error = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            if (process.ExitCode != 0 || owners.Length != 5 || owners.Any(owner => owner != "0"))
+                throw new InvalidOperationException("System Bubblewrap paths must be owned by root: " + error);
+        }
+        if ((File.GetUnixFileMode(launcher) & UnixFileMode.UserExecute) == 0)
+            throw new InvalidOperationException("System Bubblewrap is not executable: " + launcher);
+        using var expected = File.OpenRead(declared);
+        using var actual = File.OpenRead(launcher);
+        var expectedHash = Convert.ToHexString(SHA256.HashData(expected));
+        var actualHash = Convert.ToHexString(SHA256.HashData(actual));
+        if (expectedHash != actualHash)
+            throw new InvalidOperationException("System Bubblewrap SHA-256 differs from declared input (declared " + expectedHash + ", /usr/bin/bwrap " + actualHash + "). Install the pinned Bubblewrap package or omit --system-bwrap on a host permitting the declared launcher.");
+        return launcher;
     }
     public bool Execute()
     {
@@ -63,7 +102,7 @@ public sealed class NativeBuild
                 Directory.CreateDirectory(dependencyRoot);
                 foreach (var dependency in Dependencies) TarFile.ExtractToDirectory(dependency, dependencyRoot, false);
             }
-            var start = new ProcessStartInfo(Sandbox) { RedirectStandardOutput = true, RedirectStandardError = true };
+            var start = new ProcessStartInfo(SelectSandbox(Sandbox, SystemBwrap)) { RedirectStandardOutput = true, RedirectStandardError = true };
             foreach (var arg in new[] { "--die-with-parent", "--unshare-all", "--new-session", "--cap-drop", "ALL",
                 "--ro-bind", root, "/", "--bind", source, "/source", "--proc", "/proc", "--dev", "/dev",
                 "--tmpfs", "/tmp" })

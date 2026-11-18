@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "platform": "linux-x64",
+  "source": {
+    "repository": "https://github.com/dotnet/runtime",
+    "revision": "60629d14374c56f1cb51819049ad1fa529307f8d",
+    "url": "https://codeload.github.com/dotnet/runtime/tar.gz/60629d14374c56f1cb51819049ad1fa529307f8d",
+    "sha256": "4fae24371e108a046d7bfd30785e9a2f4400552b165b70300a72f855370da3de",
+    "version": "10.0.0"
+  },
+  "sdk": {
+    "version": "11.0.100",
+    "runtime_version": "11.0.0",
+    "platform": "linux-x64",
+    "urls": [
+      "https://builds.dotnet.microsoft.com/dotnet/Sdk/11.0.100/dotnet-sdk-11.0.100-linux-x64.tar.gz"
+    ],
+    "integrity": "sha256-b9uIIvR8zboo9Qfc1dkuYy1bmc0nkI1oOPDMV1vjO68="
+  }
+}

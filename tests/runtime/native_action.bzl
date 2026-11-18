@@ -17,6 +17,8 @@ def _native_runtime(ctx):
     arguments = [runtime.path + "/" + assembly + ".dll", ctx.file.sandbox.path, ctx.file.toolchain_archive.path, ctx.file.source_archive.path, "/source/build-native.sh"] + [file.path for file in outputs]
     if ctx.file.script:
         arguments += ["--script-file", ctx.file.script.path]
+    if ctx.attr.system_bwrap:
+        arguments.append("--system-bwrap")
     ctx.actions.run(
         executable = tc.dotnet,
         arguments = arguments,
@@ -34,6 +36,7 @@ def _native_runtime(ctx):
 native_runtime = rule(
     implementation = _native_runtime,
     attrs = {
+        "system_bwrap": attr.bool(default = False),
         "products": attr.string_dict(default = {"coreclr": "libcoreclr.so", "jit": "libclrjit.so", "host": "corerun"}),
         "driver_assembly": attr.string(default = "Task"),
         "driver": attr.label(providers = [MSBuildLayoutInfo], cfg = "exec", mandatory = True),
