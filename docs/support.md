@@ -310,7 +310,8 @@ The x64 controls used amd64 SDK/Bazel binaries in Ubuntu containers on an ARM64
 Mac. This establishes emulated x64 behavior, not native x64 performance or
 source-built SDK/runtime qualification. Current native x64 owned checks,
 quickstart and HTTP recovery are recorded in the [SDK 11 matrix](#sdk-11-platform-qualification);
-x64 source production, automatic workers and large upstream graphs remain unqualified.
+Native x64 source-runtime production is covered [separately](#complete-source-runtime-product);
+source-built x64 SDKs, automatic workers and whole upstream graphs remain unqualified.
 
 Native macOS ARM64 passed `//tests/integration:{quickstart,native_sdk}` on
 the recorded 8.8.0 / 9.3.0 pins with SDK **10.0.400**: the public catalog's packages,
@@ -762,7 +763,7 @@ Ubuntu 26.04 ARM64 image / SDK **10.0.400** passed same-byte selection and
 wrong-digest rejection while `/usr/bin/stat` was a symlink to Rust coreutils.
 Reproduce by compiling `tests/runtime/NativeBuild.cs.txt` with a harness that
 calls `SelectSandbox` on a copy of `/usr/bin/bwrap` and then a different file.
-This checks launcher selection only; native x64 production remains unqualified.
+This selector-only probe is separate from the native x64 product qualification below.
 
 The managed runtime fixture covers **260 project paths / 543 configurations /
 481 compilations / 39 roots** on Linux ARM64 / Bazel 9.2.0. Earlier producer and
@@ -917,10 +918,10 @@ adaptation, and resume compares against the same transformed archive bytes;
 unrelated source edits remain rejected. Analyzer and warning policies remain enabled.
 This source compatibility change does not by itself qualify a complete SDK 11 build.
 
-Current producers require Ubuntu 26.04 ARM64 and explicitly select LLVM/Clang
-18.1.8 for CoreCLR, native libraries and the host. The declared native package
-root links against glibc 2.43; deployment on older-glibc distributions is
-unqualified. Native Linux x64 and RBE remain unqualified.
+Current producers require native Ubuntu 26.04 ARM64 or x64 and explicitly select
+LLVM/Clang 18.1.8 for CoreCLR, native libraries and the host. The declared native
+package root links against glibc 2.43; deployment on older-glibc distributions and
+RBE remain unqualified.
 
 The [source-SDK producer](#source-toolchains-and-nativeaot) is separately qualified
 on Ubuntu 26.04 / LLVM 18. Historical SDK archives, the separate NativeAOT
@@ -933,6 +934,36 @@ root reported Ubuntu 26.04, Clang 18.1.8 and GNU coreutils 9.7. Reproduce with
 `python3 tests/runtime/environment_probe.py FRESH_OUTPUT --source-archive PINNED_SOURCE`.
 This checks toolchain closure and compiler selection; the full runtime product
 requires the separately budgeted source-to-app workflow above.
+
+Native Ubuntu 26.04 x64 qualification at rules revision
+`7e82ad6fe3d19e22be67c569a2c493ed1a785585` built the same pinned runtime
+**10.0.0** source (`60629d14374c56f1cb51819049ad1fa529307f8d`) with bootstrap
+SDK **11.0.100**, Bazel **9.3.2** and declared Clang **18.1.8**. All three native
+producers and the managed graph (**631 configurations / 563 compilations**,
+121 package archives / 320 native locks) built successfully. An outer job deadline then
+interrupted verification; resuming the same owned setup completed both forced
+product tests (**2/2**), including all **172 managed framework members**,
+producer hashes/modes, archive comparison, SDK-absent execution and the
+missing-CoreCLR control. The exported `runtime-linux-x64.tar.gz` has SHA256
+`08199700d6f2e5c2bf32c7d3b32ef2294f26adcd4504f8ecb10d828ce92e28f6`.
+This is same-host build/resume/product qualification, with local action reuse
+in the final verification. It does not establish independent x64 remote recovery,
+a cold-build timing, full upstream test parity or a source-built x64 SDK.
+ARM64 worker/default release gates retain their separate qualification scope.
+
+The native x64 invocation is documented in the
+[source-to-app guide](../examples/source-runtime-app/README.md#native-linux-x64).
+On Ubuntu hosts with path-bound Bubblewrap AppArmor policy, `--system-bwrap`
+requires the exact generic **amd64** `0.11.1-1ubuntu0.3` launcher bytes locked in
+the catalog. Ubuntu may instead install optimized **amd64v3** bytes at the same
+package version; version equality is insufficient. The qualification installed
+the verified generic package, preserving AppArmor policy and exact digest checks.
+Host GCC/G++ are also prerequisites for Bazel tool-launcher analysis
+(`rules_pkg` / `rules_cc` local C++ configuration); native payload compilation
+still uses declared Clang and the declared tool filesystem. The qualification
+controller used a six-CPU quota / 22 GiB memory cap, .NET capped at four CPUs,
+native `-numproc 4` and final Bazel `--jobs=1`. These are run budgets, not
+verified minimum requirements.
 
 The official workflow with SDK **11.0.100** passes on Ubuntu 26.04 ARM64,
 four CPUs / **12 GiB**, Bazel **9.3.2** and Apple Container **1.7.1**
@@ -993,15 +1024,16 @@ sync inputs and module locks transferred.
 [Timings and method](performance.md#source-runtime-product) separate setup from recovery.
 
 The Ubuntu 22.04 results above are historical; current execution requires Ubuntu
-26.04 ARM64 with nested namespaces; the SDK 11 recipe above explicitly selects
-12 GiB. For compilation
+26.04 ARM64 or x64 with nested namespaces; the Apple SDK 11 recipe above explicitly
+selects 12 GiB. For compilation
 with a source-built **SDK**, use the separate
 [quick-start scenario](../examples/quickstart/README.md#source-built-sdk).
 
 ### Declared native preparation
 
 Source selection, three version files, shared source archives and tool trees are
-Bazel outputs. Tools come from 194 hash-locked Ubuntu 26.04 ARM64 packages,
+Bazel outputs. ARM64 tools come from 194 hash-locked Ubuntu 26.04 packages;
+x64 uses its separate [locked catalog](../tests/runtime/native-packages-x64.json),
 including the explicit compiler-rt dependency. Clang, LLD and LLVM are pinned to
 `1:18.1.8-20ubuntu8`; declared-root checks verify the OS and compiler before
 compilation. Explicit aliases replace package scripts, including deterministic
@@ -1248,9 +1280,10 @@ retains an explicit copy control.
 
 ## Limits
 
-- Persistent workers require Bubblewrap and nested namespaces. Native worker/remote
-  evidence is Linux ARM64; x64 has the emulated controls above. Native Linux x64,
-  macOS workers and RBE are unqualified.
+- Persistent workers require Bubblewrap and nested namespaces. Broad worker/remote
+  release qualification remains Linux ARM64. The native x64 source-runtime run
+  exercises its explicit worker strategy; automatic x64 workers, macOS workers
+  and RBE remain unqualified.
 - Unknown SDKs/workloads and whole-repository runtime/native build parity are unqualified.
 - Custom task/analyzer/generator reads, package side effects and output ownership
   require contracts. Build compiler selections do not qualify Pack/Publish changes.

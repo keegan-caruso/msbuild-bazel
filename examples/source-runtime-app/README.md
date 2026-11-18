@@ -1,6 +1,6 @@
 # App on a source-built runtime
 
-Build the pinned Linux ARM64 .NET 10 runtime and run an ordinary app on it.
+Build the pinned Linux ARM64 or x64 .NET 10 runtime and run an ordinary app on it.
 The downloaded SDK compiles the graph; the source-built host, CoreLib and BCL
 execute the app. [Pins](source.json) identify the source and bootstrap SDK.
 
@@ -27,6 +27,33 @@ namespaces. Provision at least the 12 GiB used for Apple guest qualification;
 the preflight minimum does not guarantee that the full graph fits. The Apple
 guest result does not independently qualify a bare-host SDK 11 run.
 
+## Native Linux x64
+
+Use native Ubuntu 26.04 x64 with Git, Python, download access, `dpkg-deb`,
+GCC/G++, and working nested user/mount namespaces. Host GCC/G++ are needed for
+Bazel tool-launcher analysis (`rules_pkg` / `rules_cc`); native producers compile with the declared Clang
+18.1.8 toolchain. Configure host memory and disk separately; the Apple-only
+`--worker-memory-gib` option does not provision a native host.
+
+```sh
+python3 scripts/setup-source-runtime.py /build/source-runtime --system-bwrap
+python3 scripts/setup-source-runtime.py /build/source-runtime --run --describe-runtime --verify-product
+```
+
+`--system-bwrap` is an explicit Ubuntu AppArmor handoff: the root-owned,
+non-symlink `/usr/bin/bwrap` and its parents must pass permission checks, and
+its SHA-256 must equal the declared launcher. Install the generic **amd64**
+Bubblewrap **0.11.1-1ubuntu0.3** package from the
+[x64 catalog](../../tests/runtime/native-packages-x64.json). Ubuntu's optimized
+**amd64v3** package can have the same version but different bytes and is rejected.
+Use the pinned package URL/hash rather than relying on version equality. This
+retains the host's path-bound AppArmor policy. Hosts allowing the declared
+launcher can omit `--system-bwrap`.
+
+Native x64 qualification built the runtime and passed both forced product tests
+after resuming the same setup. Independent remote recovery and a source-built
+x64 SDK remain separate scopes; see [evidence and limits](../../docs/support.md#complete-source-runtime-product).
+
 Rerun the same command to resume an owned setup with matching inputs. `--resume`
 also remains available. Retain the setup
 directory; Linux also retains a dependency on this rules checkout. Reports and
@@ -49,8 +76,8 @@ does not copy the worker's installed compiler files. Compiler selection is expli
 CoreCLR, native libraries and the host. Graph sync remains a setup step.
 
 The declared native environment uses Ubuntu 26.04 glibc 2.43. Deployment on
-Ubuntu 22.04 or other older-glibc systems is unqualified; this remains an ARM64
-producer and does not qualify an x64 source build.
+Ubuntu 22.04 or other older-glibc systems is unqualified. ARM64 and x64 producers
+use separate pinned native catalogs and matching bootstrap SDKs.
 
 Pass `--cache-url=http://CACHE:8080` to reuse Bazel actions and MSBuild project
 snapshots during qualification and ordinary builds. The endpoint must be reachable
@@ -65,7 +92,7 @@ project snapshot publication. Set both for a consumer that should only read both
 cache layers. A cold cache still requires the initial SDK Build.
 
 The declared `//:runtime_package` output is exported as
-`runtime-linux-arm64.tar.gz` in that directory. It is an unsigned IL developer
+`runtime-linux-arm64.tar.gz` or `runtime-linux-x64.tar.gz` in that directory. It is an unsigned IL developer
 runtime with source provenance and upstream licenses. Qualification and platform
 limits are in [support](../../docs/support.md).
 
