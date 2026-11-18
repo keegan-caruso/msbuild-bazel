@@ -1,7 +1,10 @@
 """Controls for source SDK qualification's generated Bazel declarations."""
 import ast
 import hashlib
-from acquire_x64 import verify
+import io
+import threading
+from concurrent.futures import ThreadPoolExecutor
+from acquire_x64 import download, verify
 import json
 import os
 from pathlib import Path
@@ -53,6 +56,38 @@ class SourceActionTemplatesTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, message):
                         source_action_prepare.main()
                 self.assertFalse(output.exists())
+
+    def test_identical_concurrent_downloads_publish_once_and_preserve_stale_partials(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            destination = root / 'sdk.tar.gz'
+            stale = root / 'sdk.tar.gz.partial'
+            stale.write_bytes(b'other run')
+            pin = {'bytes': 8, 'sha256': hashlib.sha256(b'original').hexdigest(), 'url': 'https://fixture.invalid/sdk'}
+            barrier = threading.Barrier(2)
+            def response(*args, **kwargs):
+                barrier.wait(timeout=5)
+                return io.BytesIO(b'original')
+            with patch('acquire_x64.urllib.request.urlopen', side_effect=response), ThreadPoolExecutor(2) as pool:
+                results = [pool.submit(download, destination, pin) for _ in range(2)]
+                for result in results:
+                    result.result(timeout=10)
+            self.assertEqual(destination.read_bytes(), b'original')
+            self.assertEqual(stale.read_bytes(), b'other run')
+            self.assertEqual(set(root.iterdir()), {destination, stale})
+            destination.write_bytes(b'corrupt!')
+            with self.assertRaisesRegex(ValueError, 'identity mismatch'):
+                download(destination, pin)
+            self.assertEqual(destination.read_bytes(), b'corrupt!')
+
+    def test_arm64_default_template_bytes_are_unchanged(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            workspace = Path(temporary)
+            write_bazel_files(workspace, Path('/rules'))
+            expected = {'MODULE.bazel': 'e8e2a25e615539c65d17621e854db881f8f037dcd27cf005f044f97898aaaf66',
+                        'BUILD.bazel': '3e5d17ce8b3a7032e30b92e608ef66b85346d99a03725cf18a8264e2265d890c'}
+            for name, digest in expected.items():
+                self.assertEqual(hashlib.sha256((workspace / name).read_bytes()).hexdigest(), digest)
 
     def test_acquired_bootstrap_rejects_changed_bytes(self):
         with tempfile.TemporaryDirectory() as temporary:

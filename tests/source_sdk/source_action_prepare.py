@@ -60,49 +60,38 @@ def validate_bootstrap_host(path, architecture):
 
 def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False):
     configuration = platform_configuration(architecture)
+    controller = 'dotnet.sdk(name="controller",version="10.0.400",platforms=["linux-arm64"])'
+    if architecture == "x64":
+        pin = json.loads(Path(__file__).with_name('pin-linux-x64.json').read_text())
+        driver = pin['controllerSdk']
+        integrity = 'sha256-' + base64.b64encode(bytes.fromhex(driver['sha256'])).decode()
+        controller = ('dotnet.sdk_archive(name="controller",version="10.0.400",runtime_version=' +
+                      json.dumps(driver['runtimeVersion']) + ',platform="linux-x64",urls=[' +
+                      json.dumps(driver['url']) + '],integrity=' + json.dumps(integrity) + ')')
     (w / 'MODULE.bazel').write_text(textwrap.dedent('''\
     module(name="source_sdk_action")
     bazel_dep(name="platforms",version="1.0.0")
     bazel_dep(name="rules_msbuild",version="0.0.0")
     local_path_override(module_name="rules_msbuild",path=%s)
     dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
-    dotnet.sdk(name="controller",version="10.0.400",platforms=["linux-arm64"])
+    %s
     use_repo(dotnet,"controller")
     register_toolchains("//:produced_registered","//:produced_runtime_registered")
-    ''') % json.dumps(str(rules)))
+    ''') % (json.dumps(str(rules)), controller))
     (w / 'BUILD.bazel').write_text(textwrap.dedent('''\
     load(":source_action.bzl","source_sdk","sdk_layout")
     load("@rules_msbuild//msbuild:sdk.bzl","msbuild_sdk")
     load("@rules_msbuild//msbuild:defs.bzl","msbuild_graph", "msbuild_graph_runner", "msbuild_graph_test")
-    source_sdk(name="sdk",driver_sdk="@controller//:sdk_host",driver_project="Driver.csproj",driver_source="Driver.cs",sandbox="bwrap",native_tools="native.tar",sources="sources.tar",bootstrap="bootstrap.tar",exec_compatible_with=["@platforms//os:linux","@platforms//cpu:aarch64"])
+    source_sdk(name="sdk",%sdriver_sdk="@controller//:sdk_host",driver_project="Driver.csproj",driver_source="Driver.cs",sandbox="bwrap",native_tools="native.tar",sources="sources.tar",bootstrap="bootstrap.tar",exec_compatible_with=["@platforms//os:linux","@platforms//cpu:%s"])
     filegroup(name="evidence",srcs=[":sdk"],output_group="evidence")
     filegroup(name="driver",srcs=[":sdk"],output_group="driver")
     sdk_layout(name="layout",archive=":sdk")
     filegroup(name="dotnet",srcs=[":layout"],output_group="dotnet")
-    msbuild_sdk(name="produced",dotnet=":dotnet",files=[":layout"],sdk_version="10.0.100",runtime_version="10.0.0",runtime_identifier="linux-arm64")
+    msbuild_sdk(name="produced",dotnet=":dotnet",files=[":layout"],sdk_version="10.0.100",runtime_version="10.0.0",runtime_identifier="%s")
     msbuild_graph_runner(name="runner")
     msbuild_graph(name="graph",runner=":runner",contract="app-contract.json",srcs=["App.csproj","App.cs"],project_outputs={"App.csproj|net10.0":["bin/Release/net10.0","App.dll","Exe"]})
     msbuild_graph_test(name="smoke",graph=":graph",project="App.csproj")
-    '''))
-
-    if architecture == "x64":
-        pin = json.loads(Path(__file__).with_name('pin-linux-x64.json').read_text())
-        controller = pin['controllerSdk']
-        integrity = 'sha256-' + base64.b64encode(bytes.fromhex(controller['sha256'])).decode()
-        module = w / 'MODULE.bazel'
-        module.write_text(module.read_text().replace(
-            'dotnet.sdk(name="controller",version="10.0.400",platforms=["linux-arm64"])',
-            'dotnet.sdk_archive(name="controller",version="10.0.400",runtime_version=' +
-            json.dumps(controller['runtimeVersion']) + ',platform="linux-x64",urls=[' +
-            json.dumps(controller['url']) + '],integrity=' + json.dumps(integrity) + ')'))
-    for name in ("MODULE.bazel", "BUILD.bazel"):
-        path = w / name
-        path.write_text(path.read_text().replace("linux-arm64", configuration["rid"])
-                        .replace("cpu:aarch64", "cpu:" + configuration["cpu"]))
-    if system_bwrap:
-        path = w / 'BUILD.bazel'
-        path.write_text(path.read_text().replace('source_sdk(name="sdk",',
-                                                'source_sdk(name="sdk",system_bwrap=True,'))
+    ''') % ('system_bwrap=True,' if system_bwrap else '', configuration['cpu'], configuration['rid']))
 
 
 def main():
@@ -167,7 +156,7 @@ def main():
     export DOTNET_PROCESSOR_COUNT=2 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_GENERATE_ASPNET_CERTIFICATE=false NuGetAudit=false
     patch -p1 < identitymodel.patch
     ./prep-source-build.sh --no-sdk --no-bootstrap --no-artifacts --no-prebuilts > preparation.log 2>&1 || { tail -100 preparation.log; exit 1; }
-    /usr/bin/time -v -o build.time ./build.sh -sb --clean-while-building --configuration Release --arch arm64 --official-build-id 20251023.11 --branding rtm --source-repository https://github.com/dotnet/dotnet --source-version b0f34d51fccc69fd334253924abd8d6853fad7aa /p:BuildInParallel=false > build.log 2>&1 || { tail -120 build.log; grep -R -m2 "error NU" artifacts/log src/source-build-reference-packages/artifacts/log 2>/dev/null | head -40 || true; exit 1; }
+    /usr/bin/time -v -o build.time ./build.sh -sb --clean-while-building --configuration Release --arch ''' + a.architecture + ''' --official-build-id 20251023.11 --branding rtm --source-repository https://github.com/dotnet/dotnet --source-version b0f34d51fccc69fd334253924abd8d6853fad7aa /p:BuildInParallel=false > build.log 2>&1 || { tail -120 build.log; grep -R -m2 "error NU" artifacts/log src/source-build-reference-packages/artifacts/log 2>/dev/null | head -40 || true; exit 1; }
     mapfile -t archives < <(find artifacts/assets/Release/Sdk -name 'dotnet-sdk-*.tar.gz')
     test "${#archives[@]}" = 1
     mkdir result
@@ -175,7 +164,6 @@ def main():
     artifacts/obj/extracted-dotnet-sdk/dotnet --info > sdk-info.txt
     tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf result.tar preparation.log build.log build.time sdk-info.txt artifacts/log
     '''
-    script = script.replace('--arch arm64', '--arch ' + a.architecture)
     with tarfile.open(a.source_archive, 'r|gz') as original, tarfile.open(w / 'sources.tar', 'w') as archive:
         for entry in original:
             parts = entry.name.split('/', 1)
