@@ -27,6 +27,7 @@ if [[ "$architecture" == x64 ]]; then
     tar -xzf "$acquisition/dotnet-sdk-10.0.100-rc.2.25502.107-linux-x64.tar.gz" -C "$source_root/.dotnet"
     mkdir -p "$source_root/prereqs/packages/archive"
     cp "$acquisition/Private.SourceBuilt.Artifacts.10.0.100-rc.2.25502.107.centos.10-x64.tar.gz" "$source_root/prereqs/packages/archive/"
+    python3 "$here/prepare_x64_bootstrap.py" "$source_root" > "$evidence/bootstrap-inputs.log" 2>&1
 fi
 cd "$source_root"
 dpkg-query -W > "$evidence/native-packages.tsv"
