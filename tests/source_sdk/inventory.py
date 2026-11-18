@@ -59,8 +59,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('source', type=Path)
     parser.add_argument('output', type=Path)
+    parser.add_argument('--architecture', choices=['arm64', 'x64'], default='arm64')
     args = parser.parse_args()
     pin = json.loads(Path(__file__).with_name('pin.json').read_text())
+    pin['configuration']['architecture'] = args.architecture
     result = inventory(args.source, pin)
     args.output.write_text(json.dumps(result, indent=2) + '\n')
     print('Inventoried', len(result['repositories']), 'repositories; conditions are unevaluated.')
