@@ -753,6 +753,17 @@ Drivers: [SDK consumers](../tests/source_sdk/consumer_scenarios.py),
 
 ## Runtime and cache evidence
 
+The native qualification driver's explicit `--system-bwrap` handoff checks
+root ownership with Linux `statx`; it does not execute or trust `/usr/bin/stat`.
+The launcher and `/`, `/usr`, `/usr/bin` must remain non-symlinks, root-owned
+and not group/other writable; the launcher must be executable and match the
+declared SHA-256. A compiled `NativeBuild.SelectSandbox` probe on the pinned
+Ubuntu 26.04 ARM64 image / SDK **10.0.400** passed same-byte selection and
+wrong-digest rejection while `/usr/bin/stat` was a symlink to Rust coreutils.
+Reproduce by compiling `tests/runtime/NativeBuild.cs.txt` with a harness that
+calls `SelectSandbox` on a copy of `/usr/bin/bwrap` and then a different file.
+This checks launcher selection only; native x64 production remains unqualified.
+
 The managed runtime fixture covers **260 project paths / 543 configurations /
 481 compilations / 39 roots** on Linux ARM64 / Bazel 9.2.0. Earlier producer and
 independent consumer runs passed **118,952 tests, 64 skips, zero failures** with
