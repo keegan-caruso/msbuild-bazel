@@ -20,7 +20,7 @@ import textwrap
 from inventory import digest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "runtime"))
-from native_environment import build_prefix
+from native_environment import build_prefix, sdk_account_check
 
 
 def normalize(entry):
@@ -96,7 +96,7 @@ def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False):
 
 def build_script(architecture="arm64"):
     platform_configuration(architecture)
-    return build_prefix(architecture) + '''
+    return build_prefix(architecture) + (sdk_account_check() if architecture == 'x64' else '') + '''
     export DOTNET_PROCESSOR_COUNT=2 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_GENERATE_ASPNET_CERTIFICATE=false NuGetAudit=false
     patch -p1 < identitymodel.patch
     ./prep-source-build.sh --no-sdk --no-bootstrap --no-artifacts --no-prebuilts > preparation.log 2>&1 || { tail -100 preparation.log; exit 1; }

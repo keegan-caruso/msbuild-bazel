@@ -67,6 +67,13 @@ python3 scripts/assemble-native-toolchain.py /build/fresh-native \
   --architecture=x64 --sdk --probe --system-bwrap
 ```
 
+The SDK root declares account records for root (UID/GID 0) and the ordinary
+`builder` user (UID/GID 1000), with `/tmp` as the writable home. The sealed probe
+and x64 source script fail before Restore if the invoking UID or primary GID
+cannot be resolved in that root. They preserve the caller's namespace mapping;
+other host UIDs are not qualified. Native x64 qualification uses UID/GID 1000.
+No host account files enter the archive.
+
 This produces `native.tar`, `bwrap`, and `receipt.json`. Use the report's exact hashes;
 do not capture the native host's `/usr` as the x64 SDK toolchain. The
 [overlay recipe](native_overlay/README.md) provides an independent OCI/preflight

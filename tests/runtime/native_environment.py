@@ -58,3 +58,14 @@ def build_prefix(architecture='arm64'):
             f'test "$(uname -m)" = {machine}\n'
             f'clang-{LLVM_MAJOR} -dumpmachine | grep -E "^{target}-.*linux-gnu$"\n'
             f'clang-{LLVM_MAJOR} --version | grep -F "clang version {LLVM_VERSION}"\n')
+
+
+def sdk_account_check():
+    """Fail before NuGet if the declared SDK root cannot resolve the caller."""
+    return """sdk_uid=$(id -u)
+sdk_gid=$(id -g)
+if ! getent passwd "$sdk_uid" >/dev/null || ! getent group "$sdk_gid" >/dev/null; then
+    echo "SDK native root cannot resolve UID $sdk_uid / GID $sdk_gid; declared defaults are root (0) and builder (1000). Run with a declared account; native x64 qualification uses builder 1000." >&2
+    exit 1
+fi
+"""
