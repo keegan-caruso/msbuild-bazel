@@ -4,7 +4,7 @@ load("@rules_msbuild//msbuild:defs.bzl", "msbuild_graph", "msbuild_graph_binary"
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 load("@rules_python//python:defs.bzl", "py_test")
 
-def source_runtime_application(name, projects, native_files, provenance, reference_packs = []):
+def source_runtime_application(name, projects, native_files, provenance, reference_packs = [], runtime_identifier = "linux-arm64"):
     """Connect explicit framework projects and native artifacts to the sample app.
 
     Args:
@@ -13,7 +13,10 @@ def source_runtime_application(name, projects, native_files, provenance, referen
         native_files: Native producer labels mapped to runtime destination paths.
         provenance: Pinned source and toolchain build facts.
         reference_packs: Selected NuGet targeting pack labels for the app restore.
+        runtime_identifier: Native Linux runtime platform (linux-arm64 or linux-x64).
     """
+    if runtime_identifier not in ["linux-arm64", "linux-x64"]:
+        fail("Unsupported source runtime platform: " + runtime_identifier)
     runtime = name + "_source_runtime"
     host = name + "_host"
     build = name + "_build"
@@ -27,12 +30,12 @@ def source_runtime_application(name, projects, native_files, provenance, referen
         version = "10.0.0",
         target_framework = "net10.0",
         target_framework_moniker = ".NETCoreApp,Version=v10.0",
-        runtime_identifier = "linux-arm64",
+        runtime_identifier = runtime_identifier,
         build_id = provenance["sourceCommit"],
         build_info = "source-runtime.json",
         provenance = json.encode(provenance),
     )
-    msbuild_runtime(name = host, layout = ":" + runtime, entry_point = "dotnet", runtime_identifier = "linux-arm64", version = "10.0.0", env = {"RUNTIME_PROVIDER": "source"})
+    msbuild_runtime(name = host, layout = ":" + runtime, entry_point = "dotnet", runtime_identifier = runtime_identifier, version = "10.0.0", env = {"RUNTIME_PROVIDER": "source"})
     if reference_packs:
         msbuild_package_lock(name = name + "_reference_packs", packages = reference_packs)
     msbuild_graph(name = build, runner = ":graph_runner", contract = "app/contract.json", source_root = "app", srcs = ["app/App.csproj", "app/Program.cs"], linux_stable_paths = True, linux_worker = True, **({"package_lock": ":" + name + "_reference_packs"} if reference_packs else {}))
@@ -57,5 +60,5 @@ def source_runtime_application(name, projects, native_files, provenance, referen
         # This check creates its own filesystem/network namespace to exclude the
         # SDK. The qualified host must permit nested Bubblewrap namespaces.
         tags = ["no-sandbox", "no-remote-exec"],
-        target_compatible_with = ["@platforms//os:linux", "@platforms//cpu:aarch64"],
+        target_compatible_with = ["@platforms//os:linux", "@platforms//cpu:" + ("aarch64" if runtime_identifier == "linux-arm64" else "x86_64")],
     )

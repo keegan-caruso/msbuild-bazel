@@ -17,9 +17,12 @@ def digest(path):
     return value.hexdigest()
 
 
-def read_recipe():
-    value = json.loads(RECIPE.read_text())
-    if value['schemaVersion'] != 1 or value['platform'] != 'linux-arm64':
+def read_recipe(architecture='arm64'):
+    if architecture not in ('arm64', 'x64'):
+        raise ValueError('Unsupported source-runtime architecture: ' + architecture)
+    recipe = RECIPE if architecture == 'arm64' else RECIPE.with_name('source-x64.json')
+    value = json.loads(recipe.read_text())
+    if value['schemaVersion'] != 1 or value['platform'] != 'linux-' + architecture or value['sdk']['platform'] != value['platform']:
         raise ValueError('Unsupported source-runtime recipe')
     if value['sdk']['version'] != json.loads((ROOT / 'global.json').read_text())['sdk']['version']:
         raise ValueError('Source-runtime bootstrap SDK differs from the repository pin')

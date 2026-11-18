@@ -18,7 +18,7 @@ def main():
     parser.add_argument('native_workspace', type=Path, help='declared native, support, host, crypto and compression producers')
     parser.add_argument('--include-private-frameworks', action='store_true', help='declare reviewed alternate-framework test support assemblies beside the source host')
     args = parser.parse_args()
-    assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
+    assert os.uname().sysname == 'Linux' and os.uname().machine in ('aarch64', 'x86_64')
     root, native = args.workspace.resolve(), args.native_workspace.resolve()
     assert not (root / 'app').exists() and not (root / 'runtime').exists()
     contract = json.loads((root / 'graph.generated.json').read_text())

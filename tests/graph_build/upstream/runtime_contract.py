@@ -1,7 +1,8 @@
-"""Expand reviewed contracts for pinned ARM64 runtime managed slices.
+"""Expand contracts for pinned runtime managed slices.
 
 The output list records BinPlace producers, not a runtime filesystem scan.
-Do not reuse it for another platform, framework, target or upstream revision.
+Linux x64 translates architecture tokens in the declared output paths.
+Do not reuse it for other platforms, frameworks, targets or upstream revisions.
 """
 
 import argparse
@@ -27,7 +28,7 @@ def bind_outer_outputs(mapping):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path)
-    parser.add_argument('--platform', choices=['osx-arm64', 'linux-arm64'], default='osx-arm64')
+    parser.add_argument('--platform', choices=['osx-arm64', 'linux-arm64', 'linux-x64'], default='osx-arm64')
     parser.add_argument('--prepared-restore', action='store_true', help='declare the reviewed managed graph Restore contract')
     parser.add_argument('--restore-reuse', action='store_true', help='review only the pinned Pipelines sources for Linux qualification Restore reuse')
     parser.add_argument('--evaluation-reuse', action='store_true', help='review only the pinned Pipelines body/API edit sources for pristine evaluation reuse')
@@ -36,15 +37,16 @@ def main():
     args = parser.parse_args()
     if args.evaluation_reuse and not args.prepared_restore:
         parser.error('--evaluation-reuse requires --prepared-restore')
-    if args.restore_reuse and (not args.prepared_restore or args.platform != 'linux-arm64'):
-        parser.error('--restore-reuse requires --prepared-restore and --platform=linux-arm64')
+    if args.restore_reuse and (not args.prepared_restore or not args.platform.startswith('linux-')):
+        parser.error('--restore-reuse requires --prepared-restore and a Linux platform')
     if args.resolve_references and args.reference_bindings:
         parser.error('--resolve-references replaces --reference-bindings')
     assert not args.reference_bindings or args.platform == 'linux-arm64'
     directory = Path(__file__).resolve().parent
     mapping = json.loads((directory / 'runtime.json').read_text())
-    if args.platform == 'linux-arm64':
+    if args.platform.startswith('linux-'):
         mapping['projectDefaults']['properties']['TargetOS'] = 'linux'
+        mapping['projectDefaults']['properties']['TargetArchitecture'] = args.platform.removeprefix('linux-')
         # Reviewed host/mobile coordination and runner-command items are
         # metadata, not file inputs consumed by this Linux managed Build.
         mapping['projectDefaults']['evaluationItems'] += [
@@ -107,11 +109,13 @@ def main():
     if args.prepared_restore:
         mapping['projectDefaults']['preparedRestore'] = True
     mapping['projects'] = {}
-    output_file = 'runtime_linux_outputs.json' if args.platform == 'linux-arm64' else 'runtime_outputs.json'
+    output_file = 'runtime_linux_outputs.json' if args.platform.startswith('linux-') else 'runtime_outputs.json'
     for project, frameworks in json.loads((directory / output_file).read_text()).items():
         binding = copy.deepcopy(mapping['projectDefaults'])
         binding.pop('properties')
         for framework, outputs in frameworks.items():
+            if args.platform == 'linux-x64':
+                outputs = [path.replace('arm64', 'x64') for path in outputs]
             if framework:
                 configured = copy.deepcopy(binding)
                 configured['outputFiles'] += outputs
@@ -128,7 +132,7 @@ def main():
         binding.pop('properties', None)
         for variant in [binding] + list(binding.get('frameworkOverrides', {}).values()):
             variant['temporaryDirectories'] = ['$(IntermediateOutputPath)asnxml']
-    if args.platform == 'linux-arm64':
+    if args.platform.startswith('linux-'):
         # This library consumes SDK compiler references. Retain implementation
         # dependencies for the source-generator projects built alongside it.
         project = 'src/libraries/System.Text.Json/src/System.Text.Json.csproj'
@@ -162,7 +166,7 @@ def main():
                 'sha256': '7f388295fe9b0043f8359ba6f8048c78df4c518849cf28ba5506958019c66f4d',
                 'targets': [], 'tasks': [],
                 'inputs': ['src/libraries/System.Net.Quic/src/ExcludeApiList.PNSE.txt']}
-    if args.platform == 'linux-arm64':
+    if args.platform.startswith('linux-'):
         # These authored files are discovered inside SDK/upstream targets rather
         # than evaluated file items. Retain the upstream validation/generation.
         for project, digest, extra in [
@@ -180,7 +184,7 @@ def main():
             binding.pop('properties', None)
             for variant in [binding] + list(binding.get('frameworkOverrides', {}).values()):
                 variant['documents'][project] = {'sha256': digest, 'targets': [], 'tasks': [], 'inputs': [extra]}
-    if args.platform == 'linux-arm64':
+    if args.platform.startswith('linux-'):
         # Only the browser configuration reads this PNS generation exclusion.
         project = 'src/libraries/System.Net.NameResolution/src/System.Net.NameResolution.csproj'
         binding = mapping['projects'].setdefault(project, copy.deepcopy(mapping['projectDefaults']))
@@ -192,7 +196,7 @@ def main():
             'targets': [], 'tasks': [],
             'inputs': ['src/libraries/System.Net.NameResolution/src/ExcludeApiList.PNSE.Browser.txt']}
         binding.setdefault('frameworkOverrides', {})['net10.0-browser'] = configured
-    if args.platform == 'linux-arm64':
+    if args.platform.startswith('linux-'):
         # Shim stubs generate C# from authored type names before CoreCompile.
         # These are metadata, not file paths; preserve the SDK-generated output.
         document = 'src/libraries/shims/stubs/Directory.Build.targets'

@@ -12,7 +12,9 @@ import subprocess
 import tempfile
 
 
-def inventory(source, feed, sdk, destination, mapping_path, log_directory):
+def inventory(source, feed, sdk, destination, mapping_path, log_directory, architecture='arm64'):
+    if architecture not in ('arm64', 'x64'):
+        raise ValueError('Unsupported runtime product architecture')
     required = json.loads(subprocess.check_output([str(sdk/'dotnet'), 'msbuild',
         str(source/'src/libraries/NetCoreAppLibrary.props'), '-nologo', '-getItem:NetCoreAppLibrary'], text=True))
     assemblies = sorted(item['Identity'] + '.dll' for item in required['Items']['NetCoreAppLibrary'])
@@ -26,7 +28,7 @@ def inventory(source, feed, sdk, destination, mapping_path, log_directory):
         environment = dict(os.environ, DOTNET_ROOT=str(sdk), DOTNET_CLI_HOME=str(scratch/'home'), HOME=str(scratch/'home'),
             NUGET_PACKAGES=str(scratch/'packages'), NUGET_HTTP_CACHE_PATH=str(scratch/'http'),
             MSBUILDDISABLENODEREUSE='1', DOTNET_CLI_TELEMETRY_OPTOUT='1', DOTNET_NOLOGO='1')
-        properties = ['-p:Configuration=Release', '-p:TargetOS=linux', '-p:TargetArchitecture=arm64',
+        properties = ['-p:Configuration=Release', '-p:TargetOS=linux', '-p:TargetArchitecture=' + architecture,
             '-p:UseLocalTargetingRuntimePack=false', '-p:RestoreUseStaticGraphEvaluation=false']
         project = 'src/libraries/sfx-src.proj'
         with (log_directory/'product-restore.log').open('w') as log:
@@ -87,7 +89,7 @@ def inventory(source, feed, sdk, destination, mapping_path, log_directory):
             configured = binding.setdefault('frameworkOverrides', {}).setdefault(producer['framework'], {})
             configured['outputFiles'] = sorted(set(configured.get('outputFiles', binding.get('outputFiles', mapping['projectDefaults'].get('outputFiles', [])))) | set(copies))
         mapping_path.write_text(json.dumps(mapping, indent=2) + '\n')
-        destination.write_text(json.dumps(dict(version='10.0.0', platform='linux-arm64', root=project,
+        destination.write_text(json.dumps(dict(version='10.0.0', platform='linux-' + architecture, root=project,
             assemblies=assemblies, producers={name:producer for name,producer,_ in rows}), indent=2) + '\n')
 
 

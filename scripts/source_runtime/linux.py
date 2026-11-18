@@ -1,4 +1,4 @@
-"""Native Linux ARM64 setup; all build products remain ordinary Bazel outputs."""
+"""Native Linux ARM64/x64 setup; all build products remain ordinary Bazel outputs."""
 import fcntl
 import json
 import os
@@ -82,8 +82,9 @@ def build_command(base, action, arguments=()):
 
 
 def setup(args):
-    if platform.system() != 'Linux' or platform.machine() != 'aarch64':
-        raise ValueError('Source-runtime builds require native Linux ARM64')
+    architecture = {'aarch64': 'arm64', 'x86_64': 'x64'}.get(platform.machine())
+    if platform.system() != 'Linux' or architecture is None:
+        raise ValueError('Source-runtime builds require native Linux ARM64 or x64')
     release = dict(line.split('=', 1) for line in Path('/etc/os-release').read_text().splitlines() if '=' in line)
     if release.get('ID', '').strip('"') != 'ubuntu' or release.get('VERSION_ID', '').strip('"') != '26.04':
         raise ValueError('Use the supplied Ubuntu 26.04 native build image')
@@ -102,10 +103,12 @@ def setup(args):
                 setattr(args, name, Path(value) if name in ['repository_cache', 'native_toolchain', 'sandbox', 'host_space_path'] else value)
     if bool(args.native_toolchain) != bool(args.sandbox):
         raise ValueError('Provide --native-toolchain and --sandbox together')
-    recipe = read_recipe()
+    recipe = read_recipe(architecture)
+    recipe_path = ROOT / "examples/source-runtime-app" / ("source.json" if architecture == "arm64" else "source-x64.json")
+    catalog = ROOT / "tests/runtime" / ("native-packages.json" if architecture == "arm64" else "native-packages-x64.json")
     bazel_readonly = bazel_cache_read_only(state['identity'] if state else None, getattr(args, 'bazel_cache_read_only', None))
     identity = dict(bazelCacheReadOnly=bazel_readonly, projectCacheReadOnly=project_cache_read_only(state['identity'] if state else None), bazelVersion=selected_bazel_version(), recipe=recipe, rulesSha256=rules_identity(), registry=args.registry, cacheUrl=args.cache_url,
-                    nativePackagesSha256=digest(ROOT/'tests/runtime/native-packages.json') if not args.native_toolchain else None,
+                    nativePackagesSha256=digest(catalog) if not args.native_toolchain else None,
                     nativeToolchainSha256=digest(args.native_toolchain) if args.native_toolchain else None,
                     sandboxSha256=digest(args.sandbox) if args.sandbox else None,
                     repositoryCache=str(args.repository_cache.resolve()) if args.repository_cache else None)
@@ -176,7 +179,7 @@ def setup(args):
             if not (managed / 'source/nuget.lock.json').exists() or (managed / 'workspace').exists():
                 shutil.rmtree(managed)
         managed_command = [sys.executable, PREPARE / 'runtime_downloaded_prepare.py', archive, managed,
-                           '--slice=runtime-product', '--evaluation-cache-mb=1024', '--nuget-http-cache=' + str(base/'downloads/nuget-http'), '--distdir=' + str(distdir), '--sdk-archive=' + str(ROOT / 'examples/source-runtime-app/source.json')]
+                           '--slice=runtime-product', '--evaluation-cache-mb=1024', '--nuget-http-cache=' + str(base/'downloads/nuget-http'), '--distdir=' + str(distdir), '--sdk-archive=' + str(recipe_path), '--architecture=' + architecture]
         if args.cache_url:
             managed_command.append('--qualification-cache')
         if (managed / 'source/nuget.lock.json').exists() and not (managed / 'workspace').exists():
@@ -187,7 +190,7 @@ def setup(args):
                 if not args.resume:
                     raise ValueError('Partial native declarations require --resume')
                 shutil.rmtree(native)
-            prepare_inputs(native, archive, args.native_toolchain, args.sandbox)
+            prepare_inputs(native, archive, args.native_toolchain, args.sandbox, architecture=architecture)
             state['completed'].append('native')
             save(state_path,state)
         workspace = base / 'workspace'
@@ -204,7 +207,7 @@ def setup(args):
         stage('build', command, cwd=cwd)
         command, cwd, _ = build_command(base, 'test')
         stage('verify', command, cwd=cwd)
-        package = base/'runtime-linux-arm64.tar.gz'
+        package = base/('runtime-linux-' + architecture + '.tar.gz')
         shutil.copyfile(workspace/'bazel-bin/runtime_package.tar.gz', package.with_suffix('.partial'))
         package.with_suffix('.partial').replace(package)
         state['archive'] = str(package)
