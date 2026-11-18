@@ -16,7 +16,10 @@ def main():
         parser.add_argument('--'+name,type=Path,required=True)
     parser.add_argument('--native',action='append',default=[])
     args=parser.parse_args()
-    assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
+    inventory=json.loads(args.inventory.read_text())
+    platform=inventory['platform']
+    assert platform in ('linux-arm64', 'linux-x64')
+    assert os.uname().sysname == 'Linux' and os.uname().machine == {'linux-arm64': 'aarch64', 'linux-x64': 'x86_64'}[platform]
     host=args.runtime.resolve(strict=True)
     app=args.app.resolve(strict=True)
     graph=args.graph.resolve(strict=True)/'workspace'
@@ -110,7 +113,7 @@ def main():
             env=dict(os.environ, DOTNET_ROOT=str(host), DOTNET_MULTILEVEL_LOOKUP='1'))
         report.with_suffix('.missing-coreclr.log').write_text(rejected.stdout)
         assert rejected.returncode != 0 and 'Could not resolve CoreCLR path' in rejected.stdout, rejected.stdout
-    report.write_text(json.dumps(dict(platform='linux-arm64', binaryHashes=actual, managed=len(manifest['managed']),
+    report.write_text(json.dumps(dict(platform=platform, binaryHashes=actual, managed=len(manifest['managed']),
         native=len(manifest['native']), loadedSourceComponents=loaded, sdkAbsentLoadedSourceComponents=isolated_loaded,
         missingCoreclrExit=rejected.returncode, sdkAbsentExecution=True,
         packageVerified=package_verified,

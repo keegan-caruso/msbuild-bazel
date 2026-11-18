@@ -26,6 +26,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('source_archive', type=Path)
     parser.add_argument('output', type=Path, help='fresh owned preparation directory')
+    parser.add_argument('--architecture', choices=['arm64', 'x64'], default='arm64')
     parser.add_argument('--slice', choices=['loaded-common', 'runtime-suites', 'runtime-product'], default='loaded-common', help='four roots, the reviewed test graph, or the complete shared-framework developer product')
     parser.add_argument('--evaluation-reuse', action='store_true', help='opt into the reviewed Pipelines body/API evaluation contract')
     parser.add_argument('--qualification-cache', action='store_true', help='reuse qualified projects through RULES_MSBUILD_PROJECT_CACHE_URL')
@@ -60,7 +61,7 @@ def main():
                     assert project not in frameworks or frameworks[project] == framework, project
                     frameworks[project] = framework
         assert set(frameworks) == set(entries)
-    assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
+    assert os.uname().sysname == 'Linux' and os.uname().machine == {'arm64': 'aarch64', 'x64': 'x86_64'}[args.architecture]
     assert hashlib.sha256(args.source_archive.read_bytes()).hexdigest() == SOURCE_SHA256
     base = args.output.resolve()
     source = base / 'source'
@@ -104,7 +105,7 @@ def main():
     # Avoid differently signed copies of the same package racing across feeds.
     pin_runtime_feeds(source / 'NuGet.config', packages=('Microsoft.TestPlatform.ObjectModel',))
     subprocess.run(['python3', str(Path(__file__).with_name('runtime_contract.py')), str(source / 'mappings.json'),
-                    '--platform', 'linux-arm64', '--prepared-restore', '--resolve-references']
+                    '--platform', 'linux-' + args.architecture, '--prepared-restore', '--resolve-references']
                     + (['--restore-reuse'] if args.qualification_cache else [])
                     + (['--evaluation-reuse'] if args.evaluation_reuse else []), check=True)
     mapping_path = source / 'mappings.json'
@@ -119,7 +120,7 @@ def main():
               'dotnet.sdk(name="dotnet",version="11.0.100")\nuse_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
     if args.sdk_archive:
         facts = json.loads(args.sdk_archive.read_text())['sdk']
-        assert facts['version'] == '11.0.100' and facts['platform'] == 'linux-arm64'
+        assert facts['version'] == '11.0.100' and facts['platform'] == 'linux-' + args.architecture
         attributes = ','.join(key + '=' + json.dumps(value) for key, value in facts.items())
         module = module.replace('dotnet.sdk(name="dotnet",version="11.0.100")', 'dotnet.sdk_archive(name="dotnet",' + attributes + ')')
     inventory = ('nuget=use_extension("@rules_msbuild//msbuild:nuget.bzl","nuget")\n'
@@ -169,7 +170,7 @@ def main():
             shutil.copyfile(mapping_path, build_mapping)
             product_inventory(source, args.distdir.resolve(),
                 Path(os.environ.get('RULES_MSBUILD_DOTNET_ROOT', ROOT/'.tools/dotnet')).resolve(),
-                base/'runtime-product.json', build_mapping, base)
+                base/'runtime-product.json', build_mapping, base, architecture=args.architecture)
             entries, overrides = configure_sync(base/'runtime-product.json', build_mapping)
             sync = 'msbuild_sync(name="sync",projects=' + json.dumps(entries) + ',mappings="sync-mappings.json",package_lock="@nuget//:packages",package_build=True,resolve_references=True,' + qualification + SYNC_SRCS + ')\n'
             (source/'BUILD.bazel').write_text(update + sync)

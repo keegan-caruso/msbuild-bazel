@@ -8,7 +8,7 @@ import sys
 from .common import ROOT, read_recipe, digest
 
 sys.path.insert(0, str(ROOT / "tests/runtime"))
-from native_environment import build_prefix
+from native_environment import build_prefix, load_catalog
 
 CORECLR = dict(coreclr='libcoreclr.so', jit='libclrjit.so', host='corerun', gc='libclrgc.so', gcexp='libclrgcexp.so',
     dac='libmscordaccore.so', dbi='libmscordbi.so', trace='libcoreclrtraceptprovider.so', dump='createdump')
@@ -18,24 +18,26 @@ LIBRARIES = dict(system_native='libSystem.Native.so', compression='libSystem.IO.
 HOST = dict(muxer='dotnet', fxr='libhostfxr.so', policy='libhostpolicy.so')
 
 
-def prepare_inputs(output, source, toolchain=None, sandbox=None):
+def prepare_inputs(output, source, toolchain=None, sandbox=None, architecture='arm64'):
     output.mkdir(parents=True,exist_ok=False)
-    recipe=read_recipe()
+    recipe=read_recipe(architecture)
     if digest(source)!=recipe['source']['sha256']:
         raise ValueError('Source archive differs from the pinned runtime')
-    value=dict(source=dict(urls=[source.resolve().as_uri(),recipe['source']['url']],sha256=recipe['source']['sha256'],commit=recipe['source']['revision']))
+    value=dict(architecture=architecture, source=dict(urls=[source.resolve().as_uri(),recipe['source']['url']],sha256=recipe['source']['sha256'],commit=recipe['source']['revision']))
     if toolchain:
         if not sandbox:
             raise ValueError('Provide a sandbox executable with the native toolchain archive')
         value['archive']=dict(url=toolchain.resolve().as_uri(),sha256=digest(toolchain))
         value['sandbox']=dict(url=sandbox.resolve().as_uri(),sha256=digest(sandbox))
     else:
-        value['packages']=json.loads((ROOT/'tests/runtime/native-packages.json').read_text())['packages']
+        value['packages']=load_catalog(architecture)['packages']
     (output/'inputs.json').write_text(json.dumps(value,indent=2)+'\n')
 
 
 def declare_inputs(root, preparation):
     value=json.loads((preparation/'inputs.json').read_text())
+    architecture=value.get('architecture', 'arm64')
+    read_recipe(architecture)
     folder=root/'native';folder.mkdir()
     here=ROOT/'tests/runtime'
     for source,target in [('NativeBuild.cs.txt','NativeBuild.cs'),('NativePreparation.cs.txt','NativePreparation.cs'),('native_action.bzl','native_action.bzl')]:
@@ -57,18 +59,18 @@ def declare_inputs(root, preparation):
         packages['@'+name+'//file']=item['sha256']
     if packages:
         toolchain=':toolchain';sandbox=':bwrap'
-        provenance=dict(kind='packages',packagesSha256=hashlib.sha256(json.dumps(value['packages'],sort_keys=True).encode()).hexdigest(),distribution='ubuntu-26.04',compiler='clang-18',compilerVersion='18.1.8',timezone='Etc/UTC')
+        provenance=dict(kind='packages',architecture=architecture,packagesSha256=hashlib.sha256(json.dumps(value['packages'],sort_keys=True).encode()).hexdigest(),distribution='ubuntu-26.04',compiler='clang-18',compilerVersion='18.1.8',timezone='Etc/UTC')
     else:
         for name,item,filename,executable in [('runtime_native_tools',value['archive'],'toolchain.tar',False),('runtime_native_sandbox',value['sandbox'],'bwrap',True)]:
             module.append('http_file(name='+json.dumps(name)+',url='+json.dumps(item['url'])+',sha256='+json.dumps(item['sha256'])+',downloaded_file_path='+json.dumps(filename)+',executable='+str(executable)+')')
         toolchain='@runtime_native_tools//file';sandbox='@runtime_native_sandbox//file'
-        provenance=dict(kind='archive',sha256=value['archive']['sha256'])
+        provenance=dict(kind='archive',architecture=architecture,sha256=value['archive']['sha256'])
     with (root/'MODULE.bazel').open('a') as output:
         output.write('\n'+'\n'.join(module)+'\n')
     lines=['load(":native_action.bzl","native_graph_driver","native_runtime")',
         'load(":native_inputs.bzl","native_inputs")',
         'native_graph_driver(name="driver",sources=["NativePreparation.cs"])',
-        'native_inputs(name="sources",commit='+json.dumps(source['commit'])+',packages='+json.dumps(packages)+')',
+        'native_inputs(name="sources",commit='+json.dumps(source['commit'])+',architecture='+json.dumps(architecture)+',packages='+json.dumps(packages)+')',
         'filegroup(name="sandbox",srcs=['+json.dumps(sandbox)+'],visibility=["//visibility:public"])']
     commit=source['commit']
     for component,products,script in [
@@ -76,7 +78,7 @@ def declare_inputs(root, preparation):
         ('libraries',LIBRARIES,'./src/native/libs/build-native.sh -clang18 -arm64 -release -outconfig qualification -configureonly -numproc 4 -ninja\ncmake --build artifacts/obj/native/qualification --target System.Native System.IO.Compression.Native System.Security.Cryptography.Native.OpenSsl System.Globalization.Native System.Net.Security.Native --parallel 4\nmkdir result\n'+''.join('cp artifacts/obj/native/qualification/'+name.removeprefix('lib').removesuffix('.so').removesuffix('.OpenSsl')+'/'+name+' result/\n' for name in LIBRARIES.values())),
         ('host',HOST,'./src/native/corehost/build.sh -clang18 -arm64 -release -commithash '+commit+' -numproc 4 -ninja\nmkdir result\n'+''.join('cp artifacts/bin/linux-arm64.Release/corehost/'+name+' result/\n' for name in HOST.values())),
     ]:
-        (folder/(component+'.sh')).write_text(build_prefix()+script+'tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf result.tar -C result .\n')
+        (folder/(component+'.sh')).write_text(build_prefix(architecture)+script.replace('arm64', architecture)+'tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf result.tar -C result .\n')
         lines.append('native_runtime(name='+json.dumps('runtime_'+component)+',driver=":driver",sandbox='+json.dumps(sandbox)+',toolchain_archive='+json.dumps(toolchain)+',source_archive=":sources",script='+json.dumps(component+'.sh')+',products='+json.dumps(products)+')')
         for group in products:
             label=group if component=='coreclr' else component+'_'+group

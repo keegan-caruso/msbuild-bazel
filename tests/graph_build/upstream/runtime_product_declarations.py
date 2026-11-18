@@ -44,6 +44,12 @@ def reference_packs(root, sdk_version, sdk_root):
 
 
 def declare_product(root, native, product):
+    platform = product.get('platform', 'linux-arm64')
+    if platform not in ('linux-arm64', 'linux-x64'):
+        raise ValueError('Unsupported runtime product platform')
+    architecture = platform.removeprefix('linux-')
+    if (native/'inputs.json').exists() and json.loads((native/'inputs.json').read_text()).get('architecture', 'arm64') != architecture:
+        raise ValueError('Managed/native runtime architectures differ')
     if (native/'inputs.json').exists():
         sys.path.insert(0,str(ROOT/'scripts'))
         from source_runtime.native import declare_inputs, CORECLR, LIBRARIES
@@ -83,11 +89,11 @@ def declare_product(root, native, product):
     files.update({'//host:muxer':'dotnet','//host:fxr':'host/fxr/10.0.0/libhostfxr.so','//host:policy':shared+'libhostpolicy.so'})
     provenance=dict(sourceCommit=COMMIT,sourceArchiveSha256=SOURCE_SHA256,
         build='unsigned developer runtime, IL assemblies',readyToRun=False,
-        bootstrapSdk=json.loads((ROOT/'examples/source-runtime-app/source.json').read_text())['sdk'],
+        bootstrapSdk=json.loads((ROOT/'examples/source-runtime-app'/('source.json' if architecture == 'arm64' else 'source-x64.json')).read_text())['sdk'],
         nativeToolchainInputs=native_identity)
     projects=sorted(value['project']+'|'+value['framework'] for value in product['producers'].values())
     with (root/'MODULE.bazel').open('a') as module:
         module.write('bazel_dep(name="platforms",version="1.0.0")\nbazel_dep(name="rules_pkg",version="1.3.0")\nbazel_dep(name="rules_python",version="1.7.0")\n')
     with (root/'BUILD.bazel').open('a') as build:
         build.write('\nload(":runtime_product.bzl","source_runtime_application")\nsource_runtime_application(name="app",projects='+
-            json.dumps(projects)+',native_files='+json.dumps(files)+',provenance='+repr(provenance)+',reference_packs='+json.dumps(labels)+')\n')
+            json.dumps(projects)+',runtime_identifier='+json.dumps(platform)+',native_files='+json.dumps(files)+',provenance='+repr(provenance)+',reference_packs='+json.dumps(labels)+')\n')
