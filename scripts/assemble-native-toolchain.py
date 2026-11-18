@@ -53,7 +53,7 @@ def prepare(output, architecture, sdk, rules=ROOT):
     return workspace
 
 
-def probe(output, architecture, sdk):
+def probe(output, architecture, sdk, system_bwrap=False):
     root = output / 'sealed'
     root.mkdir()
     subprocess.run([os.environ.get('RULES_MSBUILD_TAR', 'tar'), '-xpf', str(output / 'native.tar'), '-C', str(root)], check=True)
@@ -83,7 +83,11 @@ test -s /etc/ssl/certs/ca-certificates.crt
 '''
     script += 'printf "PASS: sealed native tools, compile/link/execute\\n"\n'
     (source / 'probe.sh').write_text(script)
-    command = [str(output / 'bwrap'), '--die-with-parent', '--unshare-all', '--new-session', '--cap-drop', 'ALL',
+    sandbox = output / 'bwrap'
+    if system_bwrap:
+        from system_bwrap import select_sandbox
+        sandbox = select_sandbox(sandbox, system_bwrap=True)
+    command = [str(sandbox), '--die-with-parent', '--unshare-all', '--new-session', '--cap-drop', 'ALL',
                '--ro-bind', str(root), '/', '--bind', str(source), '/source', '--proc', '/proc', '--dev', '/dev',
                '--tmpfs', '/tmp', '--chdir', '/source', '--clearenv', '--setenv', 'PATH', '/usr/bin:/bin',
                '--setenv', 'HOME', '/tmp', '--setenv', 'LANG', 'C.UTF-8', '--', '/bin/bash', 'probe.sh']
@@ -100,7 +104,10 @@ def main():
     parser.add_argument('--sdk', action='store_true')
     parser.add_argument('--prepare-only', action='store_true')
     parser.add_argument('--probe', action='store_true')
+    parser.add_argument('--system-bwrap', action='store_true', help='Verify and use packaged /usr/bin/bwrap for the sealed probe')
     args = parser.parse_args()
+    if args.system_bwrap and not args.probe:
+        parser.error('--system-bwrap requires --probe')
     if args.probe and args.prepare_only:
         parser.error('--probe requires execution')
     if not args.prepare_only:
@@ -146,7 +153,8 @@ def main():
                    catalogSha256=digest(output / 'catalog.json'), packageCount=len(load_catalog(args.architecture, args.sdk)['packages']))
     (output / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
     if args.probe:
-        receipt['sealedProbe'] = probe(output, args.architecture, args.sdk)
+        receipt['sealedProbe'] = probe(output, args.architecture, args.sdk, args.system_bwrap)
+        receipt['systemBwrap'] = args.system_bwrap
         receipt['result'] = 'PASS'
     (output / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
     print(json.dumps(receipt, indent=2))
