@@ -113,6 +113,21 @@ def native_toolchain_inputs(name, packages, architecture = "arm64", sdk = False)
             cmd = "find -L $(location :tools)/usr/share/ca-certificates -type f -name '*.crt' | LC_ALL=C sort | xargs cat > $@; test -s $@",
         )
         files[":certificate_bundle"] = "etc/ssl/certs/ca-certificates.crt"
+
+        # Package maintainer scripts normally create account defaults. NuGet
+        # retries user-profile discovery indefinitely if passwd is absent.
+        for account_file, entries in {
+            "passwd": ["root:x:0:0:root:/tmp:/bin/bash", "builder:x:1000:1000:Build user:/tmp:/bin/bash"],
+            "group": ["root:x:0:", "builder:x:1000:"],
+            "nsswitch.conf": ["passwd: files", "group: files", "hosts: files dns"],
+        }.items():
+            target = "sdk_" + account_file.replace(".", "_")
+            native.genrule(
+                name = target,
+                outs = ["sdk-" + account_file],
+                cmd = "printf '%s\\n' " + " ".join(["'" + entry + "'" for entry in entries]) + " > $@",
+            )
+            files[":" + target] = "etc/" + account_file
     aliases = {"bin": "usr/bin", "lib": "usr/lib", "sbin": "usr/sbin"}
     if architecture == "x64":
         aliases["lib64"] = "usr/lib64"

@@ -717,6 +717,17 @@ logs select LLVM 18. This is qualification tooling, not a general SDK source rul
 The [native prerequisite overlay and sealed-root probe](../tests/source_sdk/native_overlay/README.md)
 record the Ubuntu 26 / LLVM 18 package identities and observed root hash.
 
+The [native x64 SDK recipe](../tests/source_sdk/LINUX_X64.md) declares account
+files for root (UID/GID 0) and the ordinary builder (UID/GID 1000), with `/tmp` as
+the home. Its sealed probe and source script reject unresolved caller IDs before
+Restore; arbitrary invoking UIDs are not qualified. Native Ubuntu 26.04 x64
+resolver controls pass with UID/GID 1000 and the declared accounts, both with a
+local feed override and stock feed settings inside network-isolated namespaces.
+The missing-account control retries user-profile lookup without reaching package
+restore. Portable declaration and unsupported-ID controls run with
+`python3 -m unittest discover -s tests/tooling -p test_sdk_accounts.py`.
+These input controls do not qualify the complete native x64 SDK producer.
+
 After stopping the producer, a fresh read-only consumer recovered the complete
 `SourceSdkBuild`, SDK layouts and graph actions from HTTP with the same SDK archive
 hash. Body/API edits and a forced smoke test executed without rebuilding the SDK.
