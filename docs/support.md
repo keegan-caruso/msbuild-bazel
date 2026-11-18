@@ -311,7 +311,9 @@ Mac. This establishes emulated x64 behavior, not native x64 performance or
 source-built SDK/runtime qualification. Current native x64 owned checks,
 quickstart and HTTP recovery are recorded in the [SDK 11 matrix](#sdk-11-platform-qualification);
 Native x64 source-runtime production is covered [separately](#complete-source-runtime-product);
-source-built x64 SDKs, automatic workers and whole upstream graphs remain unqualified.
+Native x64 source-SDK production and local consumers are covered
+[separately](#native-ubuntu-2604-x64-sdk); automatic workers and whole upstream
+graphs remain unqualified.
 
 Native macOS ARM64 passed `//tests/integration:{quickstart,native_sdk}` on
 the recorded 8.8.0 / 9.3.0 pins with SDK **10.0.400**: the public catalog's packages,
@@ -718,17 +720,6 @@ logs select LLVM 18. This is qualification tooling, not a general SDK source rul
 The [native prerequisite overlay and sealed-root probe](../tests/source_sdk/native_overlay/README.md)
 record the Ubuntu 26 / LLVM 18 package identities and observed root hash.
 
-The [native x64 SDK recipe](../tests/source_sdk/LINUX_X64.md) declares account
-files for root (UID/GID 0) and the ordinary builder (UID/GID 1000), with `/tmp` as
-the home. Its sealed probe and source script reject unresolved caller IDs before
-Restore; arbitrary invoking UIDs are not qualified. Native Ubuntu 26.04 x64
-resolver controls pass with UID/GID 1000 and the declared accounts, both with a
-local feed override and stock feed settings inside network-isolated namespaces.
-The missing-account control retries user-profile lookup without reaching package
-restore. Portable declaration and unsupported-ID controls run with
-`python3 -m unittest discover -s tests/tooling -p test_sdk_accounts.py`.
-These input controls do not qualify the complete native x64 SDK producer.
-
 After stopping the producer, a fresh read-only consumer recovered the complete
 `SourceSdkBuild`, SDK layouts and graph actions from HTTP with the same SDK archive
 hash. Body/API edits and a forced smoke test executed without rebuilding the SDK.
@@ -744,9 +735,71 @@ The [producer](../tests/source_sdk/source_action_prepare.py),
 [consumer controls](../tests/source_sdk/consumer_scenarios.py) require their declared
 bootstrap inputs. The [quick start](../examples/quickstart/README.md#source-built-sdk)
 shows the public toolchain handoff, not a standalone upstream bootstrap recipe.
-This qualifies one local ARM64 build and same-host recovery, not native x64,
-older-glibc deployment, signing or full upstream test parity. The product remains
+This ARM64 evidence qualifies local production and same-host recovery; native x64
+production is covered separately below. Older-glibc deployment, signing and full
+upstream test parity remain unqualified. The product remains
 .NET 10; using SDK 11 rules does not turn it into an SDK 11 source build.
+
+### Native Ubuntu 26.04 x64 SDK
+
+The coarse producer also passes on native Ubuntu **26.04 x64**, Clang **18.1.8**
+and Bazel **9.3.2**, at rules revision
+[`de47cfe1df06e6ec82d14aff56425af6e6227b93`](https://github.com/keegan-caruso/msbuild-bazel/commit/de47cfe1df06e6ec82d14aff56425af6e6227b93).
+It builds VMR `b0f34d51fccc69fd334253924abd8d6853fad7aa` into SDK **10.0.100**
+and Core/ASP.NET runtimes **10.0.0**, with reported RID `ubuntu.26.04-x64`.
+The [recipe](../tests/source_sdk/LINUX_X64.md) and
+[x64 input pins](../tests/source_sdk/pin-linux-x64.json) separate the SDK 10.0.400
+controller, upstream RC bootstrap SDK and previously source-built bootstrap input.
+Connected Restore runs the pinned VMR's unchanged bootstrap project to generate
+its portable bootstrap; its resolved inputs and generated digest are recorded
+before the network-isolated source action. Bootstrap generation uses the unchanged
+VMR project; the source build retains the reviewed
+[IdentityModel version patch](../tests/source_sdk/patches/identitymodel-file-version.patch).
+
+A fresh output base starts with `test //:smoke`, using the source producer in the
+execution configuration consumed by SDK layout. Real `cquery`/`aquery` established
+that path; the execution log contains exactly **one uncached `SourceSdkBuild`**.
+The net10 smoke test executes, then generated-package consumption (expected `42`),
+Razor HTML generation and Publish/run (`SOURCE_SDK_PUBLISH`) pass with the same
+workspace, startup options and output base. Package and Razor tests are forced;
+all three scenario graph actions execute with no further source build. SDK/runtime
+versions and x64 ELF product members are checked against the exported archive.
+
+| Native product | Archive bytes | SHA256 |
+| --- | ---: | --- |
+| Smoke-first direct producer and consumers | 578475269 | `1ead53dd86c9cf61fdeff9836e618b2fddb555ac0df5547f8f89203a71caff4c` |
+| Earlier source producer, verified by a separate exact-archive consumer handoff | 578486969 | `e4415b51444d2c85652f6e061f31c001cdd77e9f60e2bc9548167c8f50abb924` |
+
+The earlier product at rules revision `b26d759cc0abde7e9e0365742e2eb943db958d37`
+also passes smoke, generated-package/Razor and Publish/run with the archive declared
+as an input and zero source actions in the handoff fixture. Both products, compact
+receipts and bounded compressed build logs were exported and hash-verified.
+The two archive identities are separate observations; no byte-reproducibility or
+speedup claim follows from these runs.
+
+Prerequisites include host GCC/G++ for Bazel launchers, pinned bootstrap tools,
+Python/`dpkg-deb`, a case-sensitive build filesystem, nested namespaces and the
+catalogued Ubuntu native closure. The explicit `--system-bwrap` path requires
+root-owned packaged Bubblewrap **0.11.1-1ubuntu0.3**, generic amd64 executable
+SHA256 `523da3e7399044be5163aee6f57a77a6bef7454376e28f0a0627920bae1b76b6`,
+matching its declared input. Same-version optimized `amd64v3` bytes are different.
+The source build keeps the declared read-only root, capability drops and network
+separation; acquisition needs connected feeds before that boundary.
+
+The SDK root declares accounts for root (UID/GID 0) and an ordinary builder
+(UID/GID **1000**), with `/tmp` as home. Sealed preflight and the source script
+reject unresolved caller IDs before Restore, preserving the caller's namespace
+mapping. Qualification uses UID/GID 1000; arbitrary host UIDs are unqualified.
+Missing-account and stock/local-feed controls establish the resolver dependency;
+portable declaration/rejection checks run with
+`python3 -m unittest discover -s tests/tooling -p test_sdk_accounts.py`.
+
+Scope is this coarse native producer and local consumers on Ubuntu 26.04 x64.
+Stopped-producer HTTP recovery, component scheduling/replay, older-glibc deployment,
+remote execution, signing and complete upstream test parity remain unqualified
+for x64. The product is .NET 10; SDK 11 rules do not make it an SDK 11 source build.
+
+### Historical consumers and NativeAOT
 
 Earlier Bazel 9.2 component consumers used an Ubuntu 22.04 source build and an
 explicit StaticWebAssets supplement from its component bundle. The
@@ -959,7 +1012,8 @@ missing-CoreCLR control. The exported `runtime-linux-x64.tar.gz` has SHA256
 `08199700d6f2e5c2bf32c7d3b32ef2294f26adcd4504f8ecb10d828ce92e28f6`.
 This is same-host build/resume/product qualification, with local action reuse
 in the final verification. It does not establish independent x64 remote recovery,
-a cold-build timing, full upstream test parity or a source-built x64 SDK.
+a cold-build timing or full upstream test parity. Source-built x64 SDK
+qualification is [separate](#native-ubuntu-2604-x64-sdk).
 ARM64 worker/default release gates retain their separate qualification scope.
 
 The native x64 invocation is documented in the
