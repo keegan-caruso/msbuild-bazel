@@ -6,6 +6,7 @@ using System.Formats.Tar;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Runtime.InteropServices;
 
 // Qualification adapter: all native programs, headers and sources are declared
 // archives. The nested namespace exposes only those inputs and writable scratch.
@@ -43,13 +44,28 @@ public sealed class NativeBuild
         if (args.Length < 6) throw new ArgumentException("Expected sandbox, toolchain, sources, script, archive and product outputs");
         new NativeBuild { SystemBwrap = systemBwrap, Bootstrap = bootstrap, ScriptFile = scriptFile, Dependencies = dependencies.ToArray(), Sandbox = Path.GetFullPath(args[0]), Toolchain = Path.GetFullPath(args[1]), Sources = Path.GetFullPath(args[2]), Script = args[3], Output = Path.GetFullPath(args[4]), Products = args.Skip(5).Select(Path.GetFullPath).ToArray() }.Execute();
     }
+    // Linux statx has a fixed 256-byte ABI; only the requested UID is consumed.
+    [StructLayout(LayoutKind.Explicit, Size = 256)]
+    private struct FileStatus
+    {
+        [FieldOffset(0)] public uint Mask;
+        [FieldOffset(20)] public uint UserId;
+    }
+    [DllImport("libc", EntryPoint = "statx", SetLastError = true)]
+    private static extern int Status(int directory, string path, int flags, uint mask, out FileStatus status);
+
     public static string SelectSandbox(string declared, bool systemBwrap)
     {
         if (!systemBwrap) return declared;
         const string launcher = "/usr/bin/bwrap";
         if (!OperatingSystem.IsLinux()) throw new InvalidOperationException("--system-bwrap requires Linux");
-        foreach (var path in new[] { "/", "/usr", "/usr/bin", launcher, "/usr/bin/stat" })
+        foreach (var path in new[] { "/", "/usr", "/usr/bin", launcher })
         {
+            // AT_FDCWD, AT_SYMLINK_NOFOLLOW, STATX_UID.
+            if (Status(-100, path, 0x100, 0x8, out var status) != 0)
+                throw new IOException("Cannot inspect System Bubblewrap path ownership: " + path, new System.ComponentModel.Win32Exception(Marshal.GetLastPInvokeError()));
+            if ((status.Mask & 0x8) == 0 || status.UserId != 0)
+                throw new InvalidOperationException("System Bubblewrap paths must be owned by root: " + path);
             if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
                 throw new InvalidOperationException("System Bubblewrap path must not be a symlink: " + path);
             if ((File.GetUnixFileMode(path) & (UnixFileMode.GroupWrite | UnixFileMode.OtherWrite)) != 0)
@@ -58,16 +74,6 @@ public sealed class NativeBuild
         // Ubuntu's packaged launcher has a path-bound AppArmor profile. Its
         // root-owned OS installation is an explicit execution prerequisite;
         // all compiler inputs and the required launcher bytes remain declared.
-        var stat = new ProcessStartInfo("/usr/bin/stat") { RedirectStandardOutput = true, RedirectStandardError = true };
-        foreach (var argument in new[] { "-c", "%u", "--", "/", "/usr", "/usr/bin", launcher, "/usr/bin/stat" }) stat.ArgumentList.Add(argument);
-        using (var process = Process.Start(stat)!)
-        {
-            var owners = process.StandardOutput.ReadToEnd().Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            var error = process.StandardError.ReadToEnd();
-            process.WaitForExit();
-            if (process.ExitCode != 0 || owners.Length != 5 || owners.Any(owner => owner != "0"))
-                throw new InvalidOperationException("System Bubblewrap paths must be owned by root: " + error);
-        }
         if ((File.GetUnixFileMode(launcher) & UnixFileMode.UserExecute) == 0)
             throw new InvalidOperationException("System Bubblewrap is not executable: " + launcher);
         using var expected = File.OpenRead(declared);
