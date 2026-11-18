@@ -103,11 +103,12 @@ def setup(args):
                 setattr(args, name, Path(value) if name in ['repository_cache', 'native_toolchain', 'sandbox', 'host_space_path'] else value)
     if bool(args.native_toolchain) != bool(args.sandbox):
         raise ValueError('Provide --native-toolchain and --sandbox together')
+    system_bwrap = state.get('identity', {}).get('systemBwrap', False) if state and getattr(args, 'system_bwrap', None) is None else bool(getattr(args, 'system_bwrap', None))
     recipe = read_recipe(architecture)
     recipe_path = ROOT / "examples/source-runtime-app" / ("source.json" if architecture == "arm64" else "source-x64.json")
     catalog = ROOT / "tests/runtime" / ("native-packages.json" if architecture == "arm64" else "native-packages-x64.json")
     bazel_readonly = bazel_cache_read_only(state['identity'] if state else None, getattr(args, 'bazel_cache_read_only', None))
-    identity = dict(bazelCacheReadOnly=bazel_readonly, projectCacheReadOnly=project_cache_read_only(state['identity'] if state else None), bazelVersion=selected_bazel_version(), recipe=recipe, rulesSha256=rules_identity(), registry=args.registry, cacheUrl=args.cache_url,
+    identity = dict(systemBwrap=system_bwrap, bazelCacheReadOnly=bazel_readonly, projectCacheReadOnly=project_cache_read_only(state['identity'] if state else None), bazelVersion=selected_bazel_version(), recipe=recipe, rulesSha256=rules_identity(), registry=args.registry, cacheUrl=args.cache_url,
                     nativePackagesSha256=digest(catalog) if not args.native_toolchain else None,
                     nativeToolchainSha256=digest(args.native_toolchain) if args.native_toolchain else None,
                     sandboxSha256=digest(args.sandbox) if args.sandbox else None,
@@ -118,6 +119,7 @@ def setup(args):
         if state:
             prior_identity = dict(state['identity'])
             prior_identity.setdefault('bazelCacheReadOnly', False)
+            prior_identity.setdefault('systemBwrap', False)
             if prior_identity != identity:
                 raise ValueError('Setup inputs changed; use a fresh output directory')
         else:
@@ -190,7 +192,7 @@ def setup(args):
                 if not args.resume:
                     raise ValueError('Partial native declarations require --resume')
                 shutil.rmtree(native)
-            prepare_inputs(native, archive, args.native_toolchain, args.sandbox, architecture=architecture)
+            prepare_inputs(native, archive, args.native_toolchain, args.sandbox, architecture=architecture, system_bwrap=system_bwrap)
             state['completed'].append('native')
             save(state_path,state)
         workspace = base / 'workspace'

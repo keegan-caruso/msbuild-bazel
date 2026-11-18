@@ -4,7 +4,7 @@ load("@rules_msbuild//msbuild:defs.bzl", "msbuild_graph", "msbuild_graph_binary"
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 load("@rules_python//python:defs.bzl", "py_test")
 
-def source_runtime_application(name, projects, native_files, provenance, reference_packs = [], runtime_identifier = "linux-arm64"):
+def source_runtime_application(name, projects, native_files, provenance, reference_packs = [], runtime_identifier = "linux-arm64", system_bwrap = False):
     """Connect explicit framework projects and native artifacts to the sample app.
 
     Args:
@@ -14,6 +14,7 @@ def source_runtime_application(name, projects, native_files, provenance, referen
         provenance: Pinned source and toolchain build facts.
         reference_packs: Selected NuGet targeting pack labels for the app restore.
         runtime_identifier: Native Linux runtime platform (linux-arm64 or linux-x64).
+        system_bwrap: Explicitly use the verified root-owned system launcher.
     """
     if runtime_identifier not in ["linux-arm64", "linux-x64"]:
         fail("Unsupported source runtime platform: " + runtime_identifier)
@@ -45,7 +46,7 @@ def source_runtime_application(name, projects, native_files, provenance, referen
     pkg_tar(name = "runtime_package", visibility = ["//visibility:public"], srcs = [":" + runtime], strip_prefix = runtime + ".layout", extension = "tar.gz", preserve_mode = True, stamp = 0, allow_duplicates_with_different_content = False)
     py_test(
         name = "runtime_test",
-        srcs = ["runtime_product_test.py"],
+        srcs = ["runtime_product_test.py", "system_bwrap.py"],
         main = "runtime_product_test.py",
         args = [
             "--runtime=$(rootpath :" + runtime + ")",
@@ -54,7 +55,7 @@ def source_runtime_application(name, projects, native_files, provenance, referen
             "--package=$(rootpath :runtime_package)",
             "--sandbox=$(rootpath //native:sandbox)",
             "--inventory=$(rootpath runtime-product.json)",
-        ] + ["--native=" + path + "=$(rootpath " + label + ")" for label, path in sorted(native_files.items())],
+        ] + (["--system-bwrap"] if system_bwrap else []) + ["--native=" + path + "=$(rootpath " + label + ")" for label, path in sorted(native_files.items())],
         data = [":" + runtime, ":graph", ":" + files, ":runtime_package", "//native:sandbox", "runtime-product.json"] + native_files.keys(),
         size = "large",
         # This check creates its own filesystem/network namespace to exclude the

@@ -9,11 +9,14 @@ import subprocess
 import tarfile
 import tempfile
 
+from system_bwrap import select_sandbox
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ['runtime','graph','app','package','sandbox','inventory']:
         parser.add_argument('--'+name,type=Path,required=True)
+    parser.add_argument('--system-bwrap', action='store_true')
     parser.add_argument('--native',action='append',default=[])
     args=parser.parse_args()
     inventory=json.loads(args.inventory.read_text())
@@ -72,7 +75,7 @@ def main():
                             text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=60)
     report.with_suffix('.launcher.log').write_text(result.stdout)
     loaded = observe(result, host, None)
-    command = [str(args.sandbox.resolve(strict=True)), '--die-with-parent', '--unshare-all', '--new-session', '--cap-drop', 'ALL',
+    command = [str(select_sandbox(args.sandbox.resolve(strict=True), args.system_bwrap)), '--die-with-parent', '--unshare-all', '--new-session', '--cap-drop', 'ALL',
                '--ro-bind', '/usr', '/usr', '--ro-bind', '/lib', '/lib', '--ro-bind', '/etc', '/etc',
                '--proc', '/proc', '--dev', '/dev', '--tmpfs', '/tmp', '--dir', '/opt',
                '--ro-bind', str(host), '/runtime', '--ro-bind', str(app), '/app', '--clearenv',
