@@ -48,6 +48,10 @@
     {
       "url": "https://archive.ubuntu.com/ubuntu/dists/resolute/universe/binary-amd64/Packages.xz",
       "sha256": "1587be86d66d38542325215e0e109f75bd695c8f24d793ace2762038a6ad581e"
+    },
+    {
+      "url": "https://archive.ubuntu.com/ubuntu/dists/resolute-updates/main/binary-amd64/Packages.xz",
+      "sha256": "4ba87e5cf212fcf87edba67ca6f9f7fa4500248f670b1a3448ddaf3bc3df2df2"
     }
   ],
   "packages": [
@@ -1639,5 +1643,9 @@
   "metadataRelease": {
     "url": "https://archive.ubuntu.com/ubuntu/dists/resolute/Release",
     "sha256": "596ee4cea058f74d59e2180532c89904e306d90725d42162eda82c01d4370834"
+  },
+  "metadataUpdatesRelease": {
+    "url": "https://archive.ubuntu.com/ubuntu/dists/resolute-updates/Release",
+    "sha256": "c3dca3eadf8daa01b5d7c9952822d1fe1beac3a6732df3672ca0abc847e9074c"
   }
 }
