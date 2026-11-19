@@ -166,8 +166,8 @@ python3 - "$real_metadata" <<'PY'
 import json,sys
 from pathlib import Path
 p=Path('MODULE.bazel');p.write_text(p.read_text().replace('global_json = "//:global.json"','global_json = "//:global.json", metadata_urls = ['+json.dumps(Path(sys.argv[1]).as_uri())+']'))
-Path('global.json').write_text(json.dumps({'sdk':{'version':'9.0.300','rollForward':'latestPatch','allowPrerelease':False}}))
-for p in Path('.').glob('*/*.csproj'):p.write_text(p.read_text().replace('net10.0','net9.0'))
+Path('global.json').write_text(json.dumps({'sdk':{'version':'10.0.300','rollForward':'latestPatch','allowPrerelease':False}}))
+for p in Path('.').glob('*/*.csproj'):p.write_text(p.read_text().replace('net11.0','net10.0'))
 PY
 # Combine real SDK refresh with package resolution before offline sync.
 python3 - <<'PACKAGES'
@@ -204,11 +204,11 @@ python3 - <<'PACKAGES'
 import json
 from pathlib import Path
 m=json.loads(Path('nuget.lock.json').read_text())
-assert m['sdkVersion']=='9.0.318' and any(p['id']=='Newtonsoft.Json' and p['version']=='12.0.3' for p in m['packages'])
-assert json.loads(Path('App/packages.lock.json').read_text())['dependencies']['net9.0']['Newtonsoft.Json']['resolved']=='12.0.3'
+assert m['sdkVersion']=='10.0.302' and any(p['id']=='Newtonsoft.Json' and p['version']=='12.0.3' for p in m['packages'])
+assert json.loads(Path('App/packages.lock.json').read_text())['dependencies']['net10.0']['Newtonsoft.Json']['resolved']=='12.0.3'
 PACKAGES
 bazel run //:app > "$TEST_TMPDIR/app.log"
 assert_contains "$TEST_TMPDIR/app.log" 'Hello from MSBuild and Bazel'
-assert_contains graph.generated.json '"SdkVersion": "9.0.318"'
+assert_contains graph.generated.json '"SdkVersion": "10.0.302"'
 bazel test //:tests --test_output=errors
 echo 'PASS: SDK policies, locked version reuse, platform expansion, strict recovery and real SDK sync/run/test'

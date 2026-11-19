@@ -1,12 +1,8 @@
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Graph;
-using RulesMSBuild.ProjectCache;
-#if STABLE_PROJECT_CACHE
 using Microsoft.Build.ProjectCache;
-#else
-using Microsoft.Build.Experimental.ProjectCache;
-#endif
+using RulesMSBuild.ProjectCache;
 
 namespace RulesMSBuild.ProjectSync;
 

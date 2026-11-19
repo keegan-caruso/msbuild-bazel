@@ -2,6 +2,12 @@
 
 The graph workflow with the MSBuild project-cache plugin is the sole backend.
 Current baseline: SDK **11.0.100**, Bazel **9.3.2** only. Bazel 8.x is no longer supported.
+
+Adapter compilation requires MSBuild 18 or newer and its stable
+`Microsoft.Build.ProjectCache` API, as shipped in SDK 10 and newer. SDK 8/9
+engines are unsupported. Repository resolution controls may still use synthetic
+older version names without compiling adapters.
+
 `USE_BAZEL_VERSION` overrides the repository `.bazelversion`; source-runtime setup
 records that selection and rejects resume with a different version. Historical
 qualification and timing pins below describe their original runs, not 9.3.2
@@ -379,14 +385,15 @@ also passed after recording each Bazel version's registry entries. SDK **10.0.30
 (absent from the former catalog) passed sync/app/tests and a fresh clone in strict
 lockfile mode with metadata removed; **10.0.400** retains quickstart coverage.
 
-`//tests/integration:sdk_versions` passed **8.0.425**, **9.0.318** and
+Historical `//tests/integration:sdk_versions` evidence passed **8.0.425**, **9.0.318** and
 **11.0.100-rc.1.26425.128** on both Bazel pins: SDK-derived adapter frameworks,
 sync/check, app/tests, body/API edits and fresh-base recovery without metadata.
 Each SDK recovered the whole graph action through Bazel's remote cache; forced
 HTTP project recovery returned three hits / zero compilations and identical outputs.
-There is no SDK-family allowlist; see [adapter requirements](api.md#sdks).
+These results predate the stable-only adapter requirement. The active matrix
+uses SDK 10.0.302 and 11.0.100; see [adapter requirements](api.md#sdks).
 
-`//tests/integration:sdk_policies` passed both Bazel pins on Linux ARM64: patch
+Historical `//tests/integration:sdk_policies` evidence passed both Bazel pins on Linux ARM64: patch
 fallback, latest patch/feature selection, prerelease ordering/filtering, locked reuse
 after metadata changes, platform expansion, old-lock migration without metadata,
 strict fresh-base recovery, invalid-fact rejection and explicit refresh. A real
@@ -396,6 +403,8 @@ unrelated pins/hashes, metadata-failure recovery, strict lock reuse and optional
 sync on both Bazel pins. The combined `--nuget-update` sequence also passed both
 pins with SDK 9.0.318: stale native locks failed offline, package changes resolved
 before sync, and failed package resolution preserved locks and the graph.
+The active real-SDK consumer now requests `10.0.300` / `latestPatch` and
+expects 10.0.302; synthetic SDK 9 prerelease resolver controls remain unchanged.
 All 24 SDK/runtime repository controls passed on native
 macOS ARM64 / 9.3. Other roll-forward policies
 remain unsupported; selection uses published releases, not installed SDKs.
@@ -621,7 +630,13 @@ Scope: SDK **10.0.400**, public NuGet.org V3 and standard project lockfiles;
 
 ## Downloaded runtimes
 
-SDK **9.0.318** compiled a net9.0 app that ran on runtime **9.0.20**, rejected
+Active runtime fixtures compile net10.0 with SDK 10.0.302. Runtime lock controls
+use 9.0.20 for older-major rejection, 10.0.12 for matching-major execution and
+11.0.0 for default rejection / explicit `RollForward=Major` execution. ASP.NET
+controls use CoreCLR/ASP.NET 10.0.12 and ASP.NET 11.0.0. These updated fixture
+pins require fresh qualification; the results below retain their historical pins.
+
+Historical SDK **9.0.318** evidence compiled a net9.0 app that ran on runtime **9.0.20**, rejected
 **8.0.31 / 10.0.12** by default, and ran/tested on **10.0.12** with the app's
 `RollForward=Major`. Metadata controls cover apphost exclusion, native facts,
 platform expansion, metadata-free recovery, extension changes, stale pins, corrupt

@@ -458,7 +458,8 @@ the archive must contain `dotnet`, the selected SDK and bundled CoreCLR runtime.
 Supported acquisition platforms are Linux/macOS ARM64/x64. The adapter tools
 compile for the selected SDK's bundled framework and reference its MSBuild engine;
 there is no SDK-family allowlist. Their current source/API requirements are C# 12,
-.NET 8 and MSBuild project-cache support. Acquisition alone does not qualify old
+.NET 10 and MSBuild 18 or newer with the stable `Microsoft.Build.ProjectCache` API.
+SDK 8 and SDK 9 engines are unsupported. Acquisition alone does not qualify old
 SDKs or additional workloads.
 
 Hash-verified SDK repositories are reproducible. Bazel's `--repo_contents_cache`

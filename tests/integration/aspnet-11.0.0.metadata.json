@@ -1,0 +1,83 @@
+{
+  "releases": [
+    {
+      "aspnetcore-runtime": {
+        "version": "11.0.0",
+        "files": [
+          {
+            "name": "aspnetcore-runtime-linux-arm64.tar.gz",
+            "rid": "linux-arm64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/11.0.0/aspnetcore-runtime-11.0.0-linux-arm64.tar.gz",
+            "hash": "11a625c5a16627cfb301795670f3ee21deb40b0d1f16aca401251b3b5ab10205cb5ef84cdaa2725a4e6a9a627ecb9ee582318b76081503975fedab884ef7ea48"
+          },
+          {
+            "name": "aspnetcore-runtime-linux-x64.tar.gz",
+            "rid": "linux-x64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/11.0.0/aspnetcore-runtime-11.0.0-linux-x64.tar.gz",
+            "hash": "4f94d65a7c534b82d25153e1c740d1a87d9bcbc9187935d69fb14f9dde5fb284e69302bde3fe2818ff96e9ac0c62d4385aaa68d8f6f3cb6002aa39c859a252f3"
+          },
+          {
+            "name": "aspnetcore-runtime-osx-arm64.tar.gz",
+            "rid": "osx-arm64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/11.0.0/aspnetcore-runtime-11.0.0-osx-arm64.tar.gz",
+            "hash": "602d014d1bbc6277d4afc92a6aee11c2ea9177396698be91bb01ccbb040caa0abe8c0690b92ababeb09d67a0eb6201c27e206ae24251a77b22caeec2730c956f"
+          },
+          {
+            "name": "aspnetcore-runtime-osx-x64.tar.gz",
+            "rid": "osx-x64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/11.0.0/aspnetcore-runtime-11.0.0-osx-x64.tar.gz",
+            "hash": "cd634e01eaa727523eec91337066831121aab4aa25cbead311a6fc0ba03ea34d2138b1d80038183b6c5846d36393626bffa5ea6b885269b72b4c110a53af94d7"
+          },
+          {
+            "name": "aspnetcore-runtime-composite-linux-arm64.tar.gz",
+            "rid": "linux-arm64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/11.0.0/aspnetcore-runtime-composite-11.0.0-linux-arm64.tar.gz",
+            "hash": "f6b2aa17717387d93484a30185102dee92c34e5efc0b78ebff07c7301b4f1c9bedb5ad0cb5f8f25175526e79dd1f0ccd76bfac5f10a21d4bdf4ae23a67bfbf21"
+          },
+          {
+            "name": "aspnetcore-runtime-composite-linux-x64.tar.gz",
+            "rid": "linux-x64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/11.0.0/aspnetcore-runtime-composite-11.0.0-linux-x64.tar.gz",
+            "hash": "944f7737ad1ba27ac057e503bbefd36652c46560bda5d97c4914da5d43e1c21998b6670fa37a2b4cf77e98a9579b04a1f5c41591a5aa1a89b60cb7ad62ea7b60"
+          },
+          {
+            "name": "aspnetcore-runtime-composite-osx-arm64.tar.gz",
+            "rid": "osx-arm64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/11.0.0/aspnetcore-runtime-composite-11.0.0-osx-arm64.tar.gz",
+            "hash": "a6d775502773e5d4410669bb872e8798eb0fe628fc3a8e511b3e0f310858ffd0e8dae4c4c54815e019f5175e4eaaf9fc4dcae78f6a18592fe5f174f386d803ed"
+          },
+          {
+            "name": "aspnetcore-runtime-composite-osx-x64.tar.gz",
+            "rid": "osx-x64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/11.0.0/aspnetcore-runtime-composite-11.0.0-osx-x64.tar.gz",
+            "hash": "1454194a15649bfb7ee0b3c4b588ffd8b1817e4f60402e3b83b709ebfe1c11710500c9dc933c6b5fbfacb1e01cae2cabeeede6e30efb409c5dd7018368263208"
+          },
+          {
+            "name": "aspnetcore-targeting-pack-linux-arm64.tar.gz",
+            "rid": "linux-arm64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/11.0.0/aspnetcore-targeting-pack-11.0.0-linux-arm64.tar.gz",
+            "hash": "56445dcd8e6eb3c3cebf273dc23f52a381dae7340d1cf866ec30f138c66755a445caea264b24a895055802fc2a9ed248fc8ed8fc2410a741f96f764a71840540"
+          },
+          {
+            "name": "aspnetcore-targeting-pack-linux-x64.tar.gz",
+            "rid": "linux-x64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/11.0.0/aspnetcore-targeting-pack-11.0.0-linux-x64.tar.gz",
+            "hash": "56c22631388cff5d107eae7947380d7fb64a28a0984e68f4bc25c7f4466e1a031fa7d66ef0ba1af94acdbb14c7125fd329d93b4b7710aa7ae2b4a5e1970cc6fe"
+          },
+          {
+            "name": "aspnetcore-targeting-pack-osx-arm64.tar.gz",
+            "rid": "osx-arm64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/11.0.0/aspnetcore-targeting-pack-11.0.0-osx-arm64.tar.gz",
+            "hash": "767f2156522aa313461c42f5d77d4c447da7d2fd3f8f12c6cc96c610feb2b221a3992833157db6e3ce690b9a7ddeef2f31bb171a6888779a2085fde355f31574"
+          },
+          {
+            "name": "aspnetcore-targeting-pack-osx-x64.tar.gz",
+            "rid": "osx-x64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/11.0.0/aspnetcore-targeting-pack-11.0.0-osx-x64.tar.gz",
+            "hash": "8fa9cf4a4a7a78aaca94b07e870e34fb39c8b1c96fcfaaab77121bf0c1aa4881867049fb2ca8c08d4b624e8751cdcc99135bee6eb77b24cc48650c5999e6e771"
+          }
+        ]
+      }
+    }
+  ]
+}
