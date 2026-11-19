@@ -16,7 +16,7 @@ internal sealed record ProjectSnapshot(string Fingerprint, Dictionary<string, st
 internal sealed partial class GraphCache(GraphInputs inputs, string cache, bool read, RemoteSnapshotStore? remote, FileMaterializer materializer, SnapshotPayloads payloads, TemporaryOutputs temporaryOutputs, LocalGraphState? localState = null) : ProjectCachePluginBase
 {
     private readonly ReplayOmissions omissions = new(inputs);
-    private readonly Dictionary<string, ProjectGraphNode> nodes = inputs.Graph.ProjectNodes.ToDictionary(n => GraphInputs.Key(n.ProjectInstance));
+    private readonly Dictionary<string, ProjectGraphNode> nodes = inputs.Graph.ProjectNodes.ToDictionary(n => ConfiguredProjectKey.Create(n.ProjectInstance));
     private readonly Dictionary<ProjectGraphNode, string[]> outputDirectories = inputs.Graph.ProjectNodes.ToDictionary(node => node, node => inputs.OutputDirectories(node).ToArray());
     private readonly ConcurrentDictionary<ProjectGraphNode, HashSet<ProjectGraphNode>> dependencies = new();
     private readonly ConcurrentDictionary<ProjectGraphNode, string[]> snapshotFiles = new();
@@ -35,7 +35,7 @@ internal sealed partial class GraphCache(GraphInputs inputs, string cache, bool 
 
     public override async Task<CacheResult> GetCacheResultAsync(BuildRequestData request, PluginLoggerBase logger, CancellationToken cancellationToken)
     {
-        var key = request.ProjectFullPath + "|" + string.Join(";", request.GlobalProperties.OrderBy(p => p.Name, StringComparer.Ordinal).Select(p => p.Name + "=" + p.EvaluatedValue));
+        var key = ConfiguredProjectKey.Create(request);
         var node = nodes[key];
         var products = inputs.For(node);
         if (!GraphProjectKind.HasAssembly(node.ProjectInstance) &&
@@ -131,7 +131,7 @@ internal sealed partial class GraphCache(GraphInputs inputs, string cache, bool 
         await using var publications = new SnapshotPublications();
         foreach (var (node, build) in result.ResultsByNode)
         {
-            var key = GraphInputs.Key(node.ProjectInstance);
+            var key = ConfiguredProjectKey.Create(node.ProjectInstance);
             if (hits.ContainsKey(key) || !fingerprints.ContainsKey(key))
             {
                 continue;
@@ -155,7 +155,7 @@ internal sealed partial class GraphCache(GraphInputs inputs, string cache, bool 
 
     private async Task CaptureAsync(ProjectGraphNode node, Func<TargetOutput[]> targetFactory, SnapshotPublications publications)
     {
-        var key = GraphInputs.Key(node.ProjectInstance);
+        var key = ConfiguredProjectKey.Create(node.ProjectInstance);
         var fingerprint = fingerprints[key];
         var files = new Dictionary<string, string>(StringComparer.Ordinal);
         var modes = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -252,7 +252,7 @@ internal sealed partial class GraphCache(GraphInputs inputs, string cache, bool 
         // even when transitive compiler references are disabled.
         if (inputs.For(node).ReferenceBoundary)
         {
-            records.AddRange(DependencyNodes(node).OrderBy(n => GraphInputs.Key(n.ProjectInstance), StringComparer.Ordinal)
+            records.AddRange(DependencyNodes(node).OrderBy(n => ConfiguredProjectKey.Create(n.ProjectInstance), StringComparer.Ordinal)
                 .Select(reference => "dependency-contract:" + inputs.DependencyFingerprint(reference)));
         }
         // SDK compilation can see transitive reference assemblies. A grandchild
@@ -280,7 +280,7 @@ internal sealed partial class GraphCache(GraphInputs inputs, string cache, bool 
                 ? DependencyNodes(reference).Where(dependency => GraphProjectKind.HasAssembly(dependency.ProjectInstance) || GraphProjectKind.IsNoTargets(dependency.ProjectInstance))
                 : new[] { reference }).Distinct();
         }
-        foreach (var reference in references.OrderBy(n => GraphInputs.Key(n.ProjectInstance), StringComparer.Ordinal))
+        foreach (var reference in references.OrderBy(n => ConfiguredProjectKey.Create(n.ProjectInstance), StringComparer.Ordinal))
         {
             var authored = node.ProjectInstance.GetItems("ProjectReference").Where(item =>
                 Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!) == reference.ProjectInstance.FullPath);
@@ -310,7 +310,7 @@ internal sealed partial class GraphCache(GraphInputs inputs, string cache, bool 
                     {
                         throw new InvalidDataException("Missing declared compiler reference: " + declaration);
                     }
-                    records.Add(GraphInputs.Key(project) + ":" + OutputDigest(declared));
+                    records.Add(ConfiguredProjectKey.Create(project) + ":" + OutputDigest(declared));
                     continue;
                 }
                 var path = project.GetPropertyValue("TargetRefPath");
@@ -327,7 +327,7 @@ internal sealed partial class GraphCache(GraphInputs inputs, string cache, bool 
                 {
                     throw new InvalidDataException("Missing dependency result: " + path);
                 }
-                records.Add(GraphInputs.Key(project) + ":" + OutputDigest(path));
+                records.Add(ConfiguredProjectKey.Create(project) + ":" + OutputDigest(path));
             }
         }
         return ContractFiles.Hash(records);

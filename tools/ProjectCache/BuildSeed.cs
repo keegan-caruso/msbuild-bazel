@@ -15,6 +15,16 @@ internal sealed record BuildSeed(int Version, string Root, string Sdk, string Sd
 
 internal static class BuildSeedProof
 {
+    internal const int Version = 2;
+
+    internal static void RequireVersion(int version)
+    {
+        if (version != Version)
+        {
+            throw new InvalidDataException("Qualification seed version changed; rerun your sync target to regenerate configured-project keys");
+        }
+    }
+
     internal const string Base = "/__rules_msbuild_graph";
     internal const string Root = Base + "/output/workspace";
     internal const string Sdk = Base + "/sdk";
@@ -44,8 +54,6 @@ internal static class BuildSeedProof
     internal static string TreeDigest(string root) => Hash(JsonSerializer.Serialize(Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
         .Order(StringComparer.Ordinal).ToDictionary(path => Path.GetRelativePath(root, path), Digest, StringComparer.Ordinal)));
 
-    internal static string Key(ProjectInstance project) => project.FullPath + "|" + string.Join(";", project.GlobalProperties
-        .OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => pair.Key + "=" + pair.Value));
 
     private static string Hash(string value) => Convert.ToHexStringLower(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(value)));
 }

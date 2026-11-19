@@ -54,7 +54,7 @@ internal sealed class LocalGraphState : IDisposable
         try
         {
             previous = File.Exists(manifestPath) ? JsonSerializer.Deserialize<LocalStateManifest>(File.ReadAllText(manifestPath)) : null;
-            if (previous is not null && (previous.Version != 1 || previous.Root != files.Root))
+            if (previous is not null && (previous.Version is not (1 or 2) || previous.Root != files.Root))
             {
                 throw new InvalidDataException("Graph state belongs to a different workspace or version");
             }
@@ -63,7 +63,7 @@ internal sealed class LocalGraphState : IDisposable
                 .Distinct().Order(StringComparer.Ordinal).ToArray();
             var outputs = declarations.SelectMany(project => (project.OutputFiles ?? []).Concat((project.Configurations ?? []).SelectMany(item => item.OutputFiles ?? [])))
                 .Distinct().Order(StringComparer.Ordinal).ToArray();
-            current = new(1, files.Root, "", directories, outputs, false);
+            current = new(2, files.Root, "", directories, outputs, false);
             var inputs = contract.SharedInputs.Concat(declarations.SelectMany(project => project.Inputs.Concat((project.Configurations ?? []).SelectMany(item => item.Inputs))))
                 .Concat(contract.Restore?.Inputs ?? []).Concat(contract.InputDirectories ?? []).Concat(contract.Projects.Keys)
                 .Concat((contract.DefinitionDigests ?? []).Keys).Select(files.Resolve).ToArray();
@@ -83,7 +83,7 @@ internal sealed class LocalGraphState : IDisposable
             {
                 throw new InvalidDataException("New graph state requires empty owned outputs");
             }
-            if (previous is not null && (!previous.Complete || !previous.Directories.SequenceEqual(directories) || !previous.Files.SequenceEqual(outputs)))
+            if (previous is not null && (previous.Version != 2 || !previous.Complete || !previous.Directories.SequenceEqual(directories) || !previous.Files.SequenceEqual(outputs)))
             {
                 Clear(previous);
                 Clear(current);
@@ -102,8 +102,8 @@ internal sealed class LocalGraphState : IDisposable
     internal void Prepare(GraphInputs inputs, string target)
     {
         var identity = ContractFiles.Hash(new[] { inputs.SdkDigest, ContractFiles.Digest(typeof(LocalGraphState).Assembly.Location), target }
-            .Concat(inputs.Graph.ProjectNodes.Select(node => GraphInputs.Key(node.ProjectInstance)).Order(StringComparer.Ordinal)));
-        Reusable = previous is { Complete: true } && previous.Identity == identity &&
+            .Concat(inputs.Graph.ProjectNodes.Select(node => ConfiguredProjectKey.Create(node.ProjectInstance)).Order(StringComparer.Ordinal)));
+        Reusable = previous is { Version: 2, Complete: true } && previous.Identity == identity &&
             previous.Directories.SequenceEqual(current.Directories) && previous.Files.SequenceEqual(current.Files);
         if (!Reusable)
         {

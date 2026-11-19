@@ -17,7 +17,8 @@ internal static class GraphSeed
         Directory.SetCurrentDirectory(root);
         var contract = JsonSerializer.Deserialize<GraphContract>(File.ReadAllText(args[1]))!;
         var seed = JsonSerializer.Deserialize<BuildSeed>(File.ReadAllText(args[4]))!;
-        if (seed.Version != 1 || seed.Root != root || seed.Sdk != BuildSeedProof.Sdk || seed.SdkDigest != BuildSeedProof.TreeDigest(seed.Sdk))
+        BuildSeedProof.RequireVersion(seed.Version);
+        if (seed.Root != root || seed.Sdk != BuildSeedProof.Sdk || seed.SdkDigest != BuildSeedProof.TreeDigest(seed.Sdk))
         {
             throw new InvalidDataException("Qualification seed SDK or namespace changed");
         }

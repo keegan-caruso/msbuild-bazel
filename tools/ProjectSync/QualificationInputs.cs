@@ -41,9 +41,9 @@ internal sealed class QualificationInputs
     {
         this.root = root;
         Sources = digests.Keys.ToHashSet(StringComparer.Ordinal);
-        Nodes = graph.ProjectNodes.ToDictionary(node => Key(node.ProjectInstance));
+        Nodes = graph.ProjectNodes.ToDictionary(node => ConfiguredProjectKey.Create(node.ProjectInstance));
         using var context = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        Add(context, complete ? "qualification-project-v2" : "qualification-project-v1");
+        Add(context, complete ? "qualification-project-v4" : "qualification-project-v3");
         Add(context, environment.Identity);
         foreach (var (path, digest) in digests.Where(pair => pair.Key.StartsWith(".graph-tools/", StringComparison.Ordinal)).OrderBy(pair => pair.Key, StringComparer.Ordinal))
         {
@@ -128,7 +128,7 @@ internal sealed class QualificationInputs
             }
             using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
             Add(hash, own[node]);
-            foreach (var dependency in node.ProjectReferences.OrderBy(child => Key(child.ProjectInstance), StringComparer.Ordinal))
+            foreach (var dependency in node.ProjectReferences.OrderBy(child => ConfiguredProjectKey.Create(child.ProjectInstance), StringComparer.Ordinal))
             {
                 Add(hash, Compute(dependency));
             }
@@ -146,7 +146,7 @@ internal sealed class QualificationInputs
         }
         // An uncached producer may emit different bytes for the
         // same source inputs. Include its actual products after MSBuild schedules it.
-        foreach (var dependency in node.ProjectReferences.OrderBy(child => Key(child.ProjectInstance), StringComparer.Ordinal))
+        foreach (var dependency in node.ProjectReferences.OrderBy(child => ConfiguredProjectKey.Create(child.ProjectInstance), StringComparer.Ordinal))
         {
             Add(hash, fingerprints[dependency]);
             foreach (var path in Files(dependency).Order(StringComparer.Ordinal))
@@ -175,7 +175,6 @@ internal sealed class QualificationInputs
         QualificationPaths.Resolve(root, path, "Qualification artifact symlink: ");
     internal bool Owns(ProjectGraphNode node, string path) => !Sources.Contains(path) && Eligible.Contains(node) &&
         (Directories[node].Any(directory => path.StartsWith(directory + "/", StringComparison.Ordinal)) || Products[node].Contains(path));
-    internal static string Key(ProjectInstance project) => project.FullPath + "|" + string.Join(";", project.GlobalProperties.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => pair.Key + "=" + pair.Value));
     internal static string Full(ProjectInstance project, string value) => Path.GetFullPath(value.Replace('\\', '/'), Path.GetDirectoryName(project.FullPath)!);
     internal static bool Overlaps(string left, string right) => left == right || left.StartsWith(right + "/", StringComparison.Ordinal) || right.StartsWith(left + "/", StringComparison.Ordinal);
     private static string Mode(string path) => (OperatingSystem.IsWindows() ? 0 : (int)File.GetUnixFileMode(path) & 511)

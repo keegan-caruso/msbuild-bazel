@@ -14,10 +14,13 @@ class InputObservationTests(unittest.TestCase):
         cls.temporary = tempfile.TemporaryDirectory(prefix="sync-observations-")
         cls.addClassCleanup(cls.temporary.cleanup)
         cls.directory = Path(cls.temporary.name)
-        sources = ["tools/ProjectCache/FileObservation.cs", "tools/OutputOwnershipIndex.cs", "tools/GraphBuild/OutputOwnership.cs", "tools/NoLinkTree.cs"]
+        sources = ["tools/ProjectCache/FileObservation.cs", "tools/OutputOwnershipIndex.cs", "tools/GraphBuild/OutputOwnership.cs", "tools/NoLinkTree.cs", "tools/ConfiguredProjectKey.cs", "tools/ProjectCache/BuildSeed.cs"]
         (cls.directory / "Controls.csproj").write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType>'
             '<TargetFramework>net11.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>'
-            '</PropertyGroup><ItemGroup>' + ''.join(f'<Compile Include="{ROOT / source}" />' for source in sources) + '</ItemGroup></Project>')
+            '</PropertyGroup><ItemGroup>' + ''.join(f'<Compile Include="{ROOT / source}" />' for source in sources) +
+            '<Reference Include="Microsoft.Build" HintPath="$(MSBuildBinPath)/Microsoft.Build.dll" />'
+            '<Reference Include="Microsoft.Build.Framework" HintPath="$(MSBuildBinPath)/Microsoft.Build.Framework.dll" />'
+            '<AssemblyMetadata Include="SelectedMSBuildBinPath" Value="$(MSBuildBinPath)" /></ItemGroup></Project>')
         (cls.directory / "Program.cs").write_text(CONTROLS)
         result = subprocess.run(["bash", str(ROOT / "scripts/dotnet.sh"), "build", str(cls.directory / "Controls.csproj"),
             "-c", "Release", "-warnaserror"], capture_output=True, text=True)
@@ -36,6 +39,9 @@ class InputObservationTests(unittest.TestCase):
     def test_ownership_matches_pairwise_policy_and_runner_rejections(self):
         self.control("ownership")
 
+    def test_configured_project_node_and_request_keys(self):
+        self.control("keys")
+
     def test_tree_inventories_ordering_and_link_rejection(self):
         self.control("trees")
 
@@ -47,6 +53,7 @@ CONTROLS = r'''
 using System.Diagnostics;
 using System.Globalization;
 using System.Security.Cryptography;
+using System.Reflection;
 using System.Text;
 using RulesMSBuild;
 using RulesMSBuild.GraphBuild;
@@ -172,5 +179,50 @@ if (args[0] == "trees")
     }
     finally { Directory.Delete(root, recursive: true); }
     Console.WriteLine("PASS: tree membership, empty directories, ordinal depth-first order, roots and file/directory/dangling links");
+}
+if (args[0] == "keys")
+{
+    var engine = Assembly.GetExecutingAssembly().GetCustomAttributes<AssemblyMetadataAttribute>()
+        .Single(attribute => attribute.Key == "SelectedMSBuildBinPath").Value!;
+    System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =>
+        File.Exists(Path.Combine(engine, name.Name + ".dll")) ? context.LoadFromAssemblyPath(Path.Combine(engine, name.Name + ".dll")) : null;
+    Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(engine, "MSBuild.dll"));
+    var root = Directory.CreateTempSubdirectory("configured-project-").FullName;
+    try
+    {
+        var project = Path.Combine(root, OperatingSystem.IsWindows() ? "a-b.proj" : "a|b.proj");
+        File.WriteAllText(project, "<Project><Target Name=\"Build\" /></Project>");
+        var graph = new Microsoft.Build.Graph.ProjectGraph(new[] {
+            new Microsoft.Build.Graph.ProjectGraphEntryPoint(project, new Dictionary<string, string> { ["A"] = "x;B=y" }),
+            new Microsoft.Build.Graph.ProjectGraphEntryPoint(project, new Dictionary<string, string> { ["A"] = "x", ["B"] = "y" }) });
+        string Legacy(Microsoft.Build.Execution.ProjectInstance state) => state.FullPath + "|" + string.Join(";",
+            state.GlobalProperties.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => pair.Key + "=" + pair.Value));
+        Check(graph.ProjectNodes.Count == 2, "MSBuild collapsed distinct configurations");
+        Check(graph.ProjectNodes.Select(node => Legacy(node.ProjectInstance)).Distinct().Count() == 1, "Legacy collision fixture stopped colliding");
+        Check(graph.ProjectNodes.ToDictionary(node => ConfiguredProjectKey.Create(node.ProjectInstance)).Count == 2, "Configured nodes collided");
+        foreach (var node in graph.ProjectNodes)
+        {
+            var state = node.ProjectInstance;
+            var request = new Microsoft.Build.Execution.BuildRequestData(state, new[] { "Build" });
+            Check(ConfiguredProjectKey.Create(state) == ConfiguredProjectKey.Create(request), "Actual node/request forms differ");
+            var pathRequest = new Microsoft.Build.Execution.BuildRequestData(project, state.GlobalProperties, null, new[] { "Build" }, null);
+            Check(ConfiguredProjectKey.Create(state) == ConfiguredProjectKey.Create(pathRequest), "Actual path request form differs");
+            var properties = state.GlobalProperties.Reverse().ToDictionary(pair => pair.Key, pair => pair.Value);
+            var reordered = new Microsoft.Build.Execution.ProjectInstance(project, properties, null);
+            Check(ConfiguredProjectKey.Create(reordered) == ConfiguredProjectKey.Create(state), "Property insertion order changed identity");
+        }
+        var specialKeys = new HashSet<string> { ConfiguredProjectKey.Create(new Microsoft.Build.Execution.ProjectInstance(project)) };
+        foreach (var value in new[] { "", "a=b;c|d", "quote\"\\newline\n", "caf\u00e9/\U0001f642" })
+        {
+            var state = new Microsoft.Build.Execution.ProjectInstance(project, new Dictionary<string, string> { ["A"] = value }, null);
+            Check(ConfiguredProjectKey.Create(state) == ConfiguredProjectKey.Create(new Microsoft.Build.Execution.BuildRequestData(state, new[] { "Build" })), "Special value node/request mismatch");
+            Check(specialKeys.Add(ConfiguredProjectKey.Create(state)), "Empty/absent or special values collided");
+        }
+        BuildSeedProof.RequireVersion(BuildSeedProof.Version);
+        try { BuildSeedProof.RequireVersion(1); throw new Exception("Legacy seed accepted"); }
+        catch (InvalidDataException error) { Check(error.Message.Contains("rerun your sync target"), "Legacy seed regeneration guidance missing"); }
+    }
+    finally { Directory.Delete(root, recursive: true); }
+    Console.WriteLine("PASS: actual configured-node collision, request parity, order, special values and legacy-seed regeneration");
 }
 '''

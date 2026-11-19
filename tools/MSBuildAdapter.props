@@ -1,6 +1,7 @@
 <Project>
   <Import Project="MSBuildTool.props" />
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)ConfiguredProjectKey.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)RelativePathComponents.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)NoLinkTree.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)AnalyzerConfigs.cs" />

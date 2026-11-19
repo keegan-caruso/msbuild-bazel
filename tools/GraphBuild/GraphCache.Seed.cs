@@ -46,7 +46,7 @@ internal sealed partial class GraphCache
         await using var publications = new SnapshotPublications();
         foreach (var (node, requested, targets) in selected)
         {
-            var key = GraphInputs.Key(node.ProjectInstance);
+            var key = ConfiguredProjectKey.Create(node.ProjectInstance);
             fingerprints[key] = Fingerprint(node, requested);
             requestedTargets[key] = requested;
             await CaptureAsync(node, () => targets, publications);

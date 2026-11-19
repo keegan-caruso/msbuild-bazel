@@ -46,7 +46,7 @@ internal sealed class QualificationCache : ProjectCachePluginBase, IDisposable
 
     public override async Task<CacheResult> GetCacheResultAsync(BuildRequestData request, PluginLoggerBase logger, CancellationToken cancellationToken)
     {
-        var key = request.ProjectFullPath + "|" + string.Join(";", request.GlobalProperties.OrderBy(property => property.Name, StringComparer.Ordinal).Select(property => property.Name + "=" + property.EvaluatedValue));
+        var key = ConfiguredProjectKey.Create(request);
         var node = inputs.Nodes[key];
         if (!request.TargetNames.Contains("Build", StringComparer.OrdinalIgnoreCase) || !inputs.Eligible.Contains(node))
         {
