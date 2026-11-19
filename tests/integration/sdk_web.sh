@@ -158,14 +158,7 @@ assert_contains "$TEST_TMPDIR/recovered-app.log" 'ASSET: asset-v2'
 publish_products bazel-bin/publish.graph/workspace > "$TEST_TMPDIR/recovered.sha256"
 cmp "$TEST_TMPDIR/edited.sha256" "$TEST_TMPDIR/recovered.sha256"
 if [[ -n "${SDK_WEB_CACHE_URL:-}" ]]; then
-    python3 - "$TEST_TMPDIR/recovered.execution.json" <<'PY'
-import json,sys
-s=open(sys.argv[1]).read();decoder=json.JSONDecoder();graphs=[]
-while s.strip():
-    action,end=decoder.raw_decode(s.lstrip());s=s.lstrip()[end:]
-    if action.get('mnemonic')=='MSBuildGraph':graphs.append(action)
-assert len(graphs)==1 and graphs[0].get('cacheHit') and graphs[0].get('runner')=='remote cache hit',graphs
-PY
+    assert_remote_hits "$TEST_TMPDIR/recovered.execution.json" MSBuildGraph=1
     fresh project-recovery test //:published_test "${options[@]}" --noremote_accept_cached --remote_upload_local_results=false --lockfile_mode=error --test_output=all
     python3 - <<'PY'
 import json

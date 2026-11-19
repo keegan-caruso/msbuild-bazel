@@ -35,18 +35,10 @@ build() {
     local start; start=$(python3 -c 'import time;print(time.monotonic())')
     bazel run //:app "${options[@]}" --build_event_json_file="$TEST_TMPDIR/$1.bep" > "$TEST_TMPDIR/$1.log" 2>&1 || { cat "$TEST_TMPDIR/$1.log" >&2; exit 1; }
     assert_contains "$TEST_TMPDIR/$1.log" "ARCADE:$4:${5:-1.2.3-dev}"
-    python3 - "$1" "$2" "$3" "$start" "$TEST_TMPDIR" <<'PY'
-import json,sys,time
-from pathlib import Path
-row,hits,misses,start,logs=sys.argv[1:]
-r=json.load(open('bazel-bin/graph.graph/report.json'));assert (r['hits'],r['misses'])==(int(hits),int(misses)),(row,r)
-assert r['preparedRestore'];Path(logs,row+'-report.json').write_text(json.dumps(r))
-with open(Path(logs,'timings.tsv'),'a') as f:f.write(f'{row}\t{time.monotonic()-float(start):.3f}\t{hits}\t{misses}\n')
-PY
+    assert_build_report bazel-bin/graph.graph/report.json "$1" "$2" "$3" "$start"
 }
 build seed 0 2 1
-(cd bazel-bin/graph.graph/workspace; sha256sum artifacts/bin/App/Release/net10.0/App.dll artifacts/bin/Library/Release/net10.0/Library.dll) > "$TEST_TMPDIR/seed.sha256"
-cmp "$TEST_TMPDIR/raw-graph.sha256" "$TEST_TMPDIR/seed.sha256"
+assert_product_parity "$TEST_TMPDIR/raw-graph.sha256" "$TEST_TMPDIR/seed.sha256" bazel-bin/graph.graph/workspace artifacts/bin/App/Release/net10.0/App.dll artifacts/bin/Library/Release/net10.0/Library.dll
 python3 - "$scratch/raw-ordinary" "$scratch/raw-graph" bazel-bin/graph.graph/workspace <<'PYCOMPARE'
 import sys,zipfile
 from pathlib import Path

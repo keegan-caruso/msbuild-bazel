@@ -87,14 +87,7 @@ PY
     bazel test //:tests "${options[@]}" --lockfile_mode=error --test_output=errors \
         --execution_log_json_file="$TEST_TMPDIR/$version-recovery.execution.json"
     if [[ -n "${SDK_VERSION_CACHE_URL:-}" ]]; then
-        python3 - "$TEST_TMPDIR/$version-recovery.execution.json" <<'PY'
-import json,sys
-s=open(sys.argv[1]).read();decoder=json.JSONDecoder();graphs=[]
-while s.strip():
-    action,end=decoder.raw_decode(s.lstrip());s=s.lstrip()[end:]
-    if action.get('mnemonic')=='MSBuildGraph':graphs.append(action)
-assert len(graphs)==1 and graphs[0].get('cacheHit') and graphs[0].get('runner')=='remote cache hit',graphs
-PY
+        assert_remote_hits "$TEST_TMPDIR/$version-recovery.execution.json" MSBuildGraph=1
     fi
     products > "$TEST_TMPDIR/$version-recovery.sha256"
     cmp "$TEST_TMPDIR/$version-api.sha256" "$TEST_TMPDIR/$version-recovery.sha256"
