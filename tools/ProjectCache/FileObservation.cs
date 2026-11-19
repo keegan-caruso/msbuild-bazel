@@ -16,6 +16,6 @@ internal sealed record FileObservation(string ContentDigest, int Mode)
     }
 
     internal string QualificationDigest => ContentDigest.ToLowerInvariant() + ":" + (Mode & 511).ToString(CultureInfo.InvariantCulture);
-    internal string SeedDigest => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
-        ContentDigest + ":" + Mode.ToString(CultureInfo.InvariantCulture)))).ToLowerInvariant();
+    internal string SeedDigest => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(
+        ContentDigest + ":" + Mode.ToString(CultureInfo.InvariantCulture))));
 }

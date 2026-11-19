@@ -84,7 +84,7 @@ internal sealed class FileMaterializer(bool clone, bool profile)
                     hash.AppendData(buffer.AsSpan(0, count));
                     output.Write(buffer.AsSpan(0, count));
                 }
-                if (Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant() != expected)
+                if (Convert.ToHexStringLower(hash.GetHashAndReset()) != expected)
                 {
                     throw new InvalidDataException("Corrupt graph snapshot: " + source);
                 }
