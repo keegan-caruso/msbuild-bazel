@@ -171,22 +171,8 @@ internal sealed class QualificationInputs
     }
     private static IEnumerable<string> Tree(string directory) => NoLinkTree.Files(directory, "Qualification output symlink: ");
     internal string Relative(string path) => WorkspaceView.Safe(Path.GetRelativePath(root, path).Replace('\\', '/'));
-    internal string Resolve(string path)
-    {
-        var target = Path.Combine(root, WorkspaceView.Safe(path));
-        for (var current = target; current.Length >= root.Length; current = Path.GetDirectoryName(current)!)
-        {
-            if (new FileInfo(current).LinkTarget is not null)
-            {
-                throw new InvalidDataException("Qualification artifact symlink: " + current);
-            }
-            if (current == root)
-            {
-                break;
-            }
-        }
-        return target;
-    }
+    internal string Resolve(string path) =>
+        QualificationPaths.Resolve(root, path, "Qualification artifact symlink: ");
     internal bool Owns(ProjectGraphNode node, string path) => !Sources.Contains(path) && Eligible.Contains(node) &&
         (Directories[node].Any(directory => path.StartsWith(directory + "/", StringComparison.Ordinal)) || Products[node].Contains(path));
     internal static string Key(ProjectInstance project) => project.FullPath + "|" + string.Join(";", project.GlobalProperties.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => pair.Key + "=" + pair.Value));

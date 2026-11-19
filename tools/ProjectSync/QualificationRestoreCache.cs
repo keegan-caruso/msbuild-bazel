@@ -189,22 +189,8 @@ internal sealed class QualificationRestoreCache : IDisposable
 
     private static IEnumerable<string> Files(string directory) => NoLinkTree.Files(directory, "Restore cache requires regular files and directories: ");
 
-    private static string Resolve(string directory, string path)
-    {
-        var target = Path.Combine(directory, WorkspaceView.Safe(path));
-        for (var current = target; current.Length >= directory.Length; current = Path.GetDirectoryName(current)!)
-        {
-            if (new FileInfo(current).LinkTarget is not null)
-            {
-                throw new InvalidDataException("Restore cache symlink: " + current);
-            }
-            if (current == directory)
-            {
-                break;
-            }
-        }
-        return target;
-    }
+    private static string Resolve(string directory, string path) =>
+        QualificationPaths.Resolve(directory, path, "Restore cache symlink: ");
     private static int Mode(string path) => OperatingSystem.IsWindows() ? 0 : (int)File.GetUnixFileMode(path) & 511;
     private static string Digest(string path) => SnapshotPayloads.Digest(path) + ":" + Mode(path).ToString(System.Globalization.CultureInfo.InvariantCulture);
 
