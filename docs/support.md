@@ -354,15 +354,21 @@ public sync, raw MSBuild parity, edits, failures and cached/uncached workers.
 Web/Razor [graph controls](../tests/graph_build/web.py) cover compile/replay, Razor
 edits and assembly attributes; source-built Razor consumers are covered below.
 
-`//tests/integration:sdk_web` passed the recorded 8.8.0 / 9.3.0 pins on Linux ARM64 with
-SDK **10.0.400**, using its bundled ASP.NET framework without `runtime_host`.
-Build/test and Publish serve a compiled Razor page and published static assets;
-content edits require no sync. Published files match ordinary/graph MSBuild bytes,
-except SDK `Last-Modified` values in the static endpoint manifest (only those values
-are normalized for comparison). Fresh-source/output-base action and forced project
-recovery preserve all published bytes exactly and execute the edited web app;
-project recovery yields three hits / zero compilations. This is a small web fixture,
-not general Blazor/workload or real-project Publish qualification.
+`//tests/integration:sdk_web` passes cold on Ubuntu 26.04 ARM64 with SDK
+**11.0.100** and Bazel **9.3.2**, using its bundled ASP.NET framework without
+`runtime_host`. Build/test and Publish serve a compiled Razor page and published
+static assets; content edits require no sync. Raw builds and fresh-source/output-base
+rebuilds compare exact file inventories/hashes and all static endpoint metadata
+except validated SDK `Last-Modified` timestamps. Endpoint sidecars must match their
+inventory hashes. The same cold comparison passes the catalog fixture with SDK
+**10.0.400**. These are bounded four-CPU/six-GiB guest controls, not general
+Blazor/workload or real-project Publish qualification.
+
+Historical SDK **10.0.400** results on the recorded 8.8.0 / 9.3.0 pins additionally
+qualify HTTP action and forced project recovery: all published bytes match exactly,
+the edited web app executes, and project recovery yields three hits / zero
+compilations. Actual cache-hit comparisons remain byte-exact, including endpoint
+timestamps; the cold-rebuild exception does not apply to either cache recovery path.
 
 The [package-backed catalog](../examples/catalog-web/README.md) qualifies five
 projects with Newtonsoft.Json / Humanizer, embedded data, Razor and static assets.

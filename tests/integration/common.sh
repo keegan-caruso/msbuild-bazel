@@ -86,3 +86,33 @@ assert_product_parity() {
     (cd "$root"; sha256sum "$@") > "$actual"
     cmp "$expected" "$actual"
 }
+
+# SDK publish endpoints contain build-time Last-Modified headers. Raw/cold
+# rebuilds compare those timestamps structurally; actual cache hits stay byte-exact.
+assert_static_asset_parity() {
+    python3 - "$@" <<'PY'
+import hashlib,json,sys
+from email.utils import parsedate_to_datetime
+from pathlib import Path
+expected,actual,expected_endpoints,actual_endpoints,logical=sys.argv[1:]
+def inventory(path):
+    entries=[line.split('  ',1) for line in Path(path).read_text().splitlines()]
+    endpoints=[digest for digest,name in entries if name==logical]
+    assert len(endpoints)==1,(path,logical,endpoints)
+    return [(digest,name) for digest,name in entries if name!=logical],endpoints[0]
+def manifest(path,digest):
+    content=Path(path).read_bytes()
+    assert hashlib.sha256(content).hexdigest()==digest,(path,digest)
+    data=json.loads(content);count=0
+    for endpoint in data['Endpoints']:
+        for header in endpoint['ResponseHeaders']:
+            if header['Name']=='Last-Modified':
+                assert parsedate_to_datetime(header['Value']).tzinfo is not None
+                header['Value']='<timestamp>';count+=1
+    assert count>0,path
+    return data
+left,left_digest=inventory(expected);right,right_digest=inventory(actual)
+assert left==right,(expected,actual,left,right)
+assert manifest(expected_endpoints,left_digest)==manifest(actual_endpoints,right_digest)
+PY
+}
