@@ -139,8 +139,9 @@ internal static class NuGetUpdate
             foreach (var project in projects.Distinct())
             {
                 await Restore(sdk, workspace, packageRoot, project, GraphEntryProperties.For(project, properties, mappings.EntryProperties), scratch, engine, httpCache);
-                CaptureLocks(workspace, locks, lockOwners);
-                NuGetConfigs.Capture(workspace, source, Path.Combine(scratch, "home"), originals);
+                var metadata = NuGetRestoreMetadata.Read(workspace);
+                CaptureLocks(workspace, metadata, locks, lockOwners);
+                NuGetConfigs.Capture(workspace, metadata, source, Path.Combine(scratch, "home"), originals);
             }
             Environment.SetEnvironmentVariable("HOME", Path.Combine(scratch, "home"));
             Environment.SetEnvironmentVariable("DOTNET_CLI_HOME", Path.Combine(scratch, "home"));
@@ -159,14 +160,9 @@ internal static class NuGetUpdate
             {
                 throw new InvalidDataException("NuGet graph evaluation failed; existing locks were left unchanged: " + error.Message, error);
             }
-            var restored = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var assets in Directory.GetFiles(workspace, "project.assets.json", SearchOption.AllDirectories))
-            {
-                using var document = JsonDocument.Parse(File.ReadAllText(assets));
-                var project = document.RootElement.GetProperty("project").GetProperty("restore").GetProperty("projectPath").GetString()!;
-                var relative = WorkspaceView.Safe(Path.GetRelativePath(workspace, project).Replace('\\', '/'));
-                restored.Add(relative);
-            }
+            var finalMetadata = NuGetRestoreMetadata.Read(workspace);
+            var restored = finalMetadata.Select(metadata => WorkspaceView.Safe(
+                Path.GetRelativePath(workspace, metadata.ProjectPath).Replace('\\', '/'))).ToHashSet(StringComparer.Ordinal);
             if (locks.Count == 0)
             {
                 throw new InvalidDataException("Restore produced no project lockfiles");
@@ -187,7 +183,7 @@ internal static class NuGetUpdate
                 // Record authored configuration intent, including the build-only framework.
                 properties,
                 entryProperties = mappings.EntryProperties,
-                configDigests = NuGetConfigs.Capture(workspace, source, Path.Combine(scratch, "home"), originals),
+                configDigests = NuGetConfigs.Capture(workspace, finalMetadata, source, Path.Combine(scratch, "home"), originals),
                 lockFiles = locks.Keys.ToArray(),
                 packages,
             }, new JsonSerializerOptions { WriteIndented = true }) + "\n";
@@ -286,12 +282,10 @@ internal static class NuGetUpdate
         }
     }
 
-    private static void CaptureLocks(string workspace, SortedDictionary<string, string> locks, Dictionary<string, string> owners)
+    private static void CaptureLocks(string workspace, NuGetRestoreMetadata[] metadata, SortedDictionary<string, string> locks, Dictionary<string, string> owners)
     {
-        foreach (var assets in Directory.GetFiles(workspace, "project.assets.json", SearchOption.AllDirectories))
+        foreach (var project in metadata.Select(item => item.ProjectPath))
         {
-            using var document = JsonDocument.Parse(File.ReadAllText(assets));
-            var project = document.RootElement.GetProperty("project").GetProperty("restore").GetProperty("projectPath").GetString()!;
             var native = NuGetLocks.ForProject(project);
             if (!File.Exists(native))
             {
