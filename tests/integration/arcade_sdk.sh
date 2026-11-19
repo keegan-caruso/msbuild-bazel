@@ -123,7 +123,7 @@ cat > Consumer/Consumer.csproj <<'XML'
 <Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup><ItemGroup><PackageReference Include="Library" Version="1.2.4-dev" /></ItemGroup></Project>
 XML
 printf 'System.Console.WriteLine("PACKAGE:" + Library.Value());\n' > Consumer/Program.cs
-printf '{"projectDefaults":{"preparedRestore":true}}\n' > consumer-mappings.json
+printf '{"projectDefaults":{"preparedRestore":true},"projects":{"Consumer/Consumer.csproj":{"referenceBoundary":true}}}\n' > consumer-mappings.json
 cat >> BUILD.bazel <<'BUILD'
 load("@rules_msbuild//msbuild:defs.bzl", "msbuild_graph_output", "msbuild_generated_nuget_package", "msbuild_package_lock")
 msbuild_graph_output(name="library_package", graph=":graph", path="artifacts/packages/Release/Shipping/Library.1.2.4-dev.nupkg")
