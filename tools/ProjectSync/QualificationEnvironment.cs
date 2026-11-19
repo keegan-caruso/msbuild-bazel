@@ -23,7 +23,7 @@ internal sealed record QualificationEnvironment(string Identity)
             Add(Mode(path));
         }
         AddSdk(sdk, Add);
-        return new(Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant());
+        return new(Convert.ToHexStringLower(hash.GetHashAndReset()));
 
         void Add(string value)
         {

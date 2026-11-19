@@ -117,7 +117,7 @@ internal sealed class SnapshotPayloads(string cache) : IProjectCacheContentStore
     internal static string Digest(string path)
     {
         using var stream = File.OpenRead(path);
-        return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
+        return Convert.ToHexStringLower(SHA256.HashData(stream));
     }
 
     private static void Link(string source, string destination)

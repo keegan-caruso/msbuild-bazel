@@ -464,7 +464,7 @@ internal static class GraphGenerator
             SharedInputs = shared,
             PackageDigests = view?.GraphPackageDigests() ?? [],
             DefinitionDigests = definitions.Keys.Order(StringComparer.Ordinal).ToDictionary(path => path,
-                path => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(Path.Combine(root, path)))).ToLowerInvariant()),
+                path => Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(Path.Combine(root, path))))),
             Projects = declarations
         })!;
         if (restore is not null)

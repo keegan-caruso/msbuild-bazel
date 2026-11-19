@@ -243,7 +243,7 @@ public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, strin
                         await output.WriteAsync(buffer.AsMemory(0, count), token);
                         length += count;
                     }
-                    if (Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant() != digest)
+                    if (Convert.ToHexStringLower(hash.GetHashAndReset()) != digest)
                     {
                         throw new InvalidDataException("Corrupt project-cache blob: " + digest);
                     }
@@ -294,7 +294,7 @@ public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, strin
                     hash.AppendData(buffer, 0, count);
                     await staged.WriteAsync(buffer.AsMemory(0, count), cancellationToken);
                 }
-                if (Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant() != digest)
+                if (Convert.ToHexStringLower(hash.GetHashAndReset()) != digest)
                 {
                     throw new InvalidDataException("Project-cache file changed during upload: " + path);
                 }
@@ -346,7 +346,7 @@ public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, strin
                 hash.AppendData(buffer, 0, count);
                 await stream.WriteAsync(buffer.AsMemory(0, count), cancellationToken);
             }
-            if (Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant() != digest)
+            if (Convert.ToHexStringLower(hash.GetHashAndReset()) != digest)
             {
                 throw new InvalidDataException("Project-cache file changed during upload: " + path);
             }
@@ -421,7 +421,7 @@ public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, strin
     }
 
     private static string ActionKey(string fingerprint) => Digest(Encoding.UTF8.GetBytes("rules-msbuild-project-snapshot-v1\n" + fingerprint));
-    private static string Digest(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+    private static string Digest(byte[] bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes));
     private static bool ValidDigest(string digest) => digest.Length == 64 && digest.All(char.IsAsciiHexDigit) && digest == digest.ToLowerInvariant();
     private static bool SameFiles(Dictionary<string, string>? left, Dictionary<string, string>? right) =>
         (left ?? []).Count == (right ?? []).Count && (left ?? []).All(file =>

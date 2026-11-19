@@ -46,7 +46,7 @@ internal static class Package
             staged.Write(buffer, 0, count);
         }
         var contentHash = Convert.ToBase64String(sha512.GetHashAndReset());
-        var archiveHash = Convert.ToHexString(sha256.GetHashAndReset()).ToLowerInvariant();
+        var archiveHash = Convert.ToHexStringLower(sha256.GetHashAndReset());
         if (!request.Generated && Convert.FromBase64String(request.ContentHash).Length != 64)
         {
             throw new InvalidDataException("Invalid NuGet content hash");

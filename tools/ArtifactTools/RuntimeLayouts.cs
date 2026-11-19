@@ -70,7 +70,7 @@ internal static class RuntimeLayouts
         provenance["native"] = JsonSerializer.SerializeToNode(request.Native, Program.Json);
         using (var source = File.OpenRead(request.GraphContract))
         {
-            provenance["graphContractSha256"] = Convert.ToHexString(SHA256.HashData(source)).ToLowerInvariant();
+            provenance["graphContractSha256"] = Convert.ToHexStringLower(SHA256.HashData(source));
         }
         Json(buildInfo, provenance);
     }

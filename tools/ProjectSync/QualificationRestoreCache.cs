@@ -51,7 +51,7 @@ internal sealed class QualificationRestoreCache : IDisposable
         {
             Add(Path.GetRelativePath(root, path) + "/");
         }
-        fingerprint = Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
+        fingerprint = Convert.ToHexStringLower(hash.GetHashAndReset());
         var directory = Path.Combine(options.Directory, "restore");
         Directory.CreateDirectory(directory);
         if (new DirectoryInfo(directory).LinkTarget is not null)

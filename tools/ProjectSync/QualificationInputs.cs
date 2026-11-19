@@ -88,7 +88,7 @@ internal sealed class QualificationInputs
                     Add(hash, File.ReadAllText(path));
                 }
             }
-            own[node] = Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
+            own[node] = Convert.ToHexStringLower(hash.GetHashAndReset());
             Products[node] = products(node).Select(Relative).ToHashSet(StringComparer.Ordinal);
             var output = project.GetPropertyValue("OutputPath");
             if (GraphProjectKind.HasAssembly(project) && output.Length != 0)
@@ -132,7 +132,7 @@ internal sealed class QualificationInputs
             {
                 Add(hash, Compute(dependency));
             }
-            return fingerprints[node] = Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
+            return fingerprints[node] = Convert.ToHexStringLower(hash.GetHashAndReset());
         }
     }
 
@@ -157,7 +157,7 @@ internal sealed class QualificationInputs
                 Add(hash, Mode(path));
             }
         }
-        var fingerprint = Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
+        var fingerprint = Convert.ToHexStringLower(hash.GetHashAndReset());
         return fingerprint;
     }
     internal IEnumerable<string> Files(ProjectGraphNode node)

@@ -32,7 +32,7 @@ internal static class NuGetArchives
                 throw new InvalidDataException("Unsafe NuGet identity");
             }
             using var bytes = File.OpenRead(archive);
-            var sha256 = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+            var sha256 = Convert.ToHexStringLower(SHA256.HashData(bytes));
             bytes.Position = 0;
             var contentHash = Convert.ToBase64String(SHA512.HashData(bytes));
             if (File.ReadAllText(archive + ".sha512").Trim() != contentHash)
@@ -95,7 +95,7 @@ internal static class NuGetArchives
     private static bool Matches(string path, NuGetArchive archive)
     {
         using var stream = File.OpenRead(path);
-        var sha256 = Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
+        var sha256 = Convert.ToHexStringLower(SHA256.HashData(stream));
         stream.Position = 0;
         return sha256 == archive.sha256 && Convert.ToBase64String(SHA512.HashData(stream)) == archive.archiveSha512;
     }
