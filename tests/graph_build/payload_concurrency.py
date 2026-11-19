@@ -14,6 +14,7 @@ def main():
         source.write_bytes(b'parallel shared payload\n' * 50000)
         digest = hashlib.sha256(source.read_bytes()).hexdigest()
         includes = [ROOT / 'tools/ProjectCache' / name for name in ['SnapshotPayloads.cs', 'RemoteSnapshotStore.cs']]
+        includes.append(ROOT / 'tools/RelativePathComponents.cs')
         (root / 'Probe.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
             '<TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings>'
             '<Nullable>enable</Nullable></PropertyGroup><ItemGroup>' +

@@ -78,7 +78,7 @@ internal sealed class WorkspaceView : IDisposable
 
     internal static string Safe(string path)
     {
-        if (Path.IsPathRooted(path) || path.Contains('\\') || path.Split('/').Any(p => p is "" or "." or ".."))
+        if (!RelativePathComponents.IsSafeRelative(path))
         {
             throw new InvalidDataException("Expected a safe relative input path: " + path);
         }

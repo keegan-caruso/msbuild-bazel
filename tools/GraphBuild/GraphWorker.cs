@@ -251,7 +251,7 @@ internal static class GraphWorker
 
     private static string Safe(string path)
     {
-        if (Path.IsPathRooted(path) || path.Contains('\\') || path.Split('/').Any(part => part is "" or "." or ".."))
+        if (!RelativePathComponents.IsSafeRelative(path))
         {
             throw new InvalidDataException("Expected safe worker-relative path: " + path);
         }

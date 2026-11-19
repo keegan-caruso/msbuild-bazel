@@ -12,6 +12,7 @@ cp "$runner_dir/EvaluationReuse.cs.txt" "$scratch/probe/Program.cs"
 for file in BuildEvaluationCounter Contract GraphProfile; do
     cp "$scratch/msbuild-bazel/tools/GraphBuild/$file.cs" "$scratch/probe/$file.cs"
 done
+cp "$scratch/msbuild-bazel/tools/RelativePathComponents.cs" "$scratch/probe/RelativePathComponents.cs"
 cat > "$scratch/probe/Probe.csproj" <<'XML'
 <Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup><ItemGroup><Reference Include="Microsoft.Build" HintPath="$(MSBuildBinPath)/Microsoft.Build.dll" /><Reference Include="Microsoft.Build.Framework" HintPath="$(MSBuildBinPath)/Microsoft.Build.Framework.dll" /><Reference Include="Microsoft.Build.Utilities.Core" HintPath="$(MSBuildBinPath)/Microsoft.Build.Utilities.Core.dll" /></ItemGroup></Project>
 XML

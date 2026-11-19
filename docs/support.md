@@ -1341,6 +1341,14 @@ with SDK 11.0.100 also passes all 63 ProjectSync controls without skips, includi
 seeded qualification reuse, SDK inventory preservation and overlapping-owner
 exclusion; see the [platform matrix](#sdk-11-platform-qualification).
 
+Graph contracts, sync inputs, worker paths, cache entries and ArtifactTools share
+span-based relative-path component checks. Caller-specific character, containment
+and symlink policies remain separate. Native SDK 11.0.100 differential controls
+matched 10,023 paths; 10,000 repeated validations allocated 3,680,000 bytes with
+the former split predicate and zero with the span scan. This measures validation
+allocations only. `python3 tests/graph_build/input_integrity.py` retains edge-case,
+traversal and fresh-symlink controls; isolated declared-source builds also pass.
+
 Runtime layout selection indexes tree members by selected ancestor prefixes,
 retaining nested selections and member ordering. Native Bazel 9.3.2 analysis and
 graph-layout controls pass. Package extraction hashes into a private staged archive,

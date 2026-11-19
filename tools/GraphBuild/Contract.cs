@@ -39,7 +39,7 @@ internal sealed class ContractFiles(string root, string sdk)
 
     internal string Resolve(string relative)
     {
-        if (Path.IsPathRooted(relative) || relative.Contains('\\') || relative.Split('/').Any(p => p is "" or "." or ".."))
+        if (!RelativePathComponents.IsSafeRelative(relative))
         {
             throw new InvalidDataException("Expected a workspace-relative path: " + relative);
         }
@@ -62,7 +62,7 @@ internal sealed class ContractFiles(string root, string sdk)
         var paths = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var relative in relatives.Distinct(StringComparer.Ordinal))
         {
-            if (Path.IsPathRooted(relative) || relative.Contains('\\') || relative.Split('/').Any(p => p is "" or "." or ".."))
+            if (!RelativePathComponents.IsSafeRelative(relative))
             {
                 throw new InvalidDataException("Expected a workspace-relative path: " + relative);
             }

@@ -408,7 +408,7 @@ public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, strin
 
     private static string SafePath(string root, string relative)
     {
-        if (Path.IsPathRooted(relative) || relative.Contains('\\') || relative.Split('/').Any(part => part is "" or "." or ".."))
+        if (!RelativePathComponents.IsSafeRelative(relative))
         {
             throw new InvalidDataException("Invalid project-cache path: " + relative);
         }

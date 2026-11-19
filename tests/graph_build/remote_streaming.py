@@ -50,6 +50,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='remote-streaming-') as temporary:
         work = Path(temporary)
         sources = [ROOT/'tools/ProjectCache'/name for name in ['RemoteSnapshotStore.cs', 'SnapshotPayloads.cs']]
+        sources.append(ROOT / 'tools/RelativePathComponents.cs')
         (work/'Probe.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
             '<TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings>'
             '<Nullable>enable</Nullable></PropertyGroup><ItemGroup>' + ''.join(f'<Compile Include="{p}" />' for p in sources) + '</ItemGroup></Project>')
