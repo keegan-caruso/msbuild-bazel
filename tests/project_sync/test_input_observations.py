@@ -14,7 +14,7 @@ class InputObservationTests(unittest.TestCase):
         cls.temporary = tempfile.TemporaryDirectory(prefix="sync-observations-")
         cls.addClassCleanup(cls.temporary.cleanup)
         cls.directory = Path(cls.temporary.name)
-        sources = ["tools/ProjectCache/FileObservation.cs", "tools/OutputOwnershipIndex.cs", "tools/GraphBuild/OutputOwnership.cs"]
+        sources = ["tools/ProjectCache/FileObservation.cs", "tools/OutputOwnershipIndex.cs", "tools/GraphBuild/OutputOwnership.cs", "tools/NoLinkTree.cs"]
         (cls.directory / "Controls.csproj").write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType>'
             '<TargetFramework>net11.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>'
             '</PropertyGroup><ItemGroup>' + ''.join(f'<Compile Include="{ROOT / source}" />' for source in sources) + '</ItemGroup></Project>')
@@ -35,6 +35,9 @@ class InputObservationTests(unittest.TestCase):
 
     def test_ownership_matches_pairwise_policy_and_runner_rejections(self):
         self.control("ownership")
+
+    def test_tree_inventories_ordering_and_link_rejection(self):
+        self.control("trees")
 
     def test_independent_ownership_scaling(self):
         print(self.control("scaling"), end="")
@@ -126,5 +129,48 @@ else if (args[0] == "scaling")
         foreach (var (owner, i) in owners.Select((owner, i) => (owner, i))) Check(index.Owners("projects/" + i + "/bin/a.dll").Single() == owner, "independent owner");
         Console.WriteLine($"OWNERSHIP_SCALING nodes={count} elapsed_ms={watch.Elapsed.TotalMilliseconds:F2} prior_ordered_pairs={(long)count * (count - 1)}");
     }
+}
+if (args[0] == "trees")
+{
+    var root = Directory.CreateTempSubdirectory("no-link-tree-").FullName;
+    try
+    {
+        Directory.CreateDirectory(Path.Combine(root, "z-dir", "empty"));
+        Directory.CreateDirectory(Path.Combine(root, "a-empty"));
+        File.WriteAllText(Path.Combine(root, "z-dir", "inside.txt"), "inside");
+        File.WriteAllText(Path.Combine(root, "b.txt"), "root");
+        string Relative(string path) => Path.GetRelativePath(root, path).Replace('\\', '/');
+        Check(NoLinkTree.Entries(root, "entry: ", ordered: true).Select(Relative).SequenceEqual(
+            new[] { "a-empty", "b.txt", "z-dir", "z-dir/empty", "z-dir/inside.txt" }), "ordered directory inventory");
+        Check(NoLinkTree.Files(root, "file: ").Select(Relative).ToHashSet().SetEquals(
+            new[] { "b.txt", "z-dir/inside.txt" }), "file-only inventory");
+        void Rejected(Func<IEnumerable<string>> walk, string expected)
+        {
+            try { _ = walk().ToArray(); throw new Exception("Linked tree accepted"); }
+            catch (InvalidDataException error) { Check(error.Message == expected, "link diagnostic changed"); }
+        }
+        var alias = root + "-alias";
+        try
+        {
+            Directory.CreateSymbolicLink(alias, root);
+            Rejected(() => NoLinkTree.Entries(alias, "entry: "), "entry: " + alias);
+            Check(NoLinkTree.Files(alias, "file: ").Count() == 2, "file walker changed root-validation policy");
+        }
+        finally { Directory.Delete(alias); }
+        foreach (var kind in new[] { "file", "directory", "dangling" })
+        {
+            var link = Path.Combine(root, "link");
+            if (kind == "directory") Directory.CreateSymbolicLink(link, Path.Combine(root, "z-dir"));
+            else File.CreateSymbolicLink(link, Path.Combine(root, kind == "file" ? "b.txt" : "missing"));
+            try
+            {
+                Rejected(() => NoLinkTree.Entries(root, "entry: "), "entry: " + link);
+                Rejected(() => NoLinkTree.Files(root, "file: "), "file: " + link);
+            }
+            finally { if (kind == "directory") Directory.Delete(link); else File.Delete(link); }
+        }
+    }
+    finally { Directory.Delete(root, recursive: true); }
+    Console.WriteLine("PASS: tree membership, empty directories, ordinal depth-first order, roots and file/directory/dangling links");
 }
 '''

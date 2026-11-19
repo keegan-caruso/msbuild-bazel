@@ -1374,6 +1374,12 @@ the former split predicate and zero with the span scan. This measures validation
 allocations only. `python3 tests/graph_build/input_integrity.py` retains edge-case,
 traversal and fresh-symlink controls; isolated declared-source builds also pass.
 
+Shared tree traversal preserves file-only output inventories and directory-inclusive
+input inventories, including empty directories and ordinal producer-tree ordering.
+Native SDK 10/11 controls compare all four former callers against the shared walk:
+32 cases retain exact inventories, partial yields, exception types and diagnostics
+for ordinary, empty, missing, linked-root and linked-child trees.
+
 Runtime layout selection indexes tree members by selected ancestor prefixes,
 retaining nested selections and member ordering. Native Bazel 9.3.2 analysis and
 graph-layout controls pass. Package extraction hashes into a private staged archive,

@@ -169,27 +169,7 @@ internal sealed class QualificationInputs
         }
         return files.Distinct(StringComparer.Ordinal);
     }
-    private static IEnumerable<string> Tree(string directory)
-    {
-        foreach (var path in Directory.EnumerateFileSystemEntries(directory))
-        {
-            if (new FileInfo(path).LinkTarget is not null)
-            {
-                throw new InvalidDataException("Qualification output symlink: " + path);
-            }
-            if (Directory.Exists(path))
-            {
-                foreach (var file in Tree(path))
-                {
-                    yield return file;
-                }
-            }
-            else
-            {
-                yield return path;
-            }
-        }
-    }
+    private static IEnumerable<string> Tree(string directory) => NoLinkTree.Files(directory, "Qualification output symlink: ");
     internal string Relative(string path) => WorkspaceView.Safe(Path.GetRelativePath(root, path).Replace('\\', '/'));
     internal string Resolve(string path)
     {

@@ -2,6 +2,7 @@
   <Import Project="MSBuildTool.props" />
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)RelativePathComponents.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NoLinkTree.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)AnalyzerConfigs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PackageSdks.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)NuGetLocks.cs" />
