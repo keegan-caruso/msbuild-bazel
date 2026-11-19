@@ -1,5 +1,6 @@
 """Native Linux ARM64/x64 setup; all build products remain ordinary Bazel outputs."""
 import fcntl
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -13,6 +14,7 @@ import time
 from .common import ROOT, digest, read_recipe, rules_identity, run, save, owned_output, selected_bazel_version, project_cache_read_only, bazel_cache_read_only
 from .acquisition import acquire_source
 from .native import prepare_inputs
+from native_environment import load_catalog
 
 PREPARE = ROOT / 'tests/graph_build/upstream'
 
@@ -106,10 +108,16 @@ def setup(args):
     system_bwrap = state.get('identity', {}).get('systemBwrap', False) if state and getattr(args, 'system_bwrap', None) is None else bool(getattr(args, 'system_bwrap', None))
     recipe = read_recipe(architecture)
     recipe_path = ROOT / "examples/source-runtime-app" / ("source.json" if architecture == "arm64" else "source-x64.json")
-    catalog = ROOT / "tests/runtime" / ("native-packages.json" if architecture == "arm64" else "native-packages-x64.json")
+    catalog_sha256 = None
+    if not args.native_toolchain:
+        if architecture == 'arm64':
+            catalog_sha256 = digest(ROOT / 'tests/runtime/native-packages.json')
+        else:
+            catalog = json.dumps(load_catalog(architecture), indent=2) + '\n'
+            catalog_sha256 = hashlib.sha256(catalog.encode()).hexdigest()
     bazel_readonly = bazel_cache_read_only(state['identity'] if state else None, getattr(args, 'bazel_cache_read_only', None))
     identity = dict(systemBwrap=system_bwrap, bazelCacheReadOnly=bazel_readonly, projectCacheReadOnly=project_cache_read_only(state['identity'] if state else None), bazelVersion=selected_bazel_version(), recipe=recipe, rulesSha256=rules_identity(), registry=args.registry, cacheUrl=args.cache_url,
-                    nativePackagesSha256=digest(catalog) if not args.native_toolchain else None,
+                    nativePackagesSha256=catalog_sha256,
                     nativeToolchainSha256=digest(args.native_toolchain) if args.native_toolchain else None,
                     sandboxSha256=digest(args.sandbox) if args.sandbox else None,
                     repositoryCache=str(args.repository_cache.resolve()) if args.repository_cache else None)

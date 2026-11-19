@@ -63,46 +63,11 @@
       "sha256": "b766d8381fadc5e22249ba34632798dab333f9d896108092ce0f2d220b1b0537",
       "licensePath": "usr/share/doc/base-files/copyright"
     },
-    {
-      "name": "bash",
-      "version": "5.3-2ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/b/bash/bash_5.3-2ubuntu1_amd64.deb",
-      "sha256": "82d4aba3490578089d399921bf6444ad848468a23f2cb37262625b28e3615a76",
-      "licensePath": "usr/share/doc/bash/copyright"
-    },
-    {
-      "name": "binutils",
-      "version": "2.46-3ubuntu2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/b/binutils/binutils_2.46-3ubuntu2_amd64.deb",
-      "sha256": "d14fc7bf644b495083f77c99ff168f1a2215c8b3b7ad5202e0345dc1092002b0",
-      "licensePath": "usr/share/doc/binutils/copyright"
-    },
-    {
-      "name": "binutils-common",
-      "version": "2.46-3ubuntu2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/b/binutils/binutils-common_2.46-3ubuntu2_amd64.deb",
-      "sha256": "3c846f001d87b16e5038a3919ca975276808a2db17459308a9d0f965c1cddac5",
-      "licensePath": "usr/share/doc/binutils-common/copyright"
-    },
-    {
-      "name": "binutils-x86-64-linux-gnu",
-      "version": "2.46-3ubuntu2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/b/binutils/binutils-x86-64-linux-gnu_2.46-3ubuntu2_amd64.deb",
-      "sha256": "91fa094c31783f7ccf0f0df8ed06447655c40476ba61fc95dbd245a313f8171e",
-      "licensePath": "usr/share/doc/binutils-x86-64-linux-gnu/copyright"
-    },
-    {
-      "name": "bubblewrap",
-      "version": "0.11.1-1ubuntu0.3",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/b/bubblewrap/bubblewrap_0.11.1-1ubuntu0.3_amd64.deb",
-      "sha256": "d3a6c1b6b0e0474eaed6dbd055c0d601fd875af153976a0dc4aae75f4ea10868",
-      "licensePath": "usr/share/doc/bubblewrap/copyright"
-    },
+    "bash@b84403f9383d90fe8010d07f2b6bd467846255bbabb9beb7a0fc4d217ae7f70a",
+    "binutils@02037a877e0f7e560eac7a134dc3a905421f7a3525bc7bbee55d5e5af0ba4ffe",
+    "binutils-common@f56df44829886d8e1669e30f78caddc26e6390c8151106cd55dfd33e28ded96f",
+    "binutils-x86-64-linux-gnu@9ab43dedfd7171c70d39aaa4c8deba11e178a7c6a7486ee3b792ce05b5157853",
+    "bubblewrap@f8425c366bb0551f8ad935e14d40bce3d824342ef38189bed27e54d26d0ab68e",
     {
       "name": "bzip2",
       "version": "1.0.8-6build2",
@@ -111,206 +76,31 @@
       "sha256": "763fa3325cb0cb5dff197ddfce2671da824c8af9ddb98a585c1fad0419870124",
       "licensePath": "usr/share/doc/bzip2/copyright"
     },
-    {
-      "name": "clang-18",
-      "version": "1:18.1.8-20ubuntu8",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/universe/l/llvm-toolchain-18/clang-18_18.1.8-20ubuntu8_amd64.deb",
-      "sha256": "3c54378bb642ddeb8028dc6fed7c92b34730067fd2c7ee85d678f27aaa1b689c",
-      "licensePath": "usr/share/doc/clang-18/copyright"
-    },
-    {
-      "name": "cmake",
-      "version": "4.2.3-2ubuntu2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/c/cmake/cmake_4.2.3-2ubuntu2_amd64.deb",
-      "sha256": "87c496f1e37b64bc0b4ad9c5fe0e75c09655f5399ed39695b876afba55becc61",
-      "licensePath": "usr/share/doc/cmake/copyright"
-    },
-    {
-      "name": "cmake-data",
-      "version": "4.2.3-2ubuntu2",
-      "architecture": "all",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/c/cmake/cmake-data_4.2.3-2ubuntu2_all.deb",
-      "sha256": "9f4cc6f77e7c09929f80fc5534b638b95d257a90d6bf43c59d2232514759eb9d",
-      "licensePath": "usr/share/doc/cmake-data/copyright"
-    },
-    {
-      "name": "comerr-dev",
-      "version": "2.1-1.47.2-3ubuntu4",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/e/e2fsprogs/comerr-dev_2.1-1.47.2-3ubuntu4_amd64.deb",
-      "sha256": "707572352c05ef47816d4abe1c299172d29b22c096eb6cd56494997223f79b99",
-      "licensePath": "usr/share/doc/comerr-dev/copyright"
-    },
-    {
-      "name": "coreutils",
-      "version": "9.5-1ubuntu2+0.0.0~ubuntu25",
-      "architecture": "all",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/c/coreutils-from/coreutils_9.5-1ubuntu2+0.0.0~ubuntu25_all.deb",
-      "sha256": "048eed9011f2dab8260beec1246994118e5406b740c81020e4d7f556ea32fcdf",
-      "licensePath": "usr/share/doc/coreutils/copyright"
-    },
-    {
-      "name": "coreutils-from-gnu",
-      "version": "0.0.0~ubuntu25",
-      "architecture": "all",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/c/coreutils-from/coreutils-from-gnu_0.0.0~ubuntu25_all.deb",
-      "sha256": "862be75c7dd5d92815f2b80149bbcf819d11d21b1dba734f62b545bc5acb0eb7",
-      "licensePath": "usr/share/doc/coreutils-from-gnu/copyright"
-    },
-    {
-      "name": "cpp",
-      "version": "4:15.2.0-5ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-defaults/cpp_15.2.0-5ubuntu1_amd64.deb",
-      "sha256": "05a64873a18fb10d52ba2c8ee1fd0a605a974d75264d824ef2771c799f49ea63",
-      "licensePath": "usr/share/doc/cpp/copyright"
-    },
-    {
-      "name": "cpp-15",
-      "version": "15.2.0-16ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-15/cpp-15_15.2.0-16ubuntu1_amd64.deb",
-      "sha256": "baacc9086e17c8cadc3603365e660f907bca483de4446e56e6f1bc25da4c02be",
-      "licensePath": "usr/share/doc/cpp-15/copyright"
-    },
-    {
-      "name": "cpp-15-x86-64-linux-gnu",
-      "version": "15.2.0-16ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-15/cpp-15-x86-64-linux-gnu_15.2.0-16ubuntu1_amd64.deb",
-      "sha256": "1649aa71c45b047feda5b9ca303c94799bdba5befa5c9de9735cbfc59c3ef93f",
-      "licensePath": "usr/share/doc/cpp-15-x86-64-linux-gnu/copyright"
-    },
-    {
-      "name": "cpp-x86-64-linux-gnu",
-      "version": "4:15.2.0-5ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-defaults/cpp-x86-64-linux-gnu_15.2.0-5ubuntu1_amd64.deb",
-      "sha256": "18b35148f64d0bb17b5c34efa6bdeefa4df9ca122ba12130f7245bccd65a950a",
-      "licensePath": "usr/share/doc/cpp-x86-64-linux-gnu/copyright"
-    },
-    {
-      "name": "debconf",
-      "version": "1.5.92",
-      "architecture": "all",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/d/debconf/debconf_1.5.92_all.deb",
-      "sha256": "025984be5dc70b32e02c8a668fdcceba674173bbda4a3e7ff93fac800dcdd122",
-      "licensePath": "usr/share/doc/debconf/copyright"
-    },
-    {
-      "name": "debianutils",
-      "version": "5.23.2build1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/d/debianutils/debianutils_5.23.2build1_amd64.deb",
-      "sha256": "eb155f0a9531b5f3b1c06e0e415c4cd7e01777e7714cf51ac094fa6afa01638f",
-      "licensePath": "usr/share/doc/debianutils/copyright"
-    },
-    {
-      "name": "dpkg",
-      "version": "1.23.7ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/d/dpkg/dpkg_1.23.7ubuntu1_amd64.deb",
-      "sha256": "6e0ee5877c0d27b0d8fbe36387035e8f03074eed055112595ab2e85ac8b5711e",
-      "licensePath": "usr/share/doc/dpkg/copyright"
-    },
-    {
-      "name": "dpkg-dev",
-      "version": "1.23.7ubuntu1",
-      "architecture": "all",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/d/dpkg/dpkg-dev_1.23.7ubuntu1_all.deb",
-      "sha256": "507b526fd78f9dff89696bbc3085af3117059f37fd281542778ac8b97be44690",
-      "licensePath": "usr/share/doc/dpkg-dev/copyright"
-    },
-    {
-      "name": "findutils",
-      "version": "4.10.0-3build2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/f/findutils/findutils_4.10.0-3build2_amd64.deb",
-      "sha256": "546d6b0c2b2f5c61494ee5d11aa1b49476213af27a66edd9e05bb3ef00940557",
-      "licensePath": "usr/share/doc/findutils/copyright"
-    },
-    {
-      "name": "g++",
-      "version": "4:15.2.0-5ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-defaults/g++_15.2.0-5ubuntu1_amd64.deb",
-      "sha256": "2be84461c2f47fd7ce2cfea2e35d775d0e30582879bf1c0e80a1c22f92a2cdac",
-      "licensePath": "usr/share/doc/g++/copyright"
-    },
-    {
-      "name": "g++-15",
-      "version": "15.2.0-16ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-15/g++-15_15.2.0-16ubuntu1_amd64.deb",
-      "sha256": "cb7771861d821e48d38253f2397217920d5cf8020ed9de8372a625d080dcc6be",
-      "licensePath": "usr/share/doc/g++-15/copyright"
-    },
-    {
-      "name": "g++-15-x86-64-linux-gnu",
-      "version": "15.2.0-16ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-15/g++-15-x86-64-linux-gnu_15.2.0-16ubuntu1_amd64.deb",
-      "sha256": "8673a23519f570b4a5b4a663a9ce3b0e2f0be50c7250ce7fdae19eb064c3d6aa",
-      "licensePath": "usr/share/doc/g++-15-x86-64-linux-gnu/copyright"
-    },
-    {
-      "name": "g++-x86-64-linux-gnu",
-      "version": "4:15.2.0-5ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-defaults/g++-x86-64-linux-gnu_15.2.0-5ubuntu1_amd64.deb",
-      "sha256": "45d8edc3e6775179bee9ecb0211727e3e8d53ee3caf4ddb2e1310ac28080053d",
-      "licensePath": "usr/share/doc/g++-x86-64-linux-gnu/copyright"
-    },
-    {
-      "name": "gcc",
-      "version": "4:15.2.0-5ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-defaults/gcc_15.2.0-5ubuntu1_amd64.deb",
-      "sha256": "d780844418b745c432a5d6c85f055625f37e27523b026baee0c87d386a0aab0a",
-      "licensePath": "usr/share/doc/gcc/copyright"
-    },
-    {
-      "name": "gcc-15",
-      "version": "15.2.0-16ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-15/gcc-15_15.2.0-16ubuntu1_amd64.deb",
-      "sha256": "28da225c111d3ce9d230209cca24db46ec645f631f593f188bef718d8a1e4711",
-      "licensePath": "usr/share/doc/gcc-15/copyright"
-    },
-    {
-      "name": "gcc-15-base",
-      "version": "15.2.0-16ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-15/gcc-15-base_15.2.0-16ubuntu1_amd64.deb",
-      "sha256": "5a302d705d562fb7e150415b00651c00fed58b633faadff0b332eac1b73fadb3",
-      "licensePath": "usr/share/doc/gcc-15-base/copyright"
-    },
-    {
-      "name": "gcc-15-x86-64-linux-gnu",
-      "version": "15.2.0-16ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-15/gcc-15-x86-64-linux-gnu_15.2.0-16ubuntu1_amd64.deb",
-      "sha256": "df0e5375c9e981b18e396c2e9ec1e359f226576a9b94a311bf07603f3ca6023a",
-      "licensePath": "usr/share/doc/gcc-15-x86-64-linux-gnu/copyright"
-    },
-    {
-      "name": "gcc-16-base",
-      "version": "16-20260322-1ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-16/gcc-16-base_16-20260322-1ubuntu1_amd64.deb",
-      "sha256": "281b3188840a7abdca85a02eb2609b0efad852e8994b3804a0e4227ec4ec3f90",
-      "licensePath": "usr/share/doc/gcc-16-base/copyright"
-    },
-    {
-      "name": "gcc-x86-64-linux-gnu",
-      "version": "4:15.2.0-5ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-defaults/gcc-x86-64-linux-gnu_15.2.0-5ubuntu1_amd64.deb",
-      "sha256": "7393f33be5584941bcfbd03a25901058c708046ee5dded01c21d56652a2d0eb7",
-      "licensePath": "usr/share/doc/gcc-x86-64-linux-gnu/copyright"
-    },
+    "clang-18@c7d2e4f124f2a71f858e15ae4e238f2961bdbb71761eccb683eabce452804375",
+    "cmake@002459712ca7d3b8782537923ef0be1648c634b6787e94fd5d3937b21775745e",
+    "cmake-data@2cd7ac217710939fc44a75ddc836119109726727c8c50900695bafb4c3b79220",
+    "comerr-dev@9ea2aa3da6dac6b17da22aa03a0971e38321cde9e07a4b1dfbed0c1a25d85cc8",
+    "coreutils@1dc4b4870b5e9740d2b0dfd1cc62210579f164d1c6986e6e380c8f010fc9a455",
+    "coreutils-from-gnu@223d59d015290129462e696c67da27f6d56682969ea3b681b44012528b74e472",
+    "cpp@e56f1d8b920c2214b5b6ff49f44252a2fc015f6745c56791d215490f1101de73",
+    "cpp-15@3970044e464ba664e1006b0c0909a227736d14d7aee3f7fb25c0e288b74ae8d0",
+    "cpp-15-x86-64-linux-gnu@e47512769f9f84e5398bb1f7a956a7336450d5630a8db8bf2165c253079a4921",
+    "cpp-x86-64-linux-gnu@177a4f516848788ec1cb079d34b0472164012f708f8ff285e7ecb4853988650d",
+    "debconf@546e9737fb4985d05f474a56ad93d2ed9c201d5fe3f194f4746a4a0bc1a0d408",
+    "debianutils@b4114fb8745fd37b66ce0591695e58c3d5e0744e664b43b26fb431bb64bf7461",
+    "dpkg@846f395b3786715fb980ca19973026e3a8a63ea75258dab1ebc3bdba5da73f3f",
+    "dpkg-dev@f764ae70726701a8043ba7da92b9a3e58d2964852ae5c1681cca8d0d14859adf",
+    "findutils@31371a42cf0faecf73fef5586837bddfaf5f84de771415cd7b7754b4893eadc2",
+    "g++@26028476689334f717019dcd097536278e96a23e3f84936fd2d28a6792ac19e3",
+    "g++-15@f2a32348e4b694a353be47a9f8c4c40856a26cfb1e36e8f9602d98178fe5a5fb",
+    "g++-15-x86-64-linux-gnu@a6e8fc80ef6fa82f45983ed9484fc9ab57ea61250a4ea40ed26d15d2ac4046ff",
+    "g++-x86-64-linux-gnu@6ee05528a205a2838a733a5bbfc30d2f4482360c7db0eb5b12041dffa622b4e1",
+    "gcc@ee9d7ea5a19e47252a949392ffdb467ae18a957c6e1f458256493986f35d645a",
+    "gcc-15@c8ca03bfdaba5e05577b95e37c6b374b35cd35cf7f058e6cb7cdd97d64c9655f",
+    "gcc-15-base@2fcefd64cf576d50e95511ac11843f483bd20f8b6ba4eb5a75291e4c9193e217",
+    "gcc-15-x86-64-linux-gnu@95065b7ce81419a16eeb3fdf94d59a45e8c96a4f2940ab2dd68e22543b8f87ed",
+    "gcc-16-base@8c72efcc9a746fff25c00b66bb3165d6a3e69d0163845b2260868d26feef68b4",
+    "gcc-x86-64-linux-gnu@957ab5d5f78ea2480df72b6051591288bec8a92c148145b7be2eba4d34678974",
     {
       "name": "git",
       "version": "1:2.53.0-1ubuntu1",
@@ -335,14 +125,7 @@
       "sha256": "6b5b60a5c372b6e9d1dcfa1507317aae59bf809d4f4d6d363d3ef0a58a189137",
       "licensePath": "usr/share/doc/gnu-coreutils/copyright"
     },
-    {
-      "name": "grep",
-      "version": "3.12-1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/grep/grep_3.12-1_amd64.deb",
-      "sha256": "fc23170281e0455ab02ab8b0041eac4b3f46a3ae9df165c117999260ccbc093a",
-      "licensePath": "usr/share/doc/grep/copyright"
-    },
+    "grep@7068fcba4f00f6af27c99a2a8ff3e28332cec525cc2655870b2204bbdd1f22b6",
     {
       "name": "gzip",
       "version": "1.14-1~exp2ubuntu1",
@@ -351,22 +134,8 @@
       "sha256": "b96f99f7964c0768c4f421b5aab71d03a25a749695c4058ff0304a101fcf1870",
       "licensePath": "usr/share/doc/gzip/copyright"
     },
-    {
-      "name": "icu-devtools",
-      "version": "78.2-2ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/i/icu/icu-devtools_78.2-2ubuntu1_amd64.deb",
-      "sha256": "42b813715907215cbd85df690aabc0777e77b9f73cd8868cc3d4b02ffa1f82d3",
-      "licensePath": "usr/share/doc/icu-devtools/copyright"
-    },
-    {
-      "name": "init-system-helpers",
-      "version": "1.69",
-      "architecture": "all",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/i/init-system-helpers/init-system-helpers_1.69_all.deb",
-      "sha256": "49c68d09ceaaf5198966cf1e077ae9bf23d345189cb90e564bcd6594fd83a9fd",
-      "licensePath": "usr/share/doc/init-system-helpers/copyright"
-    },
+    "icu-devtools@838b85373007589c464210b21742276d8d189af235bc4eb70435eafc59329090",
+    "init-system-helpers@c89f6238865ed047bc8ad1fb509f6b1da31fe85c95d3e668b60edff3e095ceb2",
     {
       "name": "krb5-multidev",
       "version": "1.22.1-2ubuntu4",
@@ -375,30 +144,9 @@
       "sha256": "74091083c33728c7a60bc95025bcad00569164cad7424bb2294b34361886d5a9",
       "licensePath": "usr/share/doc/krb5-multidev/copyright"
     },
-    {
-      "name": "lib32gcc-s1",
-      "version": "16-20260322-1ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-16/lib32gcc-s1_16-20260322-1ubuntu1_amd64.deb",
-      "sha256": "65aa3967807849071674146a8237c3a44393dfca10722f9d7d8e80c8831de8aa",
-      "licensePath": "usr/share/doc/lib32gcc-s1/copyright"
-    },
-    {
-      "name": "lib32stdc++6",
-      "version": "16-20260322-1ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-16/lib32stdc++6_16-20260322-1ubuntu1_amd64.deb",
-      "sha256": "cb56910e76ae4bff697391e2224bc8e8edda93ca5117b26e8f9a6118f2c0cd27",
-      "licensePath": "usr/share/doc/lib32stdc++6/copyright"
-    },
-    {
-      "name": "libacl1",
-      "version": "2.3.2-2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/a/acl/libacl1_2.3.2-2_amd64.deb",
-      "sha256": "77f8d49c031182bbd6c4fe4ec9ad49edb5d4607f2dac795fc6932dce0e8f541e",
-      "licensePath": "usr/share/doc/libacl1/copyright"
-    },
+    "lib32gcc-s1@d66f0bd4398f813118112ad8f684940c4128e1c00d9020211380493b4f740ba6",
+    "lib32stdc++6@f3edc8e672ece73251b725f9dd9a7087e0e1d3883013904202e1730751f864e7",
+    "libacl1@dc82f1b0930ba7a04f1f02c45753bec7113ea7b5372b8a50cbd83fe23b66bfc8",
     {
       "name": "libarchive13t64",
       "version": "3.8.5-1ubuntu2",
@@ -407,22 +155,8 @@
       "sha256": "b3102c29375ebd01f71243e93cf55525ab3a5b359d07fbf62e995971754596da",
       "licensePath": "usr/share/doc/libarchive13t64/copyright"
     },
-    {
-      "name": "libasan8",
-      "version": "16-20260322-1ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-16/libasan8_16-20260322-1ubuntu1_amd64.deb",
-      "sha256": "d59b3a851c0b58759e9f940fa407f68a6ef46401381e5389c74e5ded5419262d",
-      "licensePath": "usr/share/doc/libasan8/copyright"
-    },
-    {
-      "name": "libatomic1",
-      "version": "16-20260322-1ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-16/libatomic1_16-20260322-1ubuntu1_amd64.deb",
-      "sha256": "82fa61135e7154d7958feaa91ec1808a688eb1e0e06822ab35e99e2480feb148",
-      "licensePath": "usr/share/doc/libatomic1/copyright"
-    },
+    "libasan8@5eb4d45be16be51e0fd440a36ee983a8e76a100fc22cfcd7690552c99e156149",
+    "libatomic1@2bd777a2f9b5704e33165ae317e521a671e8c77fb273d25acf54c97f97cc6d3f",
     {
       "name": "libattr1",
       "version": "1:2.5.2-4",
@@ -431,14 +165,7 @@
       "sha256": "195ca7b0ca6c91c4b4b9e17baf98b98143e3a14a0571f1613f04b318b9799510",
       "licensePath": "usr/share/doc/libattr1/copyright"
     },
-    {
-      "name": "libbinutils",
-      "version": "2.46-3ubuntu2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/b/binutils/libbinutils_2.46-3ubuntu2_amd64.deb",
-      "sha256": "1376a5e49c8dc2ba938fadc15fce40dd01c7fbf1adf2d506a2a7cf7148e347c8",
-      "licensePath": "usr/share/doc/libbinutils/copyright"
-    },
+    "libbinutils@1e47aabb9215c40340a3e2c881ea65255f275998a307db6687d4a708c58bec44",
     {
       "name": "libbrotli1",
       "version": "1.2.0-3build1",
@@ -447,14 +174,7 @@
       "sha256": "858242571fc2585c1f8eb83ae01d020f0f4a92679d0de8fe31146f6687bdd84a",
       "licensePath": "usr/share/doc/libbrotli1/copyright"
     },
-    {
-      "name": "libbsd0",
-      "version": "0.12.2-2build2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libb/libbsd/libbsd0_0.12.2-2build2_amd64.deb",
-      "sha256": "62019928a6baeaba8d12d2d4cb7c1e4c9a9550a1eb4541b8de0cacfeae1d09e3",
-      "licensePath": "usr/share/doc/libbsd0/copyright"
-    },
+    "libbsd0@7fb9fc82931f0e419bd630bbbafbf1b9d20f616026c55dc266e109627cd7d71c",
     {
       "name": "libbz2-1.0",
       "version": "1.0.8-6build2",
@@ -511,94 +231,17 @@
       "sha256": "464273624cf8e67f0106a6242f3b70a315ed100abcfed282ce55053266dfe4b4",
       "licensePath": "usr/share/doc/libc6-i386/copyright"
     },
-    {
-      "name": "libcap2",
-      "version": "1:2.75-10ubuntu2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libc/libcap2/libcap2_2.75-10ubuntu2_amd64.deb",
-      "sha256": "150603a0792b1d22aa0bde0a26c27b413018c799284003e4b43cba587a5b3a18",
-      "licensePath": "usr/share/doc/libcap2/copyright"
-    },
-    {
-      "name": "libcc1-0",
-      "version": "16-20260322-1ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-16/libcc1-0_16-20260322-1ubuntu1_amd64.deb",
-      "sha256": "484ac5fd30a19bfade8db336fe70f3c046beccd1c9a9ac327fcd89d29dd5a125",
-      "licensePath": "usr/share/doc/libcc1-0/copyright"
-    },
-    {
-      "name": "libclang-common-18-dev",
-      "version": "1:18.1.8-20ubuntu8",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/universe/l/llvm-toolchain-18/libclang-common-18-dev_18.1.8-20ubuntu8_amd64.deb",
-      "sha256": "9a77879f6ee9d7d4de1a47091d0478fe5c09da3b6688cc43809a0ac285064e29",
-      "licensePath": "usr/share/doc/libclang-common-18-dev/copyright"
-    },
-    {
-      "name": "libclang-cpp18",
-      "version": "1:18.1.8-20ubuntu8",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/universe/l/llvm-toolchain-18/libclang-cpp18_18.1.8-20ubuntu8_amd64.deb",
-      "sha256": "513954ea6862e2285325339cf5017a1de5bad49f73f1a5864275b156a6a53685",
-      "licensePath": "usr/share/doc/libclang-cpp18/copyright"
-    },
-    {
-      "name": "libclang-rt-18-dev",
-      "version": "1:18.1.8-20ubuntu8",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/universe/l/llvm-toolchain-18/libclang-rt-18-dev_18.1.8-20ubuntu8_amd64.deb",
-      "sha256": "91c36f289d52d579fe165d75c79e6104c7b76542922af81cb1285fd806463bfd",
-      "licensePath": "usr/share/doc/libclang-rt-18-dev/copyright"
-    },
-    {
-      "name": "libclang1-18",
-      "version": "1:18.1.8-20ubuntu8",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/universe/l/llvm-toolchain-18/libclang1-18_18.1.8-20ubuntu8_amd64.deb",
-      "sha256": "b716d4390c939f78af2d7836bf1973d8c0643399fb2b32865433184209442faf",
-      "licensePath": "usr/share/doc/libclang1-18/copyright"
-    },
-    {
-      "name": "libcom-err2",
-      "version": "1.47.2-3ubuntu4",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/e/e2fsprogs/libcom-err2_1.47.2-3ubuntu4_amd64.deb",
-      "sha256": "180b6ea0b9c07d4fd2ede79e29ee8eca830cd9384f856507e28dc24d1d3ae514",
-      "licensePath": "usr/share/doc/libcom-err2/copyright"
-    },
-    {
-      "name": "libcrypt-dev",
-      "version": "1:4.5.1-1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libx/libxcrypt/libcrypt-dev_4.5.1-1_amd64.deb",
-      "sha256": "a5d86db4dde3de557a419aa3199e916de30b356717c4c1e8974270fda615c051",
-      "licensePath": "usr/share/doc/libcrypt-dev/copyright"
-    },
-    {
-      "name": "libcrypt1",
-      "version": "1:4.5.1-1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libx/libxcrypt/libcrypt1_4.5.1-1_amd64.deb",
-      "sha256": "57ab343c3dd28ce7101dc4e23de4e9d5bd3e58c6cb0ecd5ba0c42a877fc8868a",
-      "licensePath": "usr/share/doc/libcrypt1/copyright"
-    },
-    {
-      "name": "libctf-nobfd0",
-      "version": "2.46-3ubuntu2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/b/binutils/libctf-nobfd0_2.46-3ubuntu2_amd64.deb",
-      "sha256": "5ca038ae110ddf65e190b9fe88822592abd45cecba5001f3e4ce7692ca1f31be",
-      "licensePath": "usr/share/doc/libctf-nobfd0/copyright"
-    },
-    {
-      "name": "libctf0",
-      "version": "2.46-3ubuntu2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/b/binutils/libctf0_2.46-3ubuntu2_amd64.deb",
-      "sha256": "34b1757ce619720541c7e1e8d8f3aa506cb327731374e284ffb6ec872a2c566f",
-      "licensePath": "usr/share/doc/libctf0/copyright"
-    },
+    "libcap2@58806d4ab39558021c47dc13b2795ca8c8b5938b5ac63afdb080b11ec98d9bdc",
+    "libcc1-0@801d94d0d2da2d099ca67aab2f5236152315380558efd7741f45de13b1e27410",
+    "libclang-common-18-dev@d12cb5e39267962cb7da14c0e3c85b8106f2fd0220831850c1a9211ce3704c16",
+    "libclang-cpp18@3cc76c141412252da77f6521d3d761d1d9b399606309c7f064ca940204b7a616",
+    "libclang-rt-18-dev@4fd1f094127974ede29caddfd4feec09e05f66b03a72031cff905ad4fadbcea7",
+    "libclang1-18@feaf0deb55d30a60377c171c100276ff6567b76e76f5e052ec49ac1730b44f92",
+    "libcom-err2@9a9a56aad9b23b7fe870d0a24ebb6d2acb95ac49621edb60eb884bd2d09afd54",
+    "libcrypt-dev@4ecf524e394c647cb9eae2550760d3f579d355f4c4ed1a7bc48b194bec0b627c",
+    "libcrypt1@f7bfb987fcd45a2147cd500efbac6d01cd2bdc057130318ac36a93eb0ea9239a",
+    "libctf-nobfd0@95c8c72f4d9e9c9397386949ccb893a1e08ab51c1627ed612312c721d1d3b4a5",
+    "libctf0@8650e635543277d7735adc56df331c6a38a7f3e1565bf17d43dfafd739e1b9e8",
     {
       "name": "libcurl3t64-gnutls",
       "version": "8.18.0-1ubuntu2",
@@ -615,38 +258,10 @@
       "sha256": "858a1ddd299cff3932bcc7085d16535f5b5140d15f6d84bd1b94b4a2a6c456b2",
       "licensePath": "usr/share/doc/libcurl4t64/copyright"
     },
-    {
-      "name": "libdb5.3t64",
-      "version": "5.3.28+dfsg2-10ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/d/db5.3/libdb5.3t64_5.3.28+dfsg2-10ubuntu1_amd64.deb",
-      "sha256": "823df284bbc343ae6e22d69dc14a39c31b6c81fc2bccdd9ed720b88af92fcfa4",
-      "licensePath": "usr/share/doc/libdb5.3t64/copyright"
-    },
-    {
-      "name": "libdpkg-perl",
-      "version": "1.23.7ubuntu1",
-      "architecture": "all",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/d/dpkg/libdpkg-perl_1.23.7ubuntu1_all.deb",
-      "sha256": "984ca70b4b4af43812abeb6aa890ed0e8b7a725c9ac193b00d4df470fca1c1fe",
-      "licensePath": "usr/share/doc/libdpkg-perl/copyright"
-    },
-    {
-      "name": "libedit2",
-      "version": "3.1-20251016-1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libe/libedit/libedit2_3.1-20251016-1_amd64.deb",
-      "sha256": "22338fcbcaae99f67ca7b2e20d1730bc29d3c02bcd2414e457f99be96442ee29",
-      "licensePath": "usr/share/doc/libedit2/copyright"
-    },
-    {
-      "name": "liberror-perl",
-      "version": "0.17030-1",
-      "architecture": "all",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libe/liberror-perl/liberror-perl_0.17030-1_all.deb",
-      "sha256": "cb85c869fe056e9e466efcfa3403408b0a87db1da1cafa585140a9be59fe58a1",
-      "licensePath": "usr/share/doc/liberror-perl/copyright"
-    },
+    "libdb5.3t64@2eedb2834dae0864a2897c3801f0bcb60e70e51eefc1762f4b55842bb2913bb8",
+    "libdpkg-perl@065d6a4a13203c0689525eadc1b98e23419ba9450238b17d0f103ae008093809",
+    "libedit2@675a85cd5def4d05da01f7b76186888f771d7cd7ac02f26588842d8062cb731b",
+    "liberror-perl@9ade7d73a26c8dcb4328a4e596a05835593e61bdd20100dc87b24a96c4d914df",
     {
       "name": "libexpat1",
       "version": "2.7.4-1",
@@ -655,62 +270,13 @@
       "sha256": "ef78089497946219cac03209d951bbfff93480104e791b770a7bf6429452e475",
       "licensePath": "usr/share/doc/libexpat1/copyright"
     },
-    {
-      "name": "libffi8",
-      "version": "3.5.2-4",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libf/libffi/libffi8_3.5.2-4_amd64.deb",
-      "sha256": "4a7423124bbd459c0aa38b7389ec7802fa6899654767a95fc27de70967fedd48",
-      "licensePath": "usr/share/doc/libffi8/copyright"
-    },
-    {
-      "name": "libgc1",
-      "version": "1:8.2.12-1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libg/libgc/libgc1_8.2.12-1_amd64.deb",
-      "sha256": "b00fdd469849892f74374018652599c55f6936dde28c6156505257d2a4ccca43",
-      "licensePath": "usr/share/doc/libgc1/copyright"
-    },
-    {
-      "name": "libgcc-15-dev",
-      "version": "15.2.0-16ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-15/libgcc-15-dev_15.2.0-16ubuntu1_amd64.deb",
-      "sha256": "32fa5bde1891f46fd4f422e466c863fb78e834b634e1aa08211c8eea68870af5",
-      "licensePath": "usr/share/doc/libgcc-15-dev/copyright"
-    },
-    {
-      "name": "libgcc-s1",
-      "version": "16-20260322-1ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-16/libgcc-s1_16-20260322-1ubuntu1_amd64.deb",
-      "sha256": "2fb4d81c14fdf34251639ae82f5181f9f98480ea16125d535571ac1be9db3065",
-      "licensePath": "usr/share/doc/libgcc-s1/copyright"
-    },
-    {
-      "name": "libgdbm-compat4t64",
-      "version": "1.26-1build1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gdbm/libgdbm-compat4t64_1.26-1build1_amd64.deb",
-      "sha256": "e9ef750cc8ba426dee52f56aba0150e7e463b2658173bed8c4ca2927eec1c447",
-      "licensePath": "usr/share/doc/libgdbm-compat4t64/copyright"
-    },
-    {
-      "name": "libgdbm6t64",
-      "version": "1.26-1build1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gdbm/libgdbm6t64_1.26-1build1_amd64.deb",
-      "sha256": "0752eddff4c494d682f433cac2f1d25196f0a405eb8c6b0b10ec46432f6fec71",
-      "licensePath": "usr/share/doc/libgdbm6t64/copyright"
-    },
-    {
-      "name": "libgmp10",
-      "version": "2:6.3.0+dfsg-5ubuntu2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gmp/libgmp10_6.3.0+dfsg-5ubuntu2_amd64.deb",
-      "sha256": "a9bbe9d4a4bcd5875bbd0f53e67c379bc881d1c1a80522d51dfb4b107cc31819",
-      "licensePath": "usr/share/doc/libgmp10/copyright"
-    },
+    "libffi8@9b519e347898d57ef6a806dde209efa5a2d9b00901660fefb5404911946e4bed",
+    "libgc1@a42a604fcc3de2bb39c196ea582ccbfd01bdd4edfb5a98604a255c717da8613d",
+    "libgcc-15-dev@d4bdbfe60c0316c237030fab3ef9e3ceda4058bdfbe52f4c6c02dcafad683df7",
+    "libgcc-s1@7bbfdf383aefec2edee7448ef293a51dca015c138506a9197d76526be6518380",
+    "libgdbm-compat4t64@5b85d5be2742bdb860b08fa2a75c8070400c4bd07f12c85ac0ad29d0cd90388a",
+    "libgdbm6t64@b9dd971078fc81cd6bc0d7514314a2c902d71d4bd9125f587b12b1014232172d",
+    "libgmp10@69ca461aca6f40a89b21dc57fb57928ba6cef393b8a37fde74e59fcf785d24a0",
     {
       "name": "libgnutls30t64",
       "version": "3.8.12-2ubuntu1",
@@ -719,22 +285,8 @@
       "sha256": "0068e6a881ab327aff6c0f57357de7f397cb43302a39b10015123c1914f14d2e",
       "licensePath": "usr/share/doc/libgnutls30t64/copyright"
     },
-    {
-      "name": "libgomp1",
-      "version": "16-20260322-1ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-16/libgomp1_16-20260322-1ubuntu1_amd64.deb",
-      "sha256": "add19738c63794d2aa9ac529d3b8aebe2e88980faecb6c1c59f07aefd6c3c314",
-      "licensePath": "usr/share/doc/libgomp1/copyright"
-    },
-    {
-      "name": "libgprofng0",
-      "version": "2.46-3ubuntu2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/b/binutils/libgprofng0_2.46-3ubuntu2_amd64.deb",
-      "sha256": "6b066ab912300b2c6a965a9a8045da45c237a52b76c2c11d8f2ceaf7aabfacbb",
-      "licensePath": "usr/share/doc/libgprofng0/copyright"
-    },
+    "libgomp1@2cf0946a5ed2f12751f569703a2687371e94b8c517bb129ce9013542c04a449e",
+    "libgprofng0@968c33cb5f8e7689bebca8227b079e53bee3f59cd4b023e5535a2f35361efd25",
     {
       "name": "libgssapi-krb5-2",
       "version": "1.22.1-2ubuntu4",
@@ -751,78 +303,15 @@
       "sha256": "f9fdae226c125571bcee451a43ec62d895c996fb8b02e9c24e651f540ae34340",
       "licensePath": "usr/share/doc/libgssrpc4t64/copyright"
     },
-    {
-      "name": "libhogweed6t64",
-      "version": "3.10.2-1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/n/nettle/libhogweed6t64_3.10.2-1_amd64.deb",
-      "sha256": "1c8c808ab24ff3018ac886e3f311edee0f2d4d97d12d3908be52343e89807046",
-      "licensePath": "usr/share/doc/libhogweed6t64/copyright"
-    },
-    {
-      "name": "libhwasan0",
-      "version": "16-20260322-1ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-16/libhwasan0_16-20260322-1ubuntu1_amd64.deb",
-      "sha256": "6bd25c936289463c6472290d3b4377edf8dd4f5e3a07f356fb0adf2de04a8055",
-      "licensePath": "usr/share/doc/libhwasan0/copyright"
-    },
-    {
-      "name": "libicu-dev",
-      "version": "78.2-2ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/i/icu/libicu-dev_78.2-2ubuntu1_amd64.deb",
-      "sha256": "335d24663b21e07b3850565d70d173399cf8b9bb59ad3be17bd5c98e9fadce0a",
-      "licensePath": "usr/share/doc/libicu-dev/copyright"
-    },
-    {
-      "name": "libicu78",
-      "version": "78.2-2ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/i/icu/libicu78_78.2-2ubuntu1_amd64.deb",
-      "sha256": "c8b97930f9e365d6d00978144b468ac8397ef07d2fb2c453869f05fc3a98c4ca",
-      "licensePath": "usr/share/doc/libicu78/copyright"
-    },
-    {
-      "name": "libidn2-0",
-      "version": "2.3.8-4build1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libi/libidn2/libidn2-0_2.3.8-4build1_amd64.deb",
-      "sha256": "92bdac0f443a648859d06dee3defb9c96864fd76df6cfe617ca70bb261344767",
-      "licensePath": "usr/share/doc/libidn2-0/copyright"
-    },
-    {
-      "name": "libisl23",
-      "version": "0.27-1build1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/i/isl/libisl23_0.27-1build1_amd64.deb",
-      "sha256": "02ea5de2ab6ddba978606ad58647bf6371ea68c0ed63aa5d6d0d3b8c1fe77ea3",
-      "licensePath": "usr/share/doc/libisl23/copyright"
-    },
-    {
-      "name": "libitm1",
-      "version": "16-20260322-1ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-16/libitm1_16-20260322-1ubuntu1_amd64.deb",
-      "sha256": "ef841c269b5e9f324e38b1069f712a13c29237051f037847d1de79441dc3a9a2",
-      "licensePath": "usr/share/doc/libitm1/copyright"
-    },
-    {
-      "name": "libjansson4",
-      "version": "2.14-2build4",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/j/jansson/libjansson4_2.14-2build4_amd64.deb",
-      "sha256": "1dc986ac3cf112384919d1a339a952e8a86bede9890a4489c016fdc266a036ca",
-      "licensePath": "usr/share/doc/libjansson4/copyright"
-    },
-    {
-      "name": "libjsoncpp26",
-      "version": "1.9.6-5",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libj/libjsoncpp/libjsoncpp26_1.9.6-5_amd64.deb",
-      "sha256": "2b42b79a81f9407d0ae9650541dca2e416b76b6ad9f7794737bac8c6d6f56823",
-      "licensePath": "usr/share/doc/libjsoncpp26/copyright"
-    },
+    "libhogweed6t64@9d5ba17b3cc2671cbff6f25ac46f79bb343836f9f5d2b169da5cf361a1a585b0",
+    "libhwasan0@92cb72f0197dbac9749f42ba80f7d567ae48502adc174e5a9ab9994dd39f97a9",
+    "libicu-dev@8c106d3ab7959463d6c413af0bf2824431cbd817a712516414351b3b89c935e1",
+    "libicu78@4a48f9cffb616305013e80c61f676a20b44fb1b1331487a0492f7b672426c740",
+    "libidn2-0@94aa4e00ced635183e0e4b90e354b1f48b2fde9de25f15025a7f7d57570f073b",
+    "libisl23@62806839b80d3e22cf7cfdf80fa8cc1a4187563c1adca6982edf56612af7e5f6",
+    "libitm1@90dd656d0b914b028c51b4488bf5867faa6731adb6db21b702821f41b3999a22",
+    "libjansson4@c7424245d91174bf7c4148dab7ae85b38f124cd7deb8a9b6cfbce28eb674f7c7",
+    "libjsoncpp26@43cc2b6dd197579876ebdf69e9e786b966699701d85f3293f7538cbc78fb7681",
     {
       "name": "libk5crypto3",
       "version": "1.22.1-2ubuntu4",
@@ -855,14 +344,7 @@
       "sha256": "67292d559b11f0fc8d63d97a352e3aa3710744fee0f478fc6a695723ca64eb6b",
       "licensePath": "usr/share/doc/libkdb5-10t64/copyright"
     },
-    {
-      "name": "libkeyutils1",
-      "version": "1.6.3-6ubuntu3",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/k/keyutils/libkeyutils1_1.6.3-6ubuntu3_amd64.deb",
-      "sha256": "ea7d3cc642ffe2459c35a85c894f80e92499b9eba13bdcb225e0aa751c0970be",
-      "licensePath": "usr/share/doc/libkeyutils1/copyright"
-    },
+    "libkeyutils1@e8367bcce2df418fe49b164ba86546e3b044f4dda953fd88a2ae487a00c69093",
     {
       "name": "libkrb5-3",
       "version": "1.22.1-2ubuntu4",
@@ -887,86 +369,16 @@
       "sha256": "f9cfb4ba27d0745cbfc7c064cc68f15ea3d6b144a4fd1da9c5f83fe30008aef7",
       "licensePath": "usr/share/doc/libkrb5support0/copyright"
     },
-    {
-      "name": "libldap-common",
-      "version": "2.6.10+dfsg-1ubuntu5",
-      "architecture": "all",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/o/openldap/libldap-common_2.6.10+dfsg-1ubuntu5_all.deb",
-      "sha256": "919b209f5040c1dca1d9c3912521e4bc476028c2e16905ab09347004a599a722",
-      "licensePath": "usr/share/doc/libldap-common/copyright"
-    },
-    {
-      "name": "libldap2",
-      "version": "2.6.10+dfsg-1ubuntu5",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/o/openldap/libldap2_2.6.10+dfsg-1ubuntu5_amd64.deb",
-      "sha256": "8d3a361e8655a0ff4a390243059949fa6f22d42d0e266f58b57c124eb21d2993",
-      "licensePath": "usr/share/doc/libldap2/copyright"
-    },
-    {
-      "name": "libllvm18",
-      "version": "1:18.1.8-20ubuntu8",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/universe/l/llvm-toolchain-18/libllvm18_18.1.8-20ubuntu8_amd64.deb",
-      "sha256": "9fe9082ab9e67b704f526215626bff3e1dcf274e6ddfa45fa42a332d4c94f068",
-      "licensePath": "usr/share/doc/libllvm18/copyright"
-    },
-    {
-      "name": "liblsan0",
-      "version": "16-20260322-1ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-16/liblsan0_16-20260322-1ubuntu1_amd64.deb",
-      "sha256": "c90895d3b6cd164fcb54def68c7dff74419f869c837fa607e3f54c1a0e742263",
-      "licensePath": "usr/share/doc/liblsan0/copyright"
-    },
-    {
-      "name": "liblttng-ust-common1t64",
-      "version": "2.14.0-1.1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/u/ust/liblttng-ust-common1t64_2.14.0-1.1_amd64.deb",
-      "sha256": "413cbba2b458cb291224adf766efd517b68a7d619de01f3146d37ff0a5697bf2",
-      "licensePath": "usr/share/doc/liblttng-ust-common1t64/copyright"
-    },
-    {
-      "name": "liblttng-ust-ctl6",
-      "version": "2.14.0-1.1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/u/ust/liblttng-ust-ctl6_2.14.0-1.1_amd64.deb",
-      "sha256": "56623ea800840f230fe7b79b5af918fdb5ad28ba0a9ba23e66f0ac68afdfb11c",
-      "licensePath": "usr/share/doc/liblttng-ust-ctl6/copyright"
-    },
-    {
-      "name": "liblttng-ust-dev",
-      "version": "2.14.0-1.1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/u/ust/liblttng-ust-dev_2.14.0-1.1_amd64.deb",
-      "sha256": "0b144470adca77c442e0c8437a29f21034c26d3553330d5ff0830bbae20c8be0",
-      "licensePath": "usr/share/doc/liblttng-ust-dev/copyright"
-    },
-    {
-      "name": "liblttng-ust-python-agent1t64",
-      "version": "2.14.0-1.1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/u/ust/liblttng-ust-python-agent1t64_2.14.0-1.1_amd64.deb",
-      "sha256": "9d0cf0e07454ae49c04188fcd2406c145e473729b7614fe328e149094e3a3dfe",
-      "licensePath": "usr/share/doc/liblttng-ust-python-agent1t64/copyright"
-    },
-    {
-      "name": "liblttng-ust1t64",
-      "version": "2.14.0-1.1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/u/ust/liblttng-ust1t64_2.14.0-1.1_amd64.deb",
-      "sha256": "b9f7b2c93f0db3c0428878eff494ab749f9606d83db01df840976faf29a3272b",
-      "licensePath": "usr/share/doc/liblttng-ust1t64/copyright"
-    },
-    {
-      "name": "liblz4-1",
-      "version": "1.10.0-8",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/l/lz4/liblz4-1_1.10.0-8_amd64.deb",
-      "sha256": "28fe729f69be0fa950618f0ee02e479218fd60b11e86c1aa6026c87632ed2aa4",
-      "licensePath": "usr/share/doc/liblz4-1/copyright"
-    },
+    "libldap-common@3f261f42c60e914831e103759c8dcf6309fb49f55f6fdd8a5b2383309eb94067",
+    "libldap2@c4821db9366ea5160672183b7495658e9c242370e506516331c4b5ee974d387b",
+    "libllvm18@ef93f9a6e4a98a88335e9eb7be6de4fcc1cba8acdab1df01504a03b903ac7e79",
+    "liblsan0@4402bd8d0a95483ea7084a1bd1ca7e528f44e926754356c9cf89e8a443c96a54",
+    "liblttng-ust-common1t64@f6132555f71f01a5f3356af46f0ed849f43bb699d70fb8a5b9f3846338e9a8ce",
+    "liblttng-ust-ctl6@e689353a149ce247f1685bd63ac615e4b1fc8ba63952a140a3eb11dad22223a0",
+    "liblttng-ust-dev@20e8b44bbfd53c02a184719a5982c948dc75280da282e108818dd95795e411ea",
+    "liblttng-ust-python-agent1t64@053c7fb47f1d1b0a11cf4f74fff66265d813ebf31a7a65436fc13cd6bc816e9a",
+    "liblttng-ust1t64@a43072591bb8140e70201ab5184f8f93a128ec2219665eeecf3e0184995e5ece",
+    "liblz4-1@4c3c6616bc11b24d1c54292d648d19e3bfee6886991cc9b268a56f0bd0eecbaa",
     {
       "name": "liblzma-dev",
       "version": "5.8.3-1",
@@ -983,46 +395,11 @@
       "sha256": "38ad8500817a9159db210fecfb8c50fa82d7a8829730fcdf8ae60e3523676d41",
       "licensePath": "usr/share/doc/liblzma5/copyright"
     },
-    {
-      "name": "libmd0",
-      "version": "1.1.0-2build4",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libm/libmd/libmd0_1.1.0-2build4_amd64.deb",
-      "sha256": "da684bb562e167721ae38366586aaee0b4cc580b9ee6d0220128b15ef9c5be75",
-      "licensePath": "usr/share/doc/libmd0/copyright"
-    },
-    {
-      "name": "libmpc3",
-      "version": "1.3.1-3",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/m/mpclib3/libmpc3_1.3.1-3_amd64.deb",
-      "sha256": "a95c75b486f26fe8b140a632fd9e2883b7e2efc21f7586e155d27d2d2ff0ddc0",
-      "licensePath": "usr/share/doc/libmpc3/copyright"
-    },
-    {
-      "name": "libmpfr6",
-      "version": "4.2.2-3",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/m/mpfr4/libmpfr6_4.2.2-3_amd64.deb",
-      "sha256": "74defa71b7f81d66b103afccfce750ad356976696b40c96c846ddc956fcfe937",
-      "licensePath": "usr/share/doc/libmpfr6/copyright"
-    },
-    {
-      "name": "libncursesw6",
-      "version": "6.6+20251231-1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/n/ncurses/libncursesw6_6.6+20251231-1_amd64.deb",
-      "sha256": "f41108de5823fee85bd355a06b2939b2c8fe2f6df267c4fa45435544990ec6ff",
-      "licensePath": "usr/share/doc/libncursesw6/copyright"
-    },
-    {
-      "name": "libnettle8t64",
-      "version": "3.10.2-1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/n/nettle/libnettle8t64_3.10.2-1_amd64.deb",
-      "sha256": "83a2a924c11759a2ed6e6f98f456d28e1b026974ce9e6e7ef12c9ac43b2d543e",
-      "licensePath": "usr/share/doc/libnettle8t64/copyright"
-    },
+    "libmd0@080b44bd4fc7fe361545573bde96653aedc40487cd26e2d75a02c9dcac7de36f",
+    "libmpc3@071a9c4b526ba63ecda028202a1491829b9e683edec5e4b7663b8a497e8c33b2",
+    "libmpfr6@97e38be8dbe8c3eaa746f92a215f2e60ae05079c7628db8b007742c822447ea0",
+    "libncursesw6@33297e801b8c43a170fcd6475593dd7bd3f0f26ba26c40dae2fbd70e4536640c",
+    "libnettle8t64@4ad1d71b8cb58715806ee36ff3cdb1c1516c43c83985e4a269c5fb572aeafdce",
     {
       "name": "libnghttp2-14",
       "version": "1.68.0-2",
@@ -1031,46 +408,11 @@
       "sha256": "d2328ad5c97b9df2decbfdcd3a849cbf38f6c823aa96eef7fe2143b791aac96f",
       "licensePath": "usr/share/doc/libnghttp2-14/copyright"
     },
-    {
-      "name": "libnuma-dev",
-      "version": "2.0.19-1build1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/n/numactl/libnuma-dev_2.0.19-1build1_amd64.deb",
-      "sha256": "6919389facd4ada9722cb7024f7613a6bbd5afc9556c18d8959d0dff32931496",
-      "licensePath": "usr/share/doc/libnuma-dev/copyright"
-    },
-    {
-      "name": "libnuma1",
-      "version": "2.0.19-1build1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/n/numactl/libnuma1_2.0.19-1build1_amd64.deb",
-      "sha256": "af7bc28b60948609a36719c249a89aef834812833909774538c19f9d984bef31",
-      "licensePath": "usr/share/doc/libnuma1/copyright"
-    },
-    {
-      "name": "libobjc-15-dev",
-      "version": "15.2.0-16ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/universe/g/gcc-15/libobjc-15-dev_15.2.0-16ubuntu1_amd64.deb",
-      "sha256": "2251b00349af01ecffeb934df74af5e656482939d572acf1180b0fac571f27e8",
-      "licensePath": "usr/share/doc/libobjc-15-dev/copyright"
-    },
-    {
-      "name": "libobjc4",
-      "version": "16-20260322-1ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/universe/g/gcc-16/libobjc4_16-20260322-1ubuntu1_amd64.deb",
-      "sha256": "c0f6da8c4694a3157eb4c76dd2c0ddd2ffe25a69e1f8f7548c4590521049a57e",
-      "licensePath": "usr/share/doc/libobjc4/copyright"
-    },
-    {
-      "name": "libp11-kit0",
-      "version": "0.26.2-2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/p/p11-kit/libp11-kit0_0.26.2-2_amd64.deb",
-      "sha256": "e70d3422e24b267293215134458f340944bf10e92b27147594c69a7dd2823089",
-      "licensePath": "usr/share/doc/libp11-kit0/copyright"
-    },
+    "libnuma-dev@5f4b23ad5ec7f89af48374af7154646f5360e314cbd5584806709bc4ca7bf78a",
+    "libnuma1@91f54f3906e485ebf140d04ddc25eafaa34073d30a60779ff8ad5a28d6450ea8",
+    "libobjc-15-dev@177d9e345ea1b2da7bb4aa0578ba956856e550f2f9b4a3907012c9d5c1be06f2",
+    "libobjc4@34980e85d79fea7534495c76da61d194cbe774276512f415ec5fd58f656ecdb8",
+    "libp11-kit0@463ab7041bc6f581603eb1e9d717257bf2b018311b2dee566e2e953007d890ff",
     {
       "name": "libpcre2-8-0",
       "version": "10.46-1build1",
@@ -1095,38 +437,10 @@
       "sha256": "51fb418837c319587792540d9de6eb30063e4f781f2efeb80bed18604be31f71",
       "licensePath": "usr/share/doc/libpfm4/copyright"
     },
-    {
-      "name": "libpkgconf7",
-      "version": "2.5.1-4",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/p/pkgconf/libpkgconf7_2.5.1-4_amd64.deb",
-      "sha256": "353f622f6432a3d65bedd3c23e0af98c2c438650b497b355772a56a05ebf7dd0",
-      "licensePath": "usr/share/doc/libpkgconf7/copyright"
-    },
-    {
-      "name": "libproc2-0",
-      "version": "2:4.0.4-9ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/p/procps/libproc2-0_4.0.4-9ubuntu1_amd64.deb",
-      "sha256": "47d00e206617cc92aa319b6b0430f77460826bd7f15c1b3d5171e1646545f9f2",
-      "licensePath": "usr/share/doc/libproc2-0/copyright"
-    },
-    {
-      "name": "libpsl5t64",
-      "version": "0.21.2-1.1build2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libp/libpsl/libpsl5t64_0.21.2-1.1build2_amd64.deb",
-      "sha256": "1ae62705714f660ecdfd70273fce5b226b6cb7b9fe53776531799093edc99774",
-      "licensePath": "usr/share/doc/libpsl5t64/copyright"
-    },
-    {
-      "name": "libpython3-stdlib",
-      "version": "3.14.3-0ubuntu2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/p/python3-defaults/libpython3-stdlib_3.14.3-0ubuntu2_amd64.deb",
-      "sha256": "75d0c4c28732f8e08d5da25a47676dbe923e4b15a8f7a77110ab370325889df5",
-      "licensePath": "usr/share/doc/libpython3-stdlib/copyright"
-    },
+    "libpkgconf7@bb56354d3fec2e3314cb069c358cf27158d6768855b36dcd30579c228447ca1e",
+    "libproc2-0@3f9a794a9b06580e74ef75775937e0ac966c31cad78f38ebb4ccb3012f2e13cb",
+    "libpsl5t64@3fe31aa8b8936eaa5a34cdba6b79f74d02ec74841422291005ae4a4df6d9f398",
+    "libpython3-stdlib@607c191cad93d849f32d6037df5e1d4b6c3266b75e70256c523162658c2bae51",
     {
       "name": "libpython3.14-minimal",
       "version": "3.14.4-1",
@@ -1143,70 +457,14 @@
       "sha256": "3b73ea5df272886f6bca236798eea769b8bc2b99337a55a0ae5f779b310a918c",
       "licensePath": "usr/share/doc/libpython3.14-stdlib/copyright"
     },
-    {
-      "name": "libquadmath0",
-      "version": "16-20260322-1ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-16/libquadmath0_16-20260322-1ubuntu1_amd64.deb",
-      "sha256": "420e777fef436f397a85ddedde53fbb44f92c7ca8e87d581f9d86573859e1aa4",
-      "licensePath": "usr/share/doc/libquadmath0/copyright"
-    },
-    {
-      "name": "libreadline8t64",
-      "version": "8.3-4",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/r/readline/libreadline8t64_8.3-4_amd64.deb",
-      "sha256": "260b3333e9f714252593b83fb31d2571097b64d337d0d7100aae7349029821fc",
-      "licensePath": "usr/share/doc/libreadline8t64/copyright"
-    },
-    {
-      "name": "librhash1",
-      "version": "1.4.6-1.1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/r/rhash/librhash1_1.4.6-1.1_amd64.deb",
-      "sha256": "cb935821161fdfdbd30afdbcb8ceeab736f9a4df84f02df883a41d911951e398",
-      "licensePath": "usr/share/doc/librhash1/copyright"
-    },
-    {
-      "name": "librtmp1",
-      "version": "2.4+20151223.gitfa8646d.1-3",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/r/rtmpdump/librtmp1_2.4+20151223.gitfa8646d.1-3_amd64.deb",
-      "sha256": "77cbd0ddf7e7487079ec300ff7751322de5e7d67f0f46749591b78ff1442cbe8",
-      "licensePath": "usr/share/doc/librtmp1/copyright"
-    },
-    {
-      "name": "libsasl2-2",
-      "version": "2.1.28+dfsg1-9ubuntu3",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/c/cyrus-sasl2/libsasl2-2_2.1.28+dfsg1-9ubuntu3_amd64.deb",
-      "sha256": "11b9b2ce6702d86dd3dea60e08bd15255d7fd9545431a9e555eec47770404de0",
-      "licensePath": "usr/share/doc/libsasl2-2/copyright"
-    },
-    {
-      "name": "libsasl2-modules-db",
-      "version": "2.1.28+dfsg1-9ubuntu3",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/c/cyrus-sasl2/libsasl2-modules-db_2.1.28+dfsg1-9ubuntu3_amd64.deb",
-      "sha256": "1de7b83844537091315210afb466ff2cd022874db5a6a785ce06b41bd3507eb3",
-      "licensePath": "usr/share/doc/libsasl2-modules-db/copyright"
-    },
-    {
-      "name": "libselinux1",
-      "version": "3.9-4build1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libs/libselinux/libselinux1_3.9-4build1_amd64.deb",
-      "sha256": "3ce3aea44b2ec00780c48b1b8e1f7e672166ec3ccac14b0eae8890e55983061e",
-      "licensePath": "usr/share/doc/libselinux1/copyright"
-    },
-    {
-      "name": "libsframe3",
-      "version": "2.46-3ubuntu2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/b/binutils/libsframe3_2.46-3ubuntu2_amd64.deb",
-      "sha256": "05541ea1edb19e54bea297a21a9c33d0b99ca2cfe2e86d4a67335e6640667cfc",
-      "licensePath": "usr/share/doc/libsframe3/copyright"
-    },
+    "libquadmath0@598ce4e5e5c16d39cb9b5e54a80961fef3f6ca1cffa6808502e2790826e02da6",
+    "libreadline8t64@21494350042213ba72bd6b9476413a57ef1bad106dd8c5a484cc22f5ef81bb68",
+    "librhash1@7d10c55be896747d25ba429f4acce5375be920bd502863a5789d2e1b4fadd4d5",
+    "librtmp1@9609b7af476ce5c180f09f0e283d6a510a24bb9b8992f32add4999b3d0ac8b7f",
+    "libsasl2-2@be7438783bf0433d4426be76c0a6d3de2ae8839900ce18539a6adb696f17276c",
+    "libsasl2-modules-db@2f0a0fb7c37e144d00544df4c4d22bfe7a74fe97732c182b122ce8a250b8dbe3",
+    "libselinux1@3142682094919fc840d6be82daadf2acf4139120f90f9bc026895e560a7f5293",
+    "libsframe3@2fb1e89441835af58c78c9734eef98a9c9f78fe74e3a3656c6878765fca04ecd",
     {
       "name": "libsqlite3-0",
       "version": "3.46.1-9",
@@ -1239,22 +497,8 @@
       "sha256": "fe78b8124fb6c8c0d7efc8f2bd8d5e0d3f217351f520a3b4652ee0afe24143c2",
       "licensePath": "usr/share/doc/libssl3t64/copyright"
     },
-    {
-      "name": "libstdc++-15-dev",
-      "version": "15.2.0-16ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-15/libstdc++-15-dev_15.2.0-16ubuntu1_amd64.deb",
-      "sha256": "9a400597b1db45cf51238c9eb556e211ec092d363cfb7ebebac627750ba56433",
-      "licensePath": "usr/share/doc/libstdc++-15-dev/copyright"
-    },
-    {
-      "name": "libstdc++6",
-      "version": "16-20260322-1ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-16/libstdc++6_16-20260322-1ubuntu1_amd64.deb",
-      "sha256": "a32b9ad585e39bdc7bd15d1eae6293461e6d466859a1dd2f7862d1e40f89b9d8",
-      "licensePath": "usr/share/doc/libstdc++6/copyright"
-    },
+    "libstdc++-15-dev@b9bf43c63a0dc4b174f382c6a36fb61c36ec716da495d0721bdec390112ed695",
+    "libstdc++6@72e6927658615721cf6fad90db60cf16b2466fab3dab2359b2e6264623ced670",
     {
       "name": "libsystemd0",
       "version": "259.5-0ubuntu3",
@@ -1263,78 +507,15 @@
       "sha256": "a93b416fd58067a14061763bfc9a23d18b0d4e0914b9a678ff7795e02f71d532",
       "licensePath": "usr/share/doc/libsystemd0/copyright"
     },
-    {
-      "name": "libtasn1-6",
-      "version": "4.21.0-2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libt/libtasn1-6/libtasn1-6_4.21.0-2_amd64.deb",
-      "sha256": "59c74951324ead0ff77ab945d561feb1b21bc189b793600b8e2b7cf4d39b1ee5",
-      "licensePath": "usr/share/doc/libtasn1-6/copyright"
-    },
-    {
-      "name": "libtinfo6",
-      "version": "6.6+20251231-1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/n/ncurses/libtinfo6_6.6+20251231-1_amd64.deb",
-      "sha256": "42705a701a98d84c203c6f96f08c6fd6a29a1ef978683e1ffbf0e27535b20ddb",
-      "licensePath": "usr/share/doc/libtinfo6/copyright"
-    },
-    {
-      "name": "libtsan2",
-      "version": "16-20260322-1ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-16/libtsan2_16-20260322-1ubuntu1_amd64.deb",
-      "sha256": "95b7a9b63096840cb960562d190a802a541055366eb4bc756c763d7de6e174d8",
-      "licensePath": "usr/share/doc/libtsan2/copyright"
-    },
-    {
-      "name": "libubsan1",
-      "version": "16-20260322-1ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-16/libubsan1_16-20260322-1ubuntu1_amd64.deb",
-      "sha256": "cde09806b1b60d0ab8ab96033177cb21a0290333a946f25572de8f72b4403695",
-      "licensePath": "usr/share/doc/libubsan1/copyright"
-    },
-    {
-      "name": "libunistring5",
-      "version": "1.3-2build1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libu/libunistring/libunistring5_1.3-2build1_amd64.deb",
-      "sha256": "88c0163f1acb384abde07641b7e13fcaea36e0a3b88fc57a653779fc429fc46a",
-      "licensePath": "usr/share/doc/libunistring5/copyright"
-    },
-    {
-      "name": "libunwind-dev",
-      "version": "1.8.3-0ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libu/libunwind/libunwind-dev_1.8.3-0ubuntu1_amd64.deb",
-      "sha256": "4c470fd84cf964cb8730efd3d2fbd8f177da7560044f21918af73e1b71d4f857",
-      "licensePath": "usr/share/doc/libunwind-dev/copyright"
-    },
-    {
-      "name": "libunwind8",
-      "version": "1.8.3-0ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libu/libunwind/libunwind8_1.8.3-0ubuntu1_amd64.deb",
-      "sha256": "7a9978fadf0940f45500ced0fba219cb5954f322a31068b7b32ad04f3ddc5c3f",
-      "licensePath": "usr/share/doc/libunwind8/copyright"
-    },
-    {
-      "name": "liburcu-dev",
-      "version": "0.15.6-1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libu/liburcu/liburcu-dev_0.15.6-1_amd64.deb",
-      "sha256": "dde729598ab55f7b8e33222ba198a18fc8ad6623819547cbc42f6de7e72207d0",
-      "licensePath": "usr/share/doc/liburcu-dev/copyright"
-    },
-    {
-      "name": "liburcu8t64",
-      "version": "0.15.6-1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libu/liburcu/liburcu8t64_0.15.6-1_amd64.deb",
-      "sha256": "de2e04225d0f1324ab5ee880e61427a5fa23de0a3563610386f5fc3eca653a02",
-      "licensePath": "usr/share/doc/liburcu8t64/copyright"
-    },
+    "libtasn1-6@2fa958bf63ae23017264390ac525fca5bd0701decd1092d2ce47a82c8b72cc3d",
+    "libtinfo6@46be6ef1a60df09a9a9c82b9ed4b110f6cebdaaf7b02cb48e0656af670a0244b",
+    "libtsan2@4903c5a9d079965222472e890ecc07d4616853e2abf93c9ce3ae4ef1accdbf9b",
+    "libubsan1@0be3078586c1cfb7d25e7e869ab1aadfb5b3521d090814a62c6d51880ecf4646",
+    "libunistring5@89f8cbbef618f22c50014724fba4c749e2288c3f0a79c44a12d87f9af512f356",
+    "libunwind-dev@32718fc904f5369d0dd2f62c67501151f65068f8eef1987131fb0e4cf542b436",
+    "libunwind8@65abf08d3ce601b251539c18c2fcfb9a253ff27ca4d440168176298553300113",
+    "liburcu-dev@e3c64a82e494dddf434ddd91981211d5c86d0c1a40046aeabf6583f165755848",
+    "liburcu8t64@5a1f96ac09b6a912f27681731ad41b43e0d8e85e4edd730c8ee5fbdc67018773",
     {
       "name": "libuuid1",
       "version": "2.41.3-3ubuntu2",
@@ -1343,14 +524,7 @@
       "sha256": "ea9d94da2fb6564391145f3a9630c140c8dd771a38ae753983e8dc55cc22e102",
       "licensePath": "usr/share/doc/libuuid1/copyright"
     },
-    {
-      "name": "libuv1t64",
-      "version": "1.51.0-2ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libu/libuv1/libuv1t64_1.51.0-2ubuntu1_amd64.deb",
-      "sha256": "5c9b857d7d6a0c22b30dae45d518b375452cf7c663fc9381e3f0760ba3fb8cce",
-      "licensePath": "usr/share/doc/libuv1t64/copyright"
-    },
+    "libuv1t64@87889a87e8c77e38c95e47042f01c849b9a6c6117f37ccc3e262a92139e8d125",
     {
       "name": "libxml2-16",
       "version": "2.15.2+dfsg-0.1",
@@ -1359,22 +533,8 @@
       "sha256": "f0c87cee9a1fb871e66698dc05fe38e0a3e7232eb961b690a8e7dc26f9753813",
       "licensePath": "usr/share/doc/libxml2-16/copyright"
     },
-    {
-      "name": "libxxhash0",
-      "version": "0.8.3-2build1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/x/xxhash/libxxhash0_0.8.3-2build1_amd64.deb",
-      "sha256": "4fff119ba9018fbe2eddfa7759bb4c7b6132ed38dcfa7fc58750c586d1d155a1",
-      "licensePath": "usr/share/doc/libxxhash0/copyright"
-    },
-    {
-      "name": "libzstd1",
-      "version": "1.5.7+dfsg-3",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libz/libzstd/libzstd1_1.5.7+dfsg-3_amd64.deb",
-      "sha256": "34365d611ccf1f717f90a92fbe52ed96ae1829ab9be363c68a83563322797f8f",
-      "licensePath": "usr/share/doc/libzstd1/copyright"
-    },
+    "libxxhash0@fba59b92ff714e34f8eee6a79099476b2aea074e6d49c5e23a8104fb30d93ffc",
+    "libzstd1@979da99bc94742c50afaf15024cf560b4f4beee97075f885d243621d3773330f",
     {
       "name": "linux-libc-dev",
       "version": "7.0.0-14.14",
@@ -1383,86 +543,16 @@
       "sha256": "14bf36d574df2cacf2e50fa8c1f28b4b6b574b63e9561924cc942e4c9186e57e",
       "licensePath": "usr/share/doc/linux-libc-dev/copyright"
     },
-    {
-      "name": "lld-18",
-      "version": "1:18.1.8-20ubuntu8",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/universe/l/llvm-toolchain-18/lld-18_18.1.8-20ubuntu8_amd64.deb",
-      "sha256": "82edf28f438adf8c15fcbefcc255f4ce26353794c5e65050ca61d7204e5a24e2",
-      "licensePath": "usr/share/doc/lld-18/copyright"
-    },
-    {
-      "name": "llvm-18",
-      "version": "1:18.1.8-20ubuntu8",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/universe/l/llvm-toolchain-18/llvm-18_18.1.8-20ubuntu8_amd64.deb",
-      "sha256": "8f89cb3a5d5cfd68a7a5a856a7bf82ad11ef54c10dcda7c58223c3e95287b8a8",
-      "licensePath": "usr/share/doc/llvm-18/copyright"
-    },
-    {
-      "name": "llvm-18-linker-tools",
-      "version": "1:18.1.8-20ubuntu8",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/universe/l/llvm-toolchain-18/llvm-18-linker-tools_18.1.8-20ubuntu8_amd64.deb",
-      "sha256": "a30efeb0618d21177f4d400c07b3550da949e88720917b2c6638a90fcd48f982",
-      "licensePath": "usr/share/doc/llvm-18-linker-tools/copyright"
-    },
-    {
-      "name": "llvm-18-runtime",
-      "version": "1:18.1.8-20ubuntu8",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/universe/l/llvm-toolchain-18/llvm-18-runtime_18.1.8-20ubuntu8_amd64.deb",
-      "sha256": "63dbde88512b0c94287a35f37e58a4f37226c37b7f1f23eb8e5c3f4865af30ab",
-      "licensePath": "usr/share/doc/llvm-18-runtime/copyright"
-    },
-    {
-      "name": "lto-disabled-list",
-      "version": "79",
-      "architecture": "all",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/l/lto-disabled-list/lto-disabled-list_79_all.deb",
-      "sha256": "4201421a400172721d7e8f39db7f4ae1b65fe06f6ed8151b3346a2809871583b",
-      "licensePath": "usr/share/doc/lto-disabled-list/copyright"
-    },
-    {
-      "name": "make",
-      "version": "4.4.1-3",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/m/make-dfsg/make_4.4.1-3_amd64.deb",
-      "sha256": "a86f39d57a32b7c919c0ad721fc2f17ab533a42fda348c8d81a4eea1577a014f",
-      "licensePath": "usr/share/doc/make/copyright"
-    },
-    {
-      "name": "mawk",
-      "version": "1.3.4.20260129-1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/m/mawk/mawk_1.3.4.20260129-1_amd64.deb",
-      "sha256": "9b071ec8637a7d87e152eee7952df8f3374e432bafecd3bcc30948feb3acb3e9",
-      "licensePath": "usr/share/doc/mawk/copyright"
-    },
-    {
-      "name": "media-types",
-      "version": "14.0.0build1",
-      "architecture": "all",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/m/media-types/media-types_14.0.0build1_all.deb",
-      "sha256": "f3412d08032210541d25c4e00fa492ce527af245ac9bec2e543d81a59b4426aa",
-      "licensePath": "usr/share/doc/media-types/copyright"
-    },
-    {
-      "name": "netbase",
-      "version": "6.5build1",
-      "architecture": "all",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/n/netbase/netbase_6.5build1_all.deb",
-      "sha256": "f008e39aada379d64166153d5e37ccc4f18b3e334babb9e32c4da9b4396ee733",
-      "licensePath": "usr/share/doc/netbase/copyright"
-    },
-    {
-      "name": "ninja-build",
-      "version": "1.13.2-1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/universe/n/ninja-build/ninja-build_1.13.2-1_amd64.deb",
-      "sha256": "533239a464183f041f7c979f899fd8419e31ac82366540e57902a255de78f156",
-      "licensePath": "usr/share/doc/ninja-build/copyright"
-    },
+    "lld-18@ca819b3d26a47f9facc6da3764e01d0f4e479779b66be4a5660d38edca689047",
+    "llvm-18@87de6639fb37b0170f9df5bef070ed6162cb3bdded9ccf2e9f9434bdb7ebca83",
+    "llvm-18-linker-tools@a63d35def745468f3ef1c182b48fd86565e023ca77b2a40ebb608936b22987c6",
+    "llvm-18-runtime@ee1c0e5a1a9d38c2560b949c3f9a6f8e3c975aa05c8bb851569cc4e7b15088f0",
+    "lto-disabled-list@745bfff62b5c5b0ba3ce6d3c36f4c32c3e061a4542d165ec7d1141f28140ada7",
+    "make@90359f3d06ecd6b2daf33c18b62cae7d663ad3190f6ba50363bf39a0a8b121da",
+    "mawk@fc3e0cfae7ffba420462f2c350b0223a197729d4aa7ee211a9e6d1c44b2ca43b",
+    "media-types@e55c6c5abcef7af8a837726c5f18b4367a79a01d458d8d0924af63df3fbca3d4",
+    "netbase@aaaab62783746194a353685ac34a846c68043f964e598b77a2c6a68e26c1fe53",
+    "ninja-build@69d3c836f3a163cdff6536d0e5a393bfff5c784d94c955430b26ad784b6a8c6e",
     {
       "name": "openssl-provider-legacy",
       "version": "3.5.5-1ubuntu3",
@@ -1471,14 +561,7 @@
       "sha256": "05c9ab6be49c5177b366b21fc1b96e042d69e2c119de898d539e55a3a778f8f7",
       "licensePath": "usr/share/doc/openssl-provider-legacy/copyright"
     },
-    {
-      "name": "patch",
-      "version": "2.8-2build1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/p/patch/patch_2.8-2build1_amd64.deb",
-      "sha256": "0e5a899095d92d6db9585183a5225504f5dc5ecaffdfe2a25d745a9502de3b30",
-      "licensePath": "usr/share/doc/patch/copyright"
-    },
+    "patch@443bdabecc6eb3f22f51c4da0843115bd22008d4bbdbec72b4d06c06053a4a72",
     {
       "name": "perl",
       "version": "5.40.1-7build1",
@@ -1503,54 +586,12 @@
       "sha256": "1f40a027bc0b31bec572baadb8d9dff7477e4fe00fa389a33a2e5f78607301b6",
       "licensePath": "usr/share/doc/perl-modules-5.40/copyright"
     },
-    {
-      "name": "pkg-config",
-      "version": "2.5.1-4",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/p/pkgconf/pkg-config_2.5.1-4_amd64.deb",
-      "sha256": "0ec36b7cce8fa2072260020a42d2b77ddc31b2eba606356ccc4120f4caddb805",
-      "licensePath": "usr/share/doc/pkg-config/copyright"
-    },
-    {
-      "name": "pkgconf",
-      "version": "2.5.1-4",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/p/pkgconf/pkgconf_2.5.1-4_amd64.deb",
-      "sha256": "9d23ccd2a24d8618ca8bc7f1e14e1d02b9632854d69c82b6f8753dc5c1a98b16",
-      "licensePath": "usr/share/doc/pkgconf/copyright"
-    },
-    {
-      "name": "pkgconf-bin",
-      "version": "2.5.1-4",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/p/pkgconf/pkgconf-bin_2.5.1-4_amd64.deb",
-      "sha256": "9690471f395b6652f2cd8962334b9400e26a10daf4af7bf2f2c1a0325c193f0b",
-      "licensePath": "usr/share/doc/pkgconf-bin/copyright"
-    },
-    {
-      "name": "procps",
-      "version": "2:4.0.4-9ubuntu1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/p/procps/procps_4.0.4-9ubuntu1_amd64.deb",
-      "sha256": "471b02803d2ff240a28d03059ac9bd676b1f9e25bfd84b8feef95171bbf1da90",
-      "licensePath": "usr/share/doc/procps/copyright"
-    },
-    {
-      "name": "python3",
-      "version": "3.14.3-0ubuntu2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/p/python3-defaults/python3_3.14.3-0ubuntu2_amd64.deb",
-      "sha256": "1ff88ad587f9e52e9f333ab00ae0babea93ac5222fc6909039c4190affe1d574",
-      "licensePath": "usr/share/doc/python3/copyright"
-    },
-    {
-      "name": "python3-minimal",
-      "version": "3.14.3-0ubuntu2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/p/python3-defaults/python3-minimal_3.14.3-0ubuntu2_amd64.deb",
-      "sha256": "d5f37616b30209d8c10c4a705d7bf9558ca21e058fc2b2bd2ffcf37a74a42861",
-      "licensePath": "usr/share/doc/python3-minimal/copyright"
-    },
+    "pkg-config@63ae676141e0b1062a88fbb8e7e55363f0b7c467b9b0d962b1e9344137d4b8e5",
+    "pkgconf@ed730705b60021fe57807d2651613835df23ae97b34ce1da3a01c8d477965a24",
+    "pkgconf-bin@b9959337e6db62f8131f5443144474a441622f07698c234b0c0a1d214ab1b304",
+    "procps@5ed99ad4b145ddc1b4267cb4f8efae8cc4c374003362f656513cab34de0dc9ef",
+    "python3@53ad9bb732139de28776d271b555e7ebe52235be9a250c5d13062bfbacc9220c",
+    "python3-minimal@f1bb32c00ea5301b5db789411805e60f1514e31dc990b5552aa585daa2e868b3",
     {
       "name": "python3.14",
       "version": "3.14.4-1",
@@ -1567,22 +608,8 @@
       "sha256": "7c25ce41fc15cd737664bea334cd941ecd0c64b3f51523c44c51254e7dfd7926",
       "licensePath": "usr/share/doc/python3.14-minimal/copyright"
     },
-    {
-      "name": "readline-common",
-      "version": "8.3-4",
-      "architecture": "all",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/r/readline/readline-common_8.3-4_all.deb",
-      "sha256": "53cdc5a963bbdda938f8996496a5e78bcf484e6e41a2ef2c0f8cf566808f71f5",
-      "licensePath": "usr/share/doc/readline-common/copyright"
-    },
-    {
-      "name": "rpcsvc-proto",
-      "version": "1.4.3-1build1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/r/rpcsvc-proto/rpcsvc-proto_1.4.3-1build1_amd64.deb",
-      "sha256": "d7102b9d3fd35fd7a66d94ba0765a9c8e87b2b80e3633ef4af401dd0c952bafd",
-      "licensePath": "usr/share/doc/rpcsvc-proto/copyright"
-    },
+    "readline-common@65ff9c506cb58fbca4eb39d5bb20a5e60329daf47fbafed81e3c7350968254d0",
+    "rpcsvc-proto@828d6a307970c7cb2c0779266009d12669dcc2db906275a9d14485fee248e87e",
     {
       "name": "sed",
       "version": "4.9-2build3",
