@@ -1,0 +1,161 @@
+using System.Diagnostics;
+using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+
+var assembly = Assembly.LoadFrom(Path.GetFullPath(args[0]));
+var environment = assembly.GetType("RulesMSBuild.ProjectSync.QualificationEnvironment", true)!;
+var sdkMethod = environment.GetMethod("AddSdk", BindingFlags.Static | BindingFlags.NonPublic)!;
+var create = environment.GetMethod("Create", BindingFlags.Static | BindingFlags.NonPublic)!;
+var full = args.Contains("--full");
+var work = Path.GetFullPath(args[1]);
+Directory.CreateDirectory(work);
+string Digest(string path)
+{
+    using var stream = File.OpenRead(path);
+    return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
+}
+string Mode(string path) => (OperatingSystem.IsWindows() ? 0 : (int)File.GetUnixFileMode(path) & 511)
+    .ToString(System.Globalization.CultureInfo.InvariantCulture);
+void LegacySdk(string sdk, Action<string> add)
+{
+    foreach (var path in Directory.EnumerateFiles(sdk, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
+    {
+        add(Path.GetRelativePath(sdk, path));
+        add(Digest(path));
+        add(Mode(path));
+    }
+}
+void ProductionSdk(string sdk, Action<string> add) => sdkMethod.Invoke(null, [sdk, add]);
+string Hash(Action<Action<string>> records)
+{
+    using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+    records(value =>
+    {
+        var bytes = Encoding.UTF8.GetBytes(value);
+        hash.AppendData(BitConverter.GetBytes(bytes.Length));
+        hash.AppendData(bytes);
+    });
+    return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
+}
+string Legacy(string sdk) => Hash(add =>
+{
+    add("qualification-environment-v1");
+    add(System.Runtime.InteropServices.RuntimeInformation.RuntimeIdentifier);
+    add(Math.Clamp(Environment.ProcessorCount, 1, 4).ToString(System.Globalization.CultureInfo.InvariantCulture));
+    add(Digest(assembly.Location));
+    foreach (var path in new[] { "/etc/os-release", "/usr/bin/bwrap", "/bin/sh" })
+    {
+        add(path);
+        add(Digest(path));
+        add(Mode(path));
+    }
+    LegacySdk(sdk, add);
+});
+string Production(string sdk) => (string)environment.GetProperty("Identity")!.GetValue(create.Invoke(null, [sdk]))!;
+string Check(string sdk)
+{
+    var expected = new List<string>();
+    var actual = new List<string>();
+    LegacySdk(sdk, expected.Add);
+    ProductionSdk(sdk, actual.Add);
+    if (!actual.SequenceEqual(expected)) throw new Exception("Logical SDK records changed: " + sdk);
+    if (full && Legacy(sdk) != Production(sdk)) throw new Exception("Complete production identity changed: " + sdk);
+    return Hash(add => ProductionSdk(sdk, add));
+}
+void Changed(string before, string sdk, string label)
+{
+    if (Check(sdk) == before) throw new Exception(label + " ignored between passes");
+}
+var selectedSdk = Array.IndexOf(args, "--sdk");
+if (selectedSdk >= 0)
+{
+    _ = Check(args[selectedSdk + 1]);
+    Console.WriteLine("PASS: selected real SDK records" + (full ? " and complete production environment identity" : "") + " match legacy");
+}
+var empty = Path.Combine(work, "empty");
+Directory.CreateDirectory(empty);
+_ = Check(empty);
+var linked = Path.Combine(work, "linked");
+var plain = Path.Combine(work, "plain");
+var payload = Path.Combine(linked, "sdk-0");
+Directory.CreateDirectory(payload);
+Directory.CreateDirectory(plain);
+var bytes = new byte[1024 * 1024];
+new Random(31).NextBytes(bytes);
+for (var index = 0; index < 16; index++)
+{
+    bytes[0] = (byte)index;
+    File.WriteAllBytes(Path.Combine(payload, $"{index:D2}.bin"), bytes);
+}
+for (var index = 0; index < 4; index++)
+{
+    var name = $"sdk-{index}";
+    Directory.CreateDirectory(Path.Combine(plain, name));
+    if (index > 0) Directory.CreateDirectory(Path.Combine(linked, name));
+    foreach (var path in Directory.EnumerateFiles(payload))
+    {
+        File.Copy(path, Path.Combine(plain, name, Path.GetFileName(path)));
+        if (index > 0) File.CreateSymbolicLink(Path.Combine(linked, name, Path.GetFileName(path)), path);
+    }
+}
+if (Check(plain) != Check(linked)) throw new Exception("Equal logical plain/linked layouts differ");
+// File links, link chains and targets reached through directory aliases.
+File.CreateSymbolicLink(Path.Combine(linked, "a-file"), Path.Combine(linked, "sdk-0", "00.bin"));
+File.CreateSymbolicLink(Path.Combine(linked, "b-chain"), "a-file");
+var before = Check(linked);
+File.Move(Path.Combine(linked, "b-chain"), Path.Combine(linked, "0-renamed"));
+Changed(before, linked, "Logical name/order");
+before = Check(linked);
+var file = Path.Combine(payload, "00.bin");
+var stamp = File.GetLastWriteTimeUtc(file);
+File.WriteAllBytes(file, new byte[bytes.Length]);
+File.SetLastWriteTimeUtc(file, stamp);
+Changed(before, linked, "Same-size timestamp-restored content");
+if (!OperatingSystem.IsWindows())
+{
+    before = Check(linked);
+    File.SetUnixFileMode(file, File.GetUnixFileMode(file) ^ UnixFileMode.UserExecute);
+    Changed(before, linked, "Mode");
+}
+before = Check(linked);
+File.Delete(Path.Combine(linked, "a-file"));
+File.CreateSymbolicLink(Path.Combine(linked, "a-file"), Path.Combine(payload, "01.bin"));
+Changed(before, linked, "Retargeted file link");
+var replacement = Path.Combine(work, "replacement");
+Directory.CreateDirectory(replacement);
+File.WriteAllText(Path.Combine(replacement, "new-file"), "new-target");
+before = Check(linked);
+Directory.Delete(Path.Combine(linked, "sdk-3"), true);
+Directory.CreateSymbolicLink(Path.Combine(linked, "sdk-3"), replacement);
+Changed(before, linked, "Retargeted directory link");
+Console.WriteLine("PASS: production SDK records match legacy; names/order, modes, file/directory links and fresh-pass timestamp-independent content controls" + (full ? "; complete production environment identity matches legacy using identical assembly bytes" : ""));
+// Restore a regular four-alias layout before alternating paired measurements.
+File.Delete(Path.Combine(linked, "a-file"));
+File.Delete(Path.Combine(linked, "0-renamed"));
+Directory.Delete(Path.Combine(linked, "sdk-3"));
+Directory.CreateDirectory(Path.Combine(linked, "sdk-3"));
+foreach (var path in Directory.EnumerateFiles(payload)) File.CreateSymbolicLink(Path.Combine(linked, "sdk-3", Path.GetFileName(path)), path);
+foreach (var layout in new[] { plain, linked })
+{
+    _ = Check(layout); // Warm both algorithms; this is deliberately warm-cache evidence.
+    var old = new List<double>();
+    var current = new List<double>();
+    string Old() => full ? Legacy(layout) : Hash(add => LegacySdk(layout, add));
+    string Current() => full ? Production(layout) : Hash(add => ProductionSdk(layout, add));
+    double Time(Func<string> operation)
+    {
+        var timer = Stopwatch.StartNew();
+        _ = operation();
+        return timer.Elapsed.TotalSeconds;
+    }
+    for (var index = 0; index < 7; index++)
+    {
+        if (index % 2 == 0) { old.Add(Time(Old)); current.Add(Time(Current)); }
+        else { current.Add(Time(Current)); old.Add(Time(Old)); }
+    }
+    Console.WriteLine(JsonSerializer.Serialize(new { layout = Path.GetFileName(layout), scope = full ? "complete-environment" : "sdk-loop", logicalFiles = 64,
+        uniqueTargets = layout == linked ? 16 : 64, bytesPerFile = bytes.Length, warmCache = true, legacySeconds = old, productionSeconds = current,
+        legacyMedian = old.Order().ElementAt(3), productionMedian = current.Order().ElementAt(3) }));
+}

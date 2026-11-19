@@ -19,20 +19,12 @@ internal sealed record QualificationEnvironment(string Identity)
         foreach (var path in new[] { "/etc/os-release", "/usr/bin/bwrap", "/bin/sh" })
         {
             Add(path);
-            File(path);
+            Add(SnapshotPayloads.Digest(path));
+            Add(Mode(path));
         }
-        foreach (var path in Directory.EnumerateFiles(sdk, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
-        {
-            Add(Path.GetRelativePath(sdk, path));
-            File(path);
-        }
+        AddSdk(sdk, Add);
         return new(Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant());
 
-        void File(string path)
-        {
-            Add(SnapshotPayloads.Digest(path));
-            Add((OperatingSystem.IsWindows() ? 0 : (int)System.IO.File.GetUnixFileMode(path) & 511).ToString(System.Globalization.CultureInfo.InvariantCulture));
-        }
         void Add(string value)
         {
             var bytes = Encoding.UTF8.GetBytes(value);
@@ -40,4 +32,31 @@ internal sealed record QualificationEnvironment(string Identity)
             hash.AppendData(bytes);
         }
     }
+
+    private static void AddSdk(string sdk, Action<string> add)
+    {
+        var sdkRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(sdk)) + Path.DirectorySeparatorChar;
+        var digests = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var path in Directory.EnumerateFiles(sdk, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
+        {
+            add(Path.GetRelativePath(sdk, path));
+            // Only reuse resolved file targets inside this immutable SDK. A
+            // directory alias or hard link may miss reuse without changing identity.
+            var physical = File.ResolveLinkTarget(path, true)?.FullName ?? Path.GetFullPath(path);
+            var reusable = physical.StartsWith(sdkRoot, StringComparison.Ordinal);
+            if (!reusable || !digests.TryGetValue(physical, out var digest))
+            {
+                digest = SnapshotPayloads.Digest(path);
+                if (reusable)
+                {
+                    digests[physical] = digest;
+                }
+            }
+            add(digest);
+            add(Mode(path));
+        }
+    }
+
+    private static string Mode(string path) => (OperatingSystem.IsWindows() ? 0 : (int)File.GetUnixFileMode(path) & 511)
+        .ToString(System.Globalization.CultureInfo.InvariantCulture);
 }
