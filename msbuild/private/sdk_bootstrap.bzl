@@ -9,13 +9,34 @@ _RUNNER_FILES = [
     "NuGet.Versioning.dll",
 ]
 
-def _runner(ctx):
-    outputs = [ctx.actions.declare_file(ctx.label.name + "/" + name) for name in _RUNNER_FILES]
+def bootstrap_project(ctx, dotnet, project, inputs, outputs, mnemonic, private_home = True, path_map = False):
+    """Build a managed tool against an empty restore source.
+
+    Args:
+        ctx: Calling rule context.
+        dotnet: SDK executable.
+        project: Tool project file.
+        inputs: Project sources and SDK files.
+        outputs: One tree artifact or individual files in the same directory.
+        mnemonic: Bazel action mnemonic.
+        private_home: Set HOME to the action's scratch directory.
+        path_map: Preserve portable debug symbols with mapped source paths.
+    """
+    home = 'export HOME="$scratch"' if private_home else ""
+    if path_map:
+        setup = 'repository="$(dirname "$(dirname "$(dirname "$project")")")"'
+        debug = '-p:PathMap="$repository=/_/rules_msbuild%2C$scratch=/_/bootstrap"'
+    else:
+        setup = """export DOTNET_GENERATE_ASPNET_CERTIFICATE=false
+export DOTNET_MULTILEVEL_LOOKUP=0 NUGET_PACKAGES="$scratch/packages"
+cd "$scratch"
+"""
+        debug = "-p:DebugType=None"
     ctx.actions.run_shell(
-        inputs = depset(ctx.files.sources + ctx.files.sdk),
-        tools = [ctx.executable.dotnet],
+        inputs = inputs,
+        tools = [dotnet],
         outputs = outputs,
-        arguments = [ctx.executable.dotnet.path, ctx.file.project.path, outputs[0].dirname],
+        arguments = [dotnet.path, project.path, outputs[0].path if outputs[0].is_directory else outputs[0].dirname],
         command = """set -eu
 dotnet="$PWD/$1"
 project="$PWD/$2"
@@ -23,18 +44,21 @@ output="$PWD/$3"
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 mkdir -p "$scratch/empty"
-export DOTNET_ROOT="$(dirname "$dotnet")" DOTNET_CLI_HOME="$scratch" HOME="$scratch"
+export DOTNET_ROOT="$(dirname "$dotnet")" DOTNET_CLI_HOME="$scratch"
 export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
 export DOTNET_CLI_USE_MSBUILD_SERVER=false MSBUILDUSESERVER=0
-export DOTNET_GENERATE_ASPNET_CERTIFICATE=false
-export DOTNET_MULTILEVEL_LOOKUP=0 NUGET_PACKAGES="$scratch/packages"
-cd "$scratch"
+%s
+%s
 "$dotnet" build "$project" -c Release -o "$output" --nologo \\
     -p:BaseIntermediateOutputPath="$scratch/obj/" -p:UseSharedCompilation=false \\
-    -p:RestoreSources="$scratch/empty" -p:NuGetAudit=false -p:DebugType=None
-""",
-        mnemonic = "MSBuildRunnerBootstrap",
+    -p:RestoreSources="$scratch/empty" -p:NuGetAudit=false %s
+""" % (home, setup, debug),
+        mnemonic = mnemonic,
     )
+
+def _runner(ctx):
+    outputs = [ctx.actions.declare_file(ctx.label.name + "/" + name) for name in _RUNNER_FILES]
+    bootstrap_project(ctx, ctx.executable.dotnet, ctx.file.project, depset(ctx.files.sources + ctx.files.sdk), outputs, "MSBuildRunnerBootstrap")
     return [DefaultInfo(files = depset(outputs)), OutputGroupInfo(runner = depset([outputs[0]]))]
 
 sdk_runner = rule(
