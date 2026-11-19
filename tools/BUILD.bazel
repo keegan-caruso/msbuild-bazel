@@ -3,6 +3,7 @@ exports_files([
     "BUILD.bazel",
     "Directory.Build.props",
     "MSBuildTool.props",
+    "MSBuildAdapter.props",
     "PackageSdks.cs",
     "NuGetLocks.cs",
     "GraphCompilerReferences.cs",
@@ -12,3 +13,29 @@ exports_files([
     "GraphSolutions.cs",
     "OutputOwnershipIndex.cs",
 ])
+
+# Shared adapter inputs retain their tools/ paths in staged workspaces.
+filegroup(
+    name = "msbuild_adapter_sources",
+    srcs = [
+        "AnalyzerConfigs.cs",
+        "Directory.Build.props",
+        "GraphCompilerReferences.cs",
+        "GraphEntryProperties.cs",
+        "GraphProjectKind.cs",
+        "GraphSolutions.cs",
+        "GraphSourcePattern.cs",
+        "MSBuildAdapter.props",
+        "MSBuildTool.props",
+        "NuGetLocks.cs",
+        "OutputOwnershipIndex.cs",
+        "PackageSdks.cs",
+        "//tools/ProjectCache:BuildSeed.cs",
+        "//tools/ProjectCache:CachedTargetItem.cs",
+        "//tools/ProjectCache:FileMaterializer.cs",
+        "//tools/ProjectCache:FileObservation.cs",
+        "//tools/ProjectCache:RemoteSnapshotStore.cs",
+        "//tools/ProjectCache:SnapshotPayloads.cs",
+    ],
+    visibility = ["//visibility:public"],
+)
