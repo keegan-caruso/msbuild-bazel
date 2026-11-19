@@ -7,7 +7,7 @@ namespace RulesMSBuild.GraphBuild;
 internal sealed class WorkerOutput(int limit = WorkerProcess.OutputCharacters) : TextWriter
 {
     private readonly char[] text = new char[limit];
-    private readonly object gate = new();
+    private readonly Lock gate = new();
     private int position;
     private int length;
     private bool truncated;

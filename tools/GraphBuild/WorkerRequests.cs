@@ -19,7 +19,7 @@ internal static class WorkerRequests
     {
         var requests = Channel.CreateBounded<(WorkerRequest Work, CancellationTokenSource Stop)>(1);
         var active = new ConcurrentDictionary<int, CancellationTokenSource>();
-        var cancellationGate = new object();
+        var cancellationGate = new Lock();
         using var receiving = new CancellationTokenSource();
         var input = Task.Run(Receive);
         try
