@@ -92,12 +92,12 @@ bazel_integration_tests(
     bazel_binaries = bazel_binaries,
     bazel_versions = bazel_binaries.versions.all,
     data = [
-        "sdk-9.0.318.metadata.json",
+        "sdk-10.0.302.metadata.json",
         ":rules_archive",
     ],
     env = {
         "RULES_ARCHIVE": "$(rootpath :rules_archive)",
-        "SDK_POLICY_METADATA": "$(rootpath sdk-9.0.318.metadata.json)",
+        "SDK_POLICY_METADATA": "$(rootpath sdk-10.0.302.metadata.json)",
     },
     tags = [
         "exclusive",
@@ -178,13 +178,13 @@ bazel_integration_tests(
     bazel_versions = bazel_binaries.versions.all,
     data = [
         "runtime-10.0.12.metadata.json",
-        "runtime-8.0.31.metadata.json",
+        "runtime-11.0.0.metadata.json",
         "runtime-9.0.20.metadata.json",
         ":rules_archive",
     ],
     env = {
         "RULES_ARCHIVE": "$(rootpath :rules_archive)",
-        "RUNTIME_TEST_METADATA": "$(rootpath runtime-8.0.31.metadata.json) $(rootpath runtime-9.0.20.metadata.json) $(rootpath runtime-10.0.12.metadata.json)",
+        "RUNTIME_TEST_METADATA": "$(rootpath runtime-9.0.20.metadata.json) $(rootpath runtime-10.0.12.metadata.json) $(rootpath runtime-11.0.0.metadata.json)",
     },
     tags = [
         "exclusive",
@@ -350,14 +350,14 @@ bazel_integration_tests(
     bazel_versions = bazel_binaries.versions.all,
     data = [
         "aspnet-10.0.12.metadata.json",
-        "aspnet-9.0.20.metadata.json",
-        "runtime-9.0.20.metadata.json",
+        "aspnet-11.0.0.metadata.json",
+        "runtime-10.0.12.metadata.json",
         ":rules_archive",
     ],
     env = {
         "RULES_ARCHIVE": "$(rootpath :rules_archive)",
-        "ASPNET_TEST_METADATA": "$(rootpath aspnet-9.0.20.metadata.json) $(rootpath aspnet-10.0.12.metadata.json)",
-        "CORE_TEST_METADATA": "$(rootpath runtime-9.0.20.metadata.json)",
+        "ASPNET_TEST_METADATA": "$(rootpath aspnet-10.0.12.metadata.json) $(rootpath aspnet-11.0.0.metadata.json)",
+        "CORE_TEST_METADATA": "$(rootpath runtime-10.0.12.metadata.json)",
     },
     tags = [
         "exclusive",

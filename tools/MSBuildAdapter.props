@@ -1,9 +1,5 @@
 <Project>
   <Import Project="MSBuildTool.props" />
-  <PropertyGroup>
-    <!-- MSBuild 18 promoted the experimental project-cache API. -->
-    <DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(MSBuildVersion)', '18.0'))">$(DefineConstants);STABLE_PROJECT_CACHE</DefineConstants>
-  </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)AnalyzerConfigs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PackageSdks.cs" />
@@ -24,4 +20,8 @@
     <Reference Include="Microsoft.Build.Framework" HintPath="$(RulesMSBuildEngineRoot)/Microsoft.Build.Framework.dll" Private="true" />
     <Reference Include="Microsoft.Build.Utilities.Core" HintPath="$(RulesMSBuildEngineRoot)/Microsoft.Build.Utilities.Core.dll" Private="true" />
   </ItemGroup>
+  <Target Name="ValidateMSBuildAdapterInputs" BeforeTargets="PrepareForBuild">
+    <Error Condition="$([MSBuild]::VersionLessThan('$(MSBuildVersion)', '18.0'))"
+           Text="MSBuild adapters require MSBuild 18 or newer with the stable Microsoft.Build.ProjectCache API (SDK 10 or newer)." />
+  </Target>
 </Project>

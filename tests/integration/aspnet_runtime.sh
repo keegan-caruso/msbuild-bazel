@@ -15,11 +15,11 @@ for name,file in zip(['web','future'],sys.argv[1:3],strict=True):
     p=Path(name+'-metadata.json');p.write_text(json.dumps(metadata))
     version=metadata['releases'][0]['aspnetcore-runtime']['version']
     module+='\ndotnet.runtime(name='+json.dumps(name)+',version='+json.dumps(version)+',kind="aspnetcore",platforms=["linux-arm64"],metadata_urls=['+json.dumps(p.resolve().as_uri())+'])\nuse_repo(dotnet,'+json.dumps(name)+')\n'
-module+='\ndotnet.runtime(name="core",version="9.0.20",platforms=["linux-arm64"],metadata_urls=['+json.dumps(Path('web-metadata.json').resolve().as_uri())+'])\nuse_repo(dotnet,"core")\n'
+module+='\ndotnet.runtime(name="core",version="10.0.12",platforms=["linux-arm64"],metadata_urls=['+json.dumps(Path('web-metadata.json').resolve().as_uri())+'])\nuse_repo(dotnet,"core")\n'
 Path('MODULE.bazel').write_text(module)
-p=Path('global.json');p.write_text(p.read_text().replace('10.0.400','9.0.318'))
+Path('global.json').write_text(json.dumps({'sdk': {'version': '10.0.302', 'rollForward': 'disable'}}))
 for p in Path('.').glob('*/*.csproj'):
-    p.write_text(p.read_text().replace('net10.0','net9.0'))
+    p.write_text(p.read_text().replace('net11.0','net10.0'))
 p=Path('App/App.csproj');p.write_text(p.read_text().replace('Microsoft.NET.Sdk"','Microsoft.NET.Sdk.Web"'))
 p=Path('BUILD.bazel');text=p.read_text().replace('app_graph(name = "graph")','app_graph(name = "graph", linux_stable_paths = True)')
 for name in ['core','web','future']:
@@ -77,9 +77,9 @@ fresh() {
 bazel run //:sync
 bazel run //:web_app "${options[@]}" > "$TEST_TMPDIR/web.log" 2>&1 || { cat "$TEST_TMPDIR/web.log" >&2; exit 1; }
 assert_contains "$TEST_TMPDIR/web.log" 'HTTP: Hello from MSBuild and Bazel'
-assert_contains "$TEST_TMPDIR/web.log" '.NET 9.0.20'
-assert_contains "$TEST_TMPDIR/web.log" '/shared/Microsoft.AspNetCore.App/9.0.20/'
-assert_contains graph.generated.json '"SdkVersion": "9.0.318"'
+assert_contains "$TEST_TMPDIR/web.log" '.NET 10.0.12'
+assert_contains "$TEST_TMPDIR/web.log" '/shared/Microsoft.AspNetCore.App/10.0.12/'
+assert_contains graph.generated.json '"SdkVersion": "10.0.302"'
 bazel test //:web_test "${options[@]}" --test_output=all
 expect_failure bazel run //:core_app "${options[@]}"
 assert_contains "$TEST_TMPDIR/failure.log" 'Microsoft.AspNetCore.App'
@@ -88,12 +88,12 @@ python3 - <<'PY'
 import json
 from pathlib import Path
 facts=next(v['runtime-v1'] for v in json.loads(Path('MODULE.bazel.lock').read_text())['facts'].values() if 'runtime-v1' in v)
-selections={tuple(json.loads(k)[2:]):v for k,v in facts.items() if json.loads(k)[0]=='9.0.20'}
+selections={tuple(json.loads(k)[2:]):v for k,v in facts.items() if json.loads(k)[0]=='10.0.12'}
 assert set(selections)=={(),('aspnetcore',)},selections
 core=selections[()]['platforms']['linux-arm64']
 web=selections[('aspnetcore',)]['platforms']['linux-arm64']
 assert '/dotnet-runtime-' in core['urls'][0],core
-assert '/aspnetcore-runtime-9.0.20-' in web['urls'][0],web
+assert '/aspnetcore-runtime-10.0.12-' in web['urls'][0],web
 assert core['integrity']!=web['integrity']
 PY
 expect_failure bazel run //:future_app "${options[@]}"
@@ -101,8 +101,8 @@ assert_contains "$TEST_TMPDIR/failure.log" 'You must install or update .NET'
 sed -i 's@<TargetFramework>@<RollForward>Major</RollForward><TargetFramework>@' App/App.csproj
 bazel run //:sync
 bazel run //:future_app "${options[@]}" > "$TEST_TMPDIR/future.log" 2>&1 || { cat "$TEST_TMPDIR/future.log" >&2; exit 1; }
-assert_contains "$TEST_TMPDIR/future.log" '.NET 10.0.12'
-assert_contains "$TEST_TMPDIR/future.log" '/shared/Microsoft.AspNetCore.App/10.0.12/'
+assert_contains "$TEST_TMPDIR/future.log" '.NET 11.0.0'
+assert_contains "$TEST_TMPDIR/future.log" '/shared/Microsoft.AspNetCore.App/11.0.0/'
 bazel test //:future_test "${options[@]}" --test_output=all
 products() { (cd bazel-bin/graph.graph/workspace; find App/bin Library/bin Tests/bin -type f -print0 | sort -z | xargs -0 sha256sum); }
 products > "$TEST_TMPDIR/seed.sha256"
@@ -119,7 +119,7 @@ fresh recovered run //:future_app "${options[@]}" --lockfile_mode=error \
     --run_under='env -u RUNFILES_DIR -u RUNFILES_MANIFEST_FILE -u TEST_SRCDIR' \
     > "$TEST_TMPDIR/recovered-app.log" 2>&1 || { cat "$TEST_TMPDIR/recovered-app.log" >&2; exit 1; }
 assert_contains "$TEST_TMPDIR/recovered-app.log" 'HTTP: Hello from MSBuild and Bazel'
-assert_contains "$TEST_TMPDIR/recovered-app.log" '/shared/Microsoft.AspNetCore.App/10.0.12/'
+assert_contains "$TEST_TMPDIR/recovered-app.log" '/shared/Microsoft.AspNetCore.App/11.0.0/'
 products > "$TEST_TMPDIR/recovered.sha256"
 cmp "$TEST_TMPDIR/seed.sha256" "$TEST_TMPDIR/recovered.sha256"
 if [[ -n "${RUNTIME_CACHE_URL:-}" ]]; then

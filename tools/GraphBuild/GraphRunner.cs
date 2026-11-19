@@ -1,11 +1,7 @@
 using System.Text.Json;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Graph;
-#if STABLE_PROJECT_CACHE
 using Microsoft.Build.ProjectCache;
-#else
-using Microsoft.Build.Experimental.ProjectCache;
-#endif
 using RulesMSBuild.ProjectCache;
 
 namespace RulesMSBuild.GraphBuild;

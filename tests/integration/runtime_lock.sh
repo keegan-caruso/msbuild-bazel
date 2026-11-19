@@ -115,7 +115,7 @@ PY
 expect_failure bazel query @private_runtime//:runtime
 assert_contains "$TEST_TMPDIR/failure.log" 'Runtime archives require integrity'
 
-# Compile with SDK 9, selecting independently acquired execution runtimes.
+# Compile with SDK 10, selecting independently acquired execution runtimes.
 cp original.module MODULE.bazel
 cp original.build BUILD.bazel
 python3 - "${metadata[@]}" <<'PY'
@@ -133,9 +133,9 @@ for name in ['older','patched','future']:
 text+='\nmsbuild_graph_test(name="future_test",graph=":graph",project="App/App.csproj",runtime_host="@future//:runtime")\n'
 p.write_text(text)
 p=Path('App/Program.cs');p.write_text(p.read_text().replace('return Message.Text()', 'Console.WriteLine(System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription);\nreturn Message.Text()'))
-p=Path('global.json');p.write_text(p.read_text().replace('10.0.400','9.0.318'))
+Path('global.json').write_text(json.dumps({'sdk': {'version': '10.0.302', 'rollForward': 'disable'}}))
 for p in Path('.').glob('*/*.csproj'):
-    p.write_text(p.read_text().replace('net10.0','net9.0'))
+    p.write_text(p.read_text().replace('net11.0','net10.0'))
 PY
 options=(--remote_cache= --disk_cache=)
 if [[ -n "${RUNTIME_CACHE_URL:-}" ]]; then
@@ -145,8 +145,8 @@ fi
 bazel run //:sync
 bazel run //:patched_app "${options[@]}" > "$TEST_TMPDIR/patched.log" 2>&1
 assert_contains "$TEST_TMPDIR/patched.log" 'Hello from MSBuild and Bazel'
-assert_contains "$TEST_TMPDIR/patched.log" '.NET 9.0.20'
-assert_contains graph.generated.json '"SdkVersion": "9.0.318"'
+assert_contains "$TEST_TMPDIR/patched.log" '.NET 10.0.12'
+assert_contains graph.generated.json '"SdkVersion": "10.0.302"'
 expect_failure bazel run //:older_app "${options[@]}"
 assert_contains "$TEST_TMPDIR/failure.log" 'You must install or update .NET'
 expect_failure bazel run //:future_app "${options[@]}"
@@ -155,7 +155,7 @@ assert_contains "$TEST_TMPDIR/failure.log" 'You must install or update .NET'
 sed -i 's@<TargetFramework>@<RollForward>Major</RollForward><TargetFramework>@' App/App.csproj
 bazel run //:sync
 bazel run //:future_app "${options[@]}" > "$TEST_TMPDIR/future.log" 2>&1
-assert_contains "$TEST_TMPDIR/future.log" '.NET 10.0.12'
+assert_contains "$TEST_TMPDIR/future.log" '.NET 11.0.0'
 bazel test //:future_test "${options[@]}" --test_output=errors
 cp bazel-bin/graph.graph/report.json "$TEST_TMPDIR/seed-report.json"
 products() { (cd bazel-bin/graph.graph/workspace; find App/bin Library/bin Tests/bin -type f -print0 | sort -z | xargs -0 sha256sum); }
