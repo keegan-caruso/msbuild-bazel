@@ -332,32 +332,7 @@ internal sealed class WorkspaceView : IDisposable
         .SelectMany(path => Labels.TryGetValue(path, out var label) ? new[] { label } : producerRoots.Where(pair => pair.Value == path || path.StartsWith(pair.Value + "/", StringComparison.Ordinal)).Select(pair => pair.Key))
         .Distinct(StringComparer.Ordinal).ToDictionary(label => label, label => producerRoots[label], StringComparer.Ordinal);
 
-    private static IEnumerable<string> ProducerEntries(string root)
-    {
-        if ((File.GetAttributes(root) & FileAttributes.ReparsePoint) != 0)
-        {
-            throw new InvalidDataException("Producer tree symlinks are unsupported: " + root);
-        }
-        foreach (var entry in Directory.EnumerateFileSystemEntries(root).Order(StringComparer.Ordinal))
-        {
-            if (Directory.Exists(entry))
-            {
-                yield return entry;
-                foreach (var file in ProducerEntries(entry))
-                {
-                    yield return file;
-                }
-            }
-            else if ((File.GetAttributes(entry) & FileAttributes.ReparsePoint) != 0)
-            {
-                throw new InvalidDataException("Producer tree symlinks are unsupported: " + entry);
-            }
-            else
-            {
-                yield return entry;
-            }
-        }
-    }
+    private static IEnumerable<string> ProducerEntries(string root) => NoLinkTree.Entries(root, "Producer tree symlinks are unsupported: ", ordered: true);
     public void Dispose()
     {
         if (temporary is not null)

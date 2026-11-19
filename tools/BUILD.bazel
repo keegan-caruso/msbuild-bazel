@@ -11,6 +11,7 @@ exports_files([
     "GraphSourcePattern.cs",
     "GraphEntryProperties.cs",
     "GraphSolutions.cs",
+    "NoLinkTree.cs",
     "OutputOwnershipIndex.cs",
     "RelativePathComponents.cs",
 ])
@@ -28,6 +29,7 @@ filegroup(
         "GraphSourcePattern.cs",
         "MSBuildAdapter.props",
         "MSBuildTool.props",
+        "NoLinkTree.cs",
         "NuGetLocks.cs",
         "OutputOwnershipIndex.cs",
         "PackageSdks.cs",

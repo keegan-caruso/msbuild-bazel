@@ -33,30 +33,5 @@ internal static class GraphTrees
         }
     }
 
-    private static IEnumerable<string> Members(string root)
-    {
-        if ((File.GetAttributes(root) & FileAttributes.ReparsePoint) != 0)
-        {
-            throw new InvalidDataException("Input tree symlinks are unsupported: " + root);
-        }
-        foreach (var entry in Directory.EnumerateFileSystemEntries(root))
-        {
-            if (Directory.Exists(entry))
-            {
-                yield return entry;
-                foreach (var path in Members(entry))
-                {
-                    yield return path;
-                }
-            }
-            else if ((File.GetAttributes(entry) & FileAttributes.ReparsePoint) != 0)
-            {
-                throw new InvalidDataException("Input tree symlinks are unsupported: " + entry);
-            }
-            else
-            {
-                yield return entry;
-            }
-        }
-    }
+    private static IEnumerable<string> Members(string root) => NoLinkTree.Entries(root, "Input tree symlinks are unsupported: ");
 }

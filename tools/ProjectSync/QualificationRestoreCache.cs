@@ -187,27 +187,7 @@ internal sealed class QualificationRestoreCache : IDisposable
         }
     }
 
-    private static IEnumerable<string> Files(string directory)
-    {
-        foreach (var path in Directory.EnumerateFileSystemEntries(directory))
-        {
-            if (new FileInfo(path).LinkTarget is not null)
-            {
-                throw new InvalidDataException("Restore cache requires regular files and directories: " + path);
-            }
-            if (Directory.Exists(path))
-            {
-                foreach (var file in Files(path))
-                {
-                    yield return file;
-                }
-            }
-            else
-            {
-                yield return path;
-            }
-        }
-    }
+    private static IEnumerable<string> Files(string directory) => NoLinkTree.Files(directory, "Restore cache requires regular files and directories: ");
 
     private static string Resolve(string directory, string path)
     {
