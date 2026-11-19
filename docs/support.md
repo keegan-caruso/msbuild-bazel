@@ -1136,7 +1136,16 @@ with a source-built **SDK**, use the separate
 Source selection, three version files, shared source archives and tool trees are
 Bazel outputs. ARM64 tools come from 194 hash-locked Ubuntu 26.04 packages;
 x64 uses its separate [locked catalog](../tests/runtime/native-packages-x64.json),
-including the explicit compiler-rt dependency. Clang, LLD and LLVM are pinned to
+including the explicit compiler-rt dependency. The
+[SDK catalog](../tests/runtime/native-packages-sdk-x64.json) selects its packages
+independently. Both lists preserve installation order. Each entry is either a
+complete package record or a reference into the [shared x64 records](../tests/runtime/native-packages-shared-x64.json).
+A reference pins the name and SHA-256 of the complete record serialized as
+compact JSON with sorted keys. To update one catalog, replace its entry with
+the new package record. The assembler writes the expanded catalog alongside the
+toolchain for provenance.
+
+Clang, LLD and LLVM are pinned to
 `1:18.1.8-20ubuntu8`; declared-root checks verify the OS and compiler before
 compilation. Explicit aliases replace package scripts, including deterministic
 `Etc/UTC` for `/etc/localtime`. Extraction still uses the qualified host's

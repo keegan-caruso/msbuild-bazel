@@ -1,5 +1,6 @@
 """Selected distribution/compiler boundary inside declared native tool roots."""
 
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -21,6 +22,17 @@ def load_catalog(architecture='arm64', sdk=False):
     if value['platform'] != 'linux-' + architecture or value['distribution'] != 'ubuntu-26.04':
         raise ValueError('Native package catalog platform/distribution differs')
     packages = value['packages']
+    if any(isinstance(item, str) for item in packages):
+        shared = json.loads((Path(__file__).parent / 'native-packages-shared-x64.json').read_text())
+        # Pin the full record, including its URL, license and provenance.
+        pins = {}
+        for record in shared:
+            encoded = json.dumps(record, sort_keys=True, separators=(',', ':')).encode()
+            pins[record['name'] + '@' + hashlib.sha256(encoded).hexdigest()] = record
+        try:
+            packages = value['packages'] = [pins[item] if isinstance(item, str) else item for item in packages]
+        except KeyError as error:
+            raise ValueError(f'Unknown shared native package pin: {error}') from error
     names = [package['name'] for package in packages]
     if not packages or len(set(names)) != len(names) or not set(value['roots']) <= set(names):
         raise ValueError('Native package catalog has missing or duplicate packages')
