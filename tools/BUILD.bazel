@@ -12,6 +12,7 @@ exports_files([
     "GraphEntryProperties.cs",
     "GraphSolutions.cs",
     "OutputOwnershipIndex.cs",
+    "RelativePathComponents.cs",
 ])
 
 # Shared adapter inputs retain their tools/ paths in staged workspaces.
@@ -30,6 +31,7 @@ filegroup(
         "NuGetLocks.cs",
         "OutputOwnershipIndex.cs",
         "PackageSdks.cs",
+        "RelativePathComponents.cs",
         "//tools/ProjectCache:BuildSeed.cs",
         "//tools/ProjectCache:CachedTargetItem.cs",
         "//tools/ProjectCache:FileMaterializer.cs",

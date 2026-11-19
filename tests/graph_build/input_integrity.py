@@ -54,12 +54,22 @@ def main():
             '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework>'
             '<OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>'
             '</PropertyGroup><ItemGroup>' + ''.join(f'<Compile Include="{ROOT}/tools/GraphBuild/{name}.cs" />'
-            for name in ['Contract', 'GraphProfile']) + '</ItemGroup></Project>')
+            for name in ['Contract', 'GraphProfile']) +
+            f'<Compile Include="{ROOT}/tools/RelativePathComponents.cs" /></ItemGroup></Project>')
         (harness / 'Program.cs').write_text('''
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using RulesMSBuild;
 using RulesMSBuild.GraphBuild;
+foreach (var path in new[] { "", ".", "..", "/", "/absolute", "a/", "a//b", "a/./b", "a/../b", "../outside", "a\\\\b" })
+{
+    if (RelativePathComponents.IsSafeRelative(path)) throw new Exception("Unsafe path components accepted");
+}
+foreach (var path in new[] { "a", "a/b", "a/.hidden", "...", "a/..name", "a/dot./b" })
+{
+    if (!RelativePathComponents.IsSafeRelative(path)) throw new Exception("Safe path components rejected");
+}
 string LegacyHash(IEnumerable<string> records) => Convert.ToHexStringLower(
     SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(records))));
 foreach (var records in new[] {

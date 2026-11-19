@@ -1,4 +1,5 @@
 using System.Text.Json;
+using RulesMSBuild;
 
 internal static class Program
 {
@@ -6,7 +7,7 @@ internal static class Program
     private static T Read<T>(string path) => JsonSerializer.Deserialize<T>(File.ReadAllText(path), Json)!;
     internal static string Safe(string value)
     {
-        if (string.IsNullOrEmpty(value) || Path.IsPathRooted(value) || value.Contains('\\') || value.Split('/').Any(p => p is "" or "." or "..") || value.IndexOfAny(['\0', '\r', '\n']) >= 0)
+        if (string.IsNullOrEmpty(value) || !RelativePathComponents.IsSafeRelative(value) || value.IndexOfAny(['\0', '\r', '\n']) >= 0)
         {
             throw new InvalidDataException("Unsafe logical path: " + value);
         }

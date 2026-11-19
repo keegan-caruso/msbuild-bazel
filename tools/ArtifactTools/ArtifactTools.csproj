@@ -7,6 +7,7 @@
     <UseAppHost>false</UseAppHost>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../RelativePathComponents.cs" />
     <Reference Include="NuGet.Versioning" HintPath="$(RulesMSBuildEngineRoot)/NuGet.Versioning.dll" Private="true" />
   </ItemGroup>
 </Project>

@@ -18,13 +18,11 @@ def main():
         probe = base / 'probe'
         probe.mkdir()
         sources = [p for p in (ROOT / 'tools/GraphBuild').glob('*.cs') if p.name != 'Program.cs']
-        sources += [ROOT / 'tools/GraphProjectKind.cs', ROOT / 'tools/GraphEntryProperties.cs', ROOT / 'tools/GraphCompilerReferences.cs', ROOT / 'tools/PackageSdks.cs', ROOT / 'tools/ProjectCache/RemoteSnapshotStore.cs']
-        references = ['Microsoft.Build', 'Microsoft.Build.Framework', 'Microsoft.Build.Utilities.Core']
-        (probe / 'Probe.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
+        (probe / 'Probe.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk">'
+            f'<Import Project="{ROOT}/tools/MSBuildAdapter.props" /><PropertyGroup>'
             '<TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings>'
             '<Nullable>enable</Nullable></PropertyGroup><ItemGroup>' +
-            ''.join(f'<Compile Include="{p}" />' for p in sources) +
-            ''.join(f'<Reference Include="{name}" HintPath="{SDK}/sdk/11.0.100/{name}.dll" />' for name in references) + '</ItemGroup></Project>')
+            ''.join(f'<Compile Include="{p}" />' for p in sources) + '</ItemGroup></Project>')
         (probe / 'Program.cs').write_text('''using System.Text.Json;
 using RulesMSBuild.GraphBuild;
 var root = args[0];
