@@ -855,6 +855,17 @@ Drivers: [SDK consumers](../tests/source_sdk/consumer_scenarios.py),
 
 ## Runtime and cache evidence
 
+Runtime and source-SDK native qualification use the same
+`tests/runtime/NativeBuild.cs.txt` driver. SDK components select SDK archive/layout
+outputs through paired `--sdk-archive` / `--sdk-layout` arguments; other producers
+retain their archive/product outputs. A bounded Ubuntu 26.04 ARM64 / SDK
+**11.0.100** comparison against both pre-consolidation drivers passed 26 real
+Bubblewrap controls: byte-identical evidence/product archives, SDK layout bytes
+and executable mode, bootstrap/dependency staging, script overrides, stdout/stderr,
+process/product failures and scratch cleanup. Both declared and packaged launchers
+passed; the shared SDK path also passed the packaged-launcher handoff. These
+small producer controls do not requalify a full upstream runtime or SDK build.
+
 The native qualification driver's explicit `--system-bwrap` handoff checks
 root ownership with Linux `statx`; it does not execute or trust `/usr/bin/stat`.
 The launcher and `/`, `/usr`, `/usr/bin` must remain non-symlinks, root-owned

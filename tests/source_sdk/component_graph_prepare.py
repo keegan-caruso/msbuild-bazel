@@ -165,15 +165,13 @@ def main():
                     "source_action.bzl": (here / 'source_action.bzl').read_bytes(),
                     "component_action.bzl": (here / 'component_action.bzl').read_bytes(),
                     "MODULE.bazel": module.encode()}
-    if args.sdk_consumer:
-        fixed_inputs['SdkDriver.cs'] = (here / 'SdkNativeBuild.cs.txt').read_bytes()
     for name, data in fixed_inputs.items():
         path = work / name
         if args.extend:
             old = path.read_bytes() if path.exists() else None
             if old != data:
                 allowed_module = name == 'MODULE.bazel' and old == controller_module.encode()
-                allowed_refresh = name in ('Driver.cs', 'SdkDriver.cs', 'component_action.bzl') and args.sdk_consumer and args.refresh_output_contracts
+                allowed_refresh = name in ('Driver.cs', 'component_action.bzl') and args.sdk_consumer and args.refresh_output_contracts
                 if not (allowed_refresh or (args.sdk_consumer and args.refresh_output_contracts and allowed_module)):
                     raise ValueError('Existing workspace has a different input: ' + name)
                 path.write_bytes(data)
@@ -187,8 +185,6 @@ def main():
     if args.sdk_consumer:
         build.append('load("@rules_msbuild//msbuild:sdk.bzl", "msbuild_sdk")')
     build.append('native_driver(name="driver",driver_sdk="@controller//:sdk_host",driver_project="Driver.csproj",driver_source="Driver.cs")')
-    if args.sdk_consumer:
-        build.append('native_driver(name="sdk_driver",driver_sdk="@controller//:sdk_host",driver_project="Driver.csproj",driver_source="SdkDriver.cs")')
     for name, dependencies in nodes.items():
         source = work / (name + '.tar')
         command = work / (name + '.sh')
@@ -213,9 +209,8 @@ def main():
             select(root / 'sources.tar', name, source, selected_helpers)
             command.write_text(build_script)
         sdk_archive = ',sdk_archive=' + json.dumps(SDK_ARCHIVE) if name == 'sdk' and args.sdk_consumer else ''
-        driver = ':sdk_driver' if name == 'sdk' and args.sdk_consumer else ':driver'
-        build.append('source_component(name=%s,driver=%s,sources=%s,script=%s,deps=%s,native_tools="native.tar",bootstrap="bootstrap.tar",sandbox="bwrap"%s,exec_compatible_with=["@platforms//os:linux","@platforms//cpu:aarch64"])' %
-                     (json.dumps(name), json.dumps(driver), json.dumps(name + '.tar'), json.dumps(name + '.sh'), json.dumps([':' + item for item in dependencies]), sdk_archive))
+        build.append('source_component(name=%s,driver=":driver",sources=%s,script=%s,deps=%s,native_tools="native.tar",bootstrap="bootstrap.tar",sandbox="bwrap"%s,exec_compatible_with=["@platforms//os:linux","@platforms//cpu:aarch64"])' %
+                     (json.dumps(name), json.dumps(name + '.tar'), json.dumps(name + '.sh'), json.dumps([':' + item for item in dependencies]), sdk_archive))
     build.append('filegroup(name="components",srcs=%s)' % json.dumps([':' + name for name in nodes]))
     if args.sdk_consumer:
         build.extend([
