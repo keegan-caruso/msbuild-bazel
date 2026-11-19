@@ -11,7 +11,7 @@ internal static class MappingDefaults
         "properties", "documents", "inputItems", "frameworkOverrides"
     };
 
-    internal static string Expand(string text)
+    internal static JsonObject Expand(string text)
     {
         JsonObject root;
         try
@@ -26,6 +26,18 @@ internal static class MappingDefaults
         {
             throw new InvalidDataException("Invalid sync mappings: " + error.Message, error);
         }
+        foreach (var (name, _) in root)
+        {
+            if (name is not ("projectDefaults" or "projects" or "entryProperties" or "restoreReuseInputs"))
+            {
+                throw new InvalidDataException("Graph mappings do not support section: " + name);
+            }
+        }
+        if (root.TryGetPropertyValue("entryProperties", out var entries) && entries is not JsonObject ||
+            root.TryGetPropertyValue("restoreReuseInputs", out var reuse) && reuse is not JsonArray)
+        {
+            throw new InvalidDataException("Expected mapping objects and restoreReuseInputs array");
+        }
         Members(root, "mappings");
         var defaultsNode = Member(root, "projectDefaults");
         if (root.Any(p => p.Key.Equals("projectDefaults", StringComparison.OrdinalIgnoreCase)) && defaultsNode is not JsonObject)
@@ -33,8 +45,12 @@ internal static class MappingDefaults
             throw new InvalidDataException("projectDefaults must be an object");
         }
         var defaults = defaultsNode as JsonObject ?? new JsonObject();
-        Binding(defaults, "projectDefaults");
-        if (Member(root, "projects") is JsonObject projects)
+        Binding(defaults, "projectDefaults", defaults: true);
+        if (root.TryGetPropertyValue("projects", out var projectsNode) && projectsNode is not JsonObject)
+        {
+            throw new InvalidDataException("Expected a projects mapping object");
+        }
+        if (projectsNode is JsonObject projects)
         {
             foreach (var (project, node) in projects.ToArray())
             {
@@ -46,7 +62,7 @@ internal static class MappingDefaults
             }
         }
         ExpandFrameworks(defaults, "projectDefaults");
-        return root.ToJsonString();
+        return root;
     }
 
     private static void ExpandFrameworks(JsonObject binding, string path)
@@ -91,11 +107,15 @@ internal static class MappingDefaults
         return merged;
     }
 
-    private static void Binding(JsonObject value, string path)
+    private static void Binding(JsonObject value, string path, bool defaults = false)
     {
         Members(value, path);
         foreach (var (name, node) in value)
         {
+            if (name is not ("frameworkOverrides" or "documents" or "inputItems" or "evaluationItems" or "evaluationReuseInputs" or "compileGlobs" or "outputFiles" or "replayOmissions" or "referenceBoundary" or "implementationDependencies" or "compilerReference" or "compilerReferences" or "compilerReferencesComplete" or "dependencyCopies" or "preparedRestore" or "restoreInputs" or "restoreOutputs" or "inputDirectories" or "temporaryDirectories") && !(defaults && name == "properties"))
+            {
+                throw new InvalidDataException("Graph mapping requires explicit contract transfer for: " + name);
+            }
             if (node is null && !name.Equals("referenceBoundary", StringComparison.OrdinalIgnoreCase) && !name.Equals("compilerReference", StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidDataException("Null mapping field: " + path + "." + name);

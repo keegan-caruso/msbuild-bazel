@@ -44,7 +44,7 @@ internal sealed class Mappings
 
     internal static Mappings Read(string? path)
     {
-        var mappings = path is null ? new Mappings() : JsonSerializer.Deserialize<Mappings>(MappingDefaults.Expand(File.ReadAllText(path)), new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }) ?? throw new InvalidDataException("Empty sync mappings");
+        var mappings = path is null ? new Mappings() : MappingDefaults.Expand(File.ReadAllText(path)).Deserialize<Mappings>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }) ?? throw new InvalidDataException("Empty sync mappings");
         foreach (var input in mappings.RestoreReuseInputs)
         {
             WorkspaceView.Safe(input);

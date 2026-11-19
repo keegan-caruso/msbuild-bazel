@@ -667,6 +667,20 @@ class GraphSyncTests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertIn("explicit contract", self.sync({"projects": {"App.csproj": {field: value}}}, success=False))
 
+    def test_malformed_mapping_sections_and_bindings_fail_cleanly(self):
+        cases = [('null', "Expected an object for sync mappings"),
+                 ('{"projects":null}', "Expected a projects mapping object"),
+                 ('{"projects":[]}', "Expected a projects mapping object"),
+                 ('{"projectDefaults":null}', "projectDefaults must be an object"),
+                 ('{"entryProperties":null}', "Expected mapping objects"),
+                 ('{"restoreReuseInputs":null}', "Expected mapping objects"),
+                 ('{"projects":{"App.csproj":null}}', "Expected a project mapping object"),
+                 ('{"projects":{"App.csproj":{"frameworkOverrides":{"net11.0":null}}}}', "Null mapping entry")]
+        for text, expected in cases:
+            error = self.sync(text, success=False)
+            self.assertIn(expected, error)
+            self.assertNotIn("Object reference", error)
+
     def test_duplicate_and_ambiguous_keys_fail(self):
         for text in ['{"projects":{},"projects":{}}',
                      '{"projectDefaults":{"documents":{"App.csproj":{"sha256":"a","sha256":"b"}}}}',
