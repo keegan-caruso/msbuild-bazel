@@ -422,6 +422,28 @@ The ProjectSync controls cover props and executable-mode changes, multi-target
 selection, implementation/reference DLLs, XML copies, failed builds, corrupt
 artifacts/metadata, relocation, source/SDK aliases and overlapping output owners.
 
+Environment fingerprinting reuses content digests for file links resolving to the
+same target path inside the immutable SDK during one pass. Logical names, order
+and modes remain keyed; later passes reread bytes. External resolved paths bypass
+reuse; directory aliases and hard links may miss reuse. The SDK must remain
+immutable during the pass. Production/legacy comparisons use the same assembly
+bytes and pass for the actual SDKs below, empty/plain/linked fixtures, renamed paths,
+mode/content changes with restored timestamps and retargeted links between passes.
+
+Ubuntu 26.04 ARM64 warm-cache complete-environment measurements use four alternating
+legacy/production pairs; these are fingerprint timings, not end-to-end sync gains:
+
+| SDK layout | Legacy median | Production median |
+| --- | ---: | ---: |
+| Downloaded SDK 11.0.100 | 0.326 s | 0.253 s |
+| Retained source SDK 10.0.100 (`e043c131`) | 0.704 s | 0.554 s |
+
+After building ProjectSync, run
+`python3 tests/graph_build/qualification_environment.py --full` on Linux with
+`RULES_MSBUILD_DOTNET_ROOT` set and `/usr/bin/bwrap` installed. This checks the selected
+real SDK and measures synthetic plain/linked layouts. Omit `--full` on macOS to
+check SDK records only; complete environment hashing requires the Linux system files.
+
 The conditional-default fixture passed on Linux ARM64 / SDK **10.0.400**, both
 current Bazel pins: package-free closed sync, absent-endpoint and target-only
 capability fallback, explicit disable/forced-prerequisite controls, automatic
