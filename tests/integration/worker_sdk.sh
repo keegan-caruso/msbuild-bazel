@@ -86,6 +86,13 @@ for mode in ordinary graph; do
     bash "$runner_dir/raw_namespace.sh" "$sdk" "$scratch/template-$mode" "$scratch/template-$mode-scratch" msbuild UpstreamWorker/UpstreamWorker.csproj -restore "${graph[@]}" -t:Build -p:Configuration=Release -p:UseSharedCompilation=false -p:PathMap='/__rules_msbuild_graph/output/workspace=/_/workspace%2C/__rules_msbuild_graph/sdk=/_/sdk' > "$TEST_TMPDIR/template-$mode.log" 2>&1 || { cat "$TEST_TMPDIR/template-$mode.log" >&2; exit 1; }
 done
 sed -i 's/projects = \["App\/App.csproj"\]/projects = ["UpstreamWorker\/UpstreamWorker.csproj"]/' BUILD.bazel
+python3 - <<'PY'
+import json
+from pathlib import Path
+p=Path('mappings.json');m=json.loads(p.read_text())
+m['projects']['UpstreamWorker/UpstreamWorker.csproj']=m['projects'].pop('App/App.csproj')
+p.write_text(json.dumps(m))
+PY
 bazel run //:sync > "$TEST_TMPDIR/template-sync.log" 2>&1 || { cat "$TEST_TMPDIR/template-sync.log" >&2; exit 1; }
 bazel build //:graph "${options[@]}" > "$TEST_TMPDIR/template-build.log" 2>&1 || { cat "$TEST_TMPDIR/template-build.log" >&2; exit 1; }
 for ext in dll pdb; do
