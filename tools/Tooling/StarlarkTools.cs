@@ -24,14 +24,14 @@ internal static class StarlarkTools
             var tool = tools[name]!;
             var artifact = Artifact(tool);
             var binary = Path.Combine(root, ".tools/bin", name);
-            if (!File.Exists(binary) || Json.Sha(File.ReadAllBytes(binary)) != artifact.String("sha256"))
+            if (!File.Exists(binary) || Json.FileSha256(binary) != artifact.String("sha256"))
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(binary)!);
                 var temporary = binary + "." + Guid.NewGuid().ToString("N");
                 try
                 {
                     Host.Run("curl", ["--fail", "--location", "--silent", "--show-error", "--retry", "3", "--connect-timeout", "20", "--max-time", "300", artifact.String("url"), "--output", temporary], root);
-                    if (Json.Sha(File.ReadAllBytes(temporary)) != artifact.String("sha256"))
+                    if (Json.FileSha256(temporary) != artifact.String("sha256"))
                     {
                         throw new InvalidDataException(name + " checksum mismatch");
                     }
@@ -51,7 +51,7 @@ internal static class StarlarkTools
     {
         var artifact = Artifact(Json.Read(Path.Combine(root, "scripts/starlark-tools.json"))["buildifier"]!);
         var binary = Path.Combine(root, ".tools/bin/buildifier");
-        if (!File.Exists(binary) || Json.Sha(File.ReadAllBytes(binary)) != artifact.String("sha256"))
+        if (!File.Exists(binary) || Json.FileSha256(binary) != artifact.String("sha256"))
         {
             throw new InvalidDataException("Run bash scripts/tooling.sh setup-starlark");
         }
