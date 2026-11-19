@@ -233,17 +233,8 @@ public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, strin
                     Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
                     await using var input = await response.Content.ReadAsStreamAsync(token);
                     await using var output = new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None, 65536, true);
-                    using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-                    var buffer = new byte[65536];
-                    long length = 0;
-                    int count;
-                    while ((count = await input.ReadAsync(buffer, token)) != 0)
-                    {
-                        hash.AppendData(buffer, 0, count);
-                        await output.WriteAsync(buffer.AsMemory(0, count), token);
-                        length += count;
-                    }
-                    if (Convert.ToHexStringLower(hash.GetHashAndReset()) != digest)
+                    var (actual, length) = await CopyAndHashAsync(input, output, token);
+                    if (actual != digest)
                     {
                         throw new InvalidDataException("Corrupt project-cache blob: " + digest);
                     }
@@ -286,19 +277,12 @@ public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, strin
             await using (var source = File.OpenRead(path))
             await using (var staged = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 65536, true))
             {
-                using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-                var buffer = new byte[65536];
-                int count;
-                while ((count = await source.ReadAsync(buffer, cancellationToken)) != 0)
-                {
-                    hash.AppendData(buffer, 0, count);
-                    await staged.WriteAsync(buffer.AsMemory(0, count), cancellationToken);
-                }
-                if (Convert.ToHexStringLower(hash.GetHashAndReset()) != digest)
+                var copied = await CopyAndHashAsync(source, staged, cancellationToken);
+                if (copied.Digest != digest)
                 {
                     throw new InvalidDataException("Project-cache file changed during upload: " + path);
                 }
-                length = staged.Length;
+                length = copied.Length;
             }
             using var response = await SendAsync(() =>
             {
@@ -326,6 +310,21 @@ public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, strin
         }
     }
 
+    private static async Task<(string Digest, long Length)> CopyAndHashAsync(Stream input, Stream output, CancellationToken cancellationToken)
+    {
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        var buffer = new byte[65536];
+        long length = 0;
+        int count;
+        while ((count = await input.ReadAsync(buffer, cancellationToken)) != 0)
+        {
+            hash.AppendData(buffer, 0, count);
+            await output.WriteAsync(buffer.AsMemory(0, count), cancellationToken);
+            length += count;
+        }
+        return (Convert.ToHexStringLower(hash.GetHashAndReset()), length);
+    }
+
     private sealed class VerifiedFileContent(string path, string digest) : HttpContent
     {
         private readonly FileStream input = File.OpenRead(path);
@@ -338,15 +337,8 @@ public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, strin
             SerializeToStreamAsync(stream, context, CancellationToken.None);
         protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context, CancellationToken cancellationToken)
         {
-            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-            var buffer = new byte[65536];
-            int count;
-            while ((count = await input.ReadAsync(buffer, cancellationToken)) != 0)
-            {
-                hash.AppendData(buffer, 0, count);
-                await stream.WriteAsync(buffer.AsMemory(0, count), cancellationToken);
-            }
-            if (Convert.ToHexStringLower(hash.GetHashAndReset()) != digest)
+            var copied = await CopyAndHashAsync(input, stream, cancellationToken);
+            if (copied.Digest != digest)
             {
                 throw new InvalidDataException("Project-cache file changed during upload: " + path);
             }
