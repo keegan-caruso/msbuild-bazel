@@ -13,9 +13,19 @@ internal static class MappingDefaults
 
     internal static string Expand(string text)
     {
-        using var document = JsonDocument.Parse(text);
-        RejectDuplicates(document.RootElement, "mappings");
-        var root = JsonNode.Parse(text) as JsonObject ?? throw new InvalidDataException("Expected an object for sync mappings");
+        JsonObject root;
+        try
+        {
+            root = JsonNode.Parse(text, documentOptions: new()
+            {
+                AllowDuplicateProperties = false
+            }) as JsonObject
+                ?? throw new InvalidDataException("Expected an object for sync mappings");
+        }
+        catch (JsonException error)
+        {
+            throw new InvalidDataException("Invalid sync mappings: " + error.Message, error);
+        }
         Members(root, "mappings");
         var defaultsNode = Member(root, "projectDefaults");
         if (root.Any(p => p.Key.Equals("projectDefaults", StringComparison.OrdinalIgnoreCase)) && defaultsNode is not JsonObject)
@@ -30,24 +40,7 @@ internal static class MappingDefaults
             {
                 var specific = node as JsonObject ?? throw new InvalidDataException("Expected a project mapping object: " + project);
                 Binding(specific, project);
-                var merged = (JsonObject)defaults.DeepClone();
-                foreach (var (key, value) in specific)
-                {
-                    var existing = merged.Select(p => p.Key).FirstOrDefault(k => k.Equals(key, StringComparison.OrdinalIgnoreCase)) ?? key;
-                    if (Dictionaries.Contains(key) && merged[existing] is JsonObject inherited && value is JsonObject overrides)
-                    {
-                        foreach (var (identity, replacement) in overrides)
-                        {
-                            // A document binding replaces the whole record, so
-                            // its old hash cannot silently survive a partial override.
-                            inherited[identity] = replacement?.DeepClone();
-                        }
-                    }
-                    else
-                    {
-                        merged[existing] = value?.DeepClone();
-                    }
-                }
+                var merged = Merge(defaults, specific);
                 ExpandFrameworks(merged, project);
                 projects[project] = merged;
             }
@@ -70,28 +63,32 @@ internal static class MappingDefaults
             {
                 throw new InvalidDataException("Framework overrides cannot select or nest frameworks: " + path + "." + framework);
             }
-            var merged = new JsonObject();
-            foreach (var (key, value) in binding.Where(p => !p.Key.Equals("frameworkOverrides", StringComparison.OrdinalIgnoreCase)))
-            {
-                merged[key] = value?.DeepClone();
-            }
-            foreach (var (key, value) in specific)
-            {
-                var existing = merged.Select(p => p.Key).FirstOrDefault(k => k.Equals(key, StringComparison.OrdinalIgnoreCase)) ?? key;
-                if (Dictionaries.Contains(key) && merged[existing] is JsonObject inherited && value is JsonObject replacements)
-                {
-                    foreach (var (identity, replacement) in replacements)
-                    {
-                        inherited[identity] = replacement?.DeepClone();
-                    }
-                }
-                else
-                {
-                    merged[existing] = value?.DeepClone();
-                }
-            }
+            var merged = Merge(binding.Where(p => !p.Key.Equals("frameworkOverrides", StringComparison.OrdinalIgnoreCase)), specific);
             overrides[framework] = merged;
         }
+    }
+
+    private static JsonObject Merge(IEnumerable<KeyValuePair<string, JsonNode?>> inherited, JsonObject specific)
+    {
+        var merged = new JsonObject(inherited.Select(pair => KeyValuePair.Create(pair.Key, pair.Value?.DeepClone())));
+        foreach (var (key, value) in specific)
+        {
+            var existing = merged.Select(pair => pair.Key).FirstOrDefault(name => name.Equals(key, StringComparison.OrdinalIgnoreCase)) ?? key;
+            if (Dictionaries.Contains(key) && merged[existing] is JsonObject entries && value is JsonObject replacements)
+            {
+                foreach (var (identity, replacement) in replacements)
+                {
+                    // Replace whole records: a partial document override must
+                    // never retain the inherited hash or target/task contract.
+                    entries[identity] = replacement?.DeepClone();
+                }
+            }
+            else
+            {
+                merged[existing] = value?.DeepClone();
+            }
+        }
+        return merged;
     }
 
     private static void Binding(JsonObject value, string path)
@@ -134,29 +131,6 @@ internal static class MappingDefaults
             if (!names.Add(name))
             {
                 throw new InvalidDataException("Ambiguous mapping member: " + path + "." + name);
-            }
-        }
-    }
-
-    private static void RejectDuplicates(JsonElement value, string path)
-    {
-        if (value.ValueKind == JsonValueKind.Object)
-        {
-            var names = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var property in value.EnumerateObject())
-            {
-                if (!names.Add(property.Name))
-                {
-                    throw new InvalidDataException("Duplicate mapping key: " + path + "." + property.Name);
-                }
-                RejectDuplicates(property.Value, path + "." + property.Name);
-            }
-        }
-        else if (value.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var item in value.EnumerateArray())
-            {
-                RejectDuplicates(item, path + "[]");
             }
         }
     }
