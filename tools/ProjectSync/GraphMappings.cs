@@ -11,52 +11,11 @@ internal sealed class GraphMappings
 
     internal GraphMappings(string? path)
     {
-        if (path is not null)
-        {
-            using var json = JsonDocument.Parse(File.ReadAllText(path));
-            foreach (var section in json.RootElement.EnumerateObject())
-            {
-                if (section.Name is "projectDefaults")
-                {
-                    Validate(section.Value, defaults: true);
-                }
-                else if (section.Name is "projects")
-                {
-                    foreach (var project in section.Value.EnumerateObject())
-                    {
-                        Validate(project.Value, defaults: false);
-                    }
-                }
-                else if (section.Name is not ("entryProperties" or "restoreReuseInputs"))
-                {
-                    throw new InvalidDataException("Graph mappings do not support section: " + section.Name);
-                }
-            }
-        }
         mappings = Mappings.Read(path);
         var owned = new[] { "NetCoreSdkRoot", "NETCoreSdkBundledVersionsProps", "DOTNET_HOST_PATH", "PathMap", "UseSharedCompilation", "RestoreSources", "RestoreConfigFile", "RestorePackagesPath", "RestoreFallbackFolders", "RestoreAdditionalProjectSources", "RestoreAdditionalProjectFallbackFolders" };
         if (mappings.ProjectDefaults.Properties.Keys.Any(key => owned.Contains(key, StringComparer.OrdinalIgnoreCase)))
         {
             throw new InvalidDataException("Graph paths and Restore sources are controlled by declared inputs");
-        }
-    }
-
-    private static void Validate(JsonElement binding, bool defaults)
-    {
-        foreach (var property in binding.EnumerateObject())
-        {
-            if (property.Name == "frameworkOverrides")
-            {
-                foreach (var framework in property.Value.EnumerateObject())
-                {
-                    Validate(framework.Value, defaults: false);
-                }
-                continue;
-            }
-            if (property.Name is not ("documents" or "inputItems" or "evaluationItems" or "evaluationReuseInputs" or "compileGlobs" or "outputFiles" or "replayOmissions" or "referenceBoundary" or "implementationDependencies" or "compilerReference" or "compilerReferences" or "compilerReferencesComplete" or "dependencyCopies" or "preparedRestore" or "restoreInputs" or "restoreOutputs" or "inputDirectories" or "temporaryDirectories") && !(defaults && property.Name == "properties"))
-            {
-                throw new InvalidDataException("Graph mapping requires explicit contract transfer for: " + property.Name);
-            }
         }
     }
 
