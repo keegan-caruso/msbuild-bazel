@@ -51,26 +51,10 @@ for mode in ordinary graph; do
     cp "$scratch/raw-$mode/Web/bin/Release/net10.0/publish/Web.staticwebassets.endpoints.json" "$TEST_TMPDIR/raw-$mode.endpoints.json"
 done
 cp bazel-bin/publish.graph/workspace/Web/bin/Release/net10.0/publish/Web.staticwebassets.endpoints.json "$TEST_TMPDIR/graph.endpoints.json"
-for mode in raw-ordinary raw-graph publish; do
-    grep -v '  ./Web.staticwebassets.endpoints.json$' "$TEST_TMPDIR/$mode.sha256" > "$TEST_TMPDIR/$mode.stable.sha256"
-done
-cmp "$TEST_TMPDIR/raw-ordinary.stable.sha256" "$TEST_TMPDIR/raw-graph.stable.sha256"
-cmp "$TEST_TMPDIR/raw-graph.stable.sha256" "$TEST_TMPDIR/publish.stable.sha256"
-python3 - "$TEST_TMPDIR" <<'PY'
-import json,sys
-from email.utils import parsedate_to_datetime
-from pathlib import Path
-def manifest(name):
-    data=json.loads(Path(sys.argv[1],name+'.endpoints.json').read_text());count=0
-    for endpoint in data['Endpoints']:
-        for header in endpoint['ResponseHeaders']:
-            if header['Name']=='Last-Modified':
-                assert parsedate_to_datetime(header['Value']).tzinfo is not None
-                header['Value']='<timestamp>';count+=1
-    assert count>0
-    return data
-assert manifest('raw-ordinary')==manifest('raw-graph')==manifest('graph')
-PY
+assert_static_asset_parity "$TEST_TMPDIR/raw-ordinary.sha256" "$TEST_TMPDIR/raw-graph.sha256" \
+    "$TEST_TMPDIR/raw-ordinary.endpoints.json" "$TEST_TMPDIR/raw-graph.endpoints.json" ./Web.staticwebassets.endpoints.json
+assert_static_asset_parity "$TEST_TMPDIR/raw-graph.sha256" "$TEST_TMPDIR/publish.sha256" \
+    "$TEST_TMPDIR/raw-graph.endpoints.json" "$TEST_TMPDIR/graph.endpoints.json" ./Web.staticwebassets.endpoints.json
 reference=bazel-bin/build.graph/workspace/Data/obj/Release/net10.0/ref/Data.dll
 sha256sum "$reference" > "$TEST_TMPDIR/reference.sha256"
 sed -i 's/warehouse-v1/warehouse-v2/' Data/CatalogStore.cs
@@ -100,6 +84,7 @@ bazel test //:tests //:web_test "${options[@]}" --test_output=all > "$TEST_TMPDI
 assert_contains "$TEST_TMPDIR/api-test.log" 'UNIT: warehouse-v2'
 run published_app edited-publish warehouse-v2
 products bazel-bin/publish.graph/workspace > "$TEST_TMPDIR/edited.sha256"
+cp bazel-bin/publish.graph/workspace/Web/bin/Release/net10.0/publish/Web.staticwebassets.endpoints.json "$TEST_TMPDIR/edited.endpoints.json"
 bazel shutdown
 mkdir "$scratch/recovery"
 tar -cf "$scratch/consumer.tar" Domain Data Services Web Tests MODULE.bazel MODULE.bazel.lock BUILD.bazel global.json NuGet.Config Directory.Build.props Directory.Packages.props mappings.json nuget.lock.json graph.generated.json graph.generated.bzl
@@ -113,7 +98,13 @@ fresh recovered test //:published_test "${options[@]}" --lockfile_mode=error --t
 fresh recovered run //:published_app "${options[@]}" --lockfile_mode=error --run_under='env -u RUNFILES_DIR -u RUNFILES_MANIFEST_FILE -u TEST_SRCDIR' -- --smoke > "$TEST_TMPDIR/recovered-app.log" 2>&1 || { cat "$TEST_TMPDIR/recovered-app.log" >&2; exit 1; }
 assert_contains "$TEST_TMPDIR/recovered-app.log" 'HTTP: warehouse-v2'
 products bazel-bin/publish.graph/workspace > "$TEST_TMPDIR/recovered.sha256"
-cmp "$TEST_TMPDIR/edited.sha256" "$TEST_TMPDIR/recovered.sha256"
+if [[ -n "${SDK_WEB_CACHE_URL:-}" ]]; then
+    # Actual cache recovery retains every byte, including SDK timestamps.
+    cmp "$TEST_TMPDIR/edited.sha256" "$TEST_TMPDIR/recovered.sha256"
+else
+    assert_static_asset_parity "$TEST_TMPDIR/edited.sha256" "$TEST_TMPDIR/recovered.sha256" \
+        "$TEST_TMPDIR/edited.endpoints.json" bazel-bin/publish.graph/workspace/Web/bin/Release/net10.0/publish/Web.staticwebassets.endpoints.json ./Web.staticwebassets.endpoints.json
+fi
 if [[ -n "${SDK_WEB_CACHE_URL:-}" ]]; then
     assert_remote_hits "$TEST_TMPDIR/recovered.execution.json" MSBuildGraphRestore=1 MSBuildGraph=1
     fresh project-recovery test //:published_test "${options[@]}" --noremote_accept_cached --remote_upload_local_results=false --lockfile_mode=error --test_output=all

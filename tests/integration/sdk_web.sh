@@ -112,26 +112,10 @@ done
 cp bazel-bin/publish.graph/workspace/App/bin/Release/net11.0/publish/App.staticwebassets.endpoints.json "$TEST_TMPDIR/graph.endpoints.json"
 # The SDK records source/compression timestamps in Last-Modified response headers.
 # Check every other byte and all endpoint metadata, normalizing only those values.
-for mode in raw-ordinary raw-graph publish; do
-    grep -v '  ./App.staticwebassets.endpoints.json$' "$TEST_TMPDIR/$mode.sha256" > "$TEST_TMPDIR/$mode.stable.sha256"
-done
-cmp "$TEST_TMPDIR/raw-ordinary.stable.sha256" "$TEST_TMPDIR/raw-graph.stable.sha256"
-cmp "$TEST_TMPDIR/raw-graph.stable.sha256" "$TEST_TMPDIR/publish.stable.sha256"
-python3 - "$TEST_TMPDIR" <<'PY'
-import json,sys
-from email.utils import parsedate_to_datetime
-from pathlib import Path
-def manifest(name):
-    data=json.loads(Path(sys.argv[1],name+'.endpoints.json').read_text());count=0
-    for endpoint in data['Endpoints']:
-        for header in endpoint['ResponseHeaders']:
-            if header['Name']=='Last-Modified':
-                assert parsedate_to_datetime(header['Value']).tzinfo is not None
-                header['Value']='<timestamp>';count+=1
-    assert count>0
-    return data
-assert manifest('raw-ordinary')==manifest('raw-graph')==manifest('graph')
-PY
+assert_static_asset_parity "$TEST_TMPDIR/raw-ordinary.sha256" "$TEST_TMPDIR/raw-graph.sha256" \
+    "$TEST_TMPDIR/raw-ordinary.endpoints.json" "$TEST_TMPDIR/raw-graph.endpoints.json" ./App.staticwebassets.endpoints.json
+assert_static_asset_parity "$TEST_TMPDIR/raw-graph.sha256" "$TEST_TMPDIR/publish.sha256" \
+    "$TEST_TMPDIR/raw-graph.endpoints.json" "$TEST_TMPDIR/graph.endpoints.json" ./App.staticwebassets.endpoints.json
 # Razor and static content edits are already-declared inputs, requiring no sync.
 sed -i 's/page-v1/page-v2/' App/Pages/Index.cshtml
 printf 'asset-v2\n' > App/wwwroot/message.txt
@@ -139,6 +123,7 @@ run_app app page-v2 asset-v2
 run_app published_app page-v2 asset-v2
 bazel test //:web_test //:published_test "${options[@]}" --test_output=errors
 publish_products bazel-bin/publish.graph/workspace > "$TEST_TMPDIR/edited.sha256"
+cp bazel-bin/publish.graph/workspace/App/bin/Release/net11.0/publish/App.staticwebassets.endpoints.json "$TEST_TMPDIR/edited.endpoints.json"
 if cmp -s "$TEST_TMPDIR/publish.sha256" "$TEST_TMPDIR/edited.sha256"; then echo 'Edits did not change published outputs' >&2; exit 1; fi
 bazel shutdown
 mkdir "$scratch/recovery"
@@ -156,7 +141,13 @@ fresh recovered run //:published_app "${options[@]}" --lockfile_mode=error \
 assert_contains "$TEST_TMPDIR/recovered-app.log" 'PAGE: <p>page-v2</p>'
 assert_contains "$TEST_TMPDIR/recovered-app.log" 'ASSET: asset-v2'
 publish_products bazel-bin/publish.graph/workspace > "$TEST_TMPDIR/recovered.sha256"
-cmp "$TEST_TMPDIR/edited.sha256" "$TEST_TMPDIR/recovered.sha256"
+if [[ -n "${SDK_WEB_CACHE_URL:-}" ]]; then
+    # Actual cache recovery retains every byte, including SDK timestamps.
+    cmp "$TEST_TMPDIR/edited.sha256" "$TEST_TMPDIR/recovered.sha256"
+else
+    assert_static_asset_parity "$TEST_TMPDIR/edited.sha256" "$TEST_TMPDIR/recovered.sha256" \
+        "$TEST_TMPDIR/edited.endpoints.json" bazel-bin/publish.graph/workspace/App/bin/Release/net11.0/publish/App.staticwebassets.endpoints.json ./App.staticwebassets.endpoints.json
+fi
 if [[ -n "${SDK_WEB_CACHE_URL:-}" ]]; then
     assert_remote_hits "$TEST_TMPDIR/recovered.execution.json" MSBuildGraph=1
     fresh project-recovery test //:published_test "${options[@]}" --noremote_accept_cached --remote_upload_local_results=false --lockfile_mode=error --test_output=all
