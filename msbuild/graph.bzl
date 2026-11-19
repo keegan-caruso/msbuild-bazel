@@ -4,6 +4,7 @@ load("//msbuild/private:defaults.bzl", "STABLE_PATHS_TOOLCHAIN", "stable_paths")
 load("//msbuild/private:paths.bzl", _RUNTIME_TOOLCHAIN = "RUNTIME_TOOLCHAIN", _TOOLCHAIN = "TOOLCHAIN")
 load("//msbuild/private:project_launch.bzl", _create_launcher = "create_launcher")
 load("//msbuild/private:providers.bzl", "MSBuildBindingInfo", "MSBuildLayoutInfo", "MSBuildPackageLockInfo", "MSBuildRuntimeInfo")
+load("//msbuild/private:sdk_bootstrap.bzl", "bootstrap_project")
 load("//msbuild/private:test_options.bzl", _TEST_OPTIONS_ATTRS = "TEST_OPTIONS_ATTRS", _validate_test = "validate_test")
 
 MSBuildGraphInfo = provider("A declared MSBuild graph workspace and its execution SDK.", fields = {"directory": "Graph output workspace", "contract": "Declared graph output ownership", "dotnet": "Execution host", "sdk": "Declared SDK files", "projects": "Configured project runtime outputs"})
@@ -20,26 +21,14 @@ def _project_output(graph, project, framework):
 def _runner(ctx):
     tc = ctx.toolchains["//msbuild:toolchain_type"]
     output = ctx.actions.declare_directory(ctx.label.name + ".runner")
-    ctx.actions.run_shell(
-        inputs = depset(ctx.files._sources, transitive = [tc.sdk]),
-        tools = [tc.dotnet],
-        outputs = [output],
-        arguments = [tc.dotnet.path, ctx.file._project.path, output.path],
-        command = """set -eu
-dotnet="$PWD/$1"; project="$PWD/$2"; output="$PWD/$3"
-scratch=$(mktemp -d)
-trap 'rm -rf "$scratch"' EXIT
-repository="$(dirname "$(dirname "$(dirname "$project")")")"
-mkdir -p "$scratch/empty"
-export DOTNET_ROOT="$(dirname "$dotnet")" DOTNET_CLI_HOME="$scratch" HOME="$scratch"
-export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_NOLOGO=1
-export DOTNET_CLI_USE_MSBUILD_SERVER=false MSBUILDUSESERVER=0
-"$dotnet" build "$project" -c Release -o "$output" --nologo \
-  -p:BaseIntermediateOutputPath="$scratch/obj/" -p:UseSharedCompilation=false \
-  -p:PathMap="$repository=/_/rules_msbuild%2C$scratch=/_/bootstrap" \
-  -p:RestoreSources="$scratch/empty" -p:NuGetAudit=false
-""",
-        mnemonic = "MSBuildGraphBootstrap",
+    bootstrap_project(
+        ctx,
+        tc.dotnet,
+        ctx.file._project,
+        depset(ctx.files._sources, transitive = [tc.sdk]),
+        [output],
+        "MSBuildGraphBootstrap",
+        path_map = True,
     )
     return [DefaultInfo(files = depset([output]))]
 

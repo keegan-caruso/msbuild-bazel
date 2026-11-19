@@ -4,6 +4,7 @@ load("//msbuild:graph.bzl", "msbuild_graph_runner")
 load("//msbuild/private:defaults.bzl", "STABLE_PATHS_TOOLCHAIN", "automatic")
 load("//msbuild/private:paths.bzl", _TOOLCHAIN = "TOOLCHAIN", _quote = "quote", _runfile = "runfile")
 load("//msbuild/private:providers.bzl", "MSBuildBindingInfo", "MSBuildPackageLockInfo")
+load("//msbuild/private:sdk_bootstrap.bzl", "bootstrap_project")
 load("//msbuild/private:sync_preparation.bzl", "prepare_sync")
 
 def _source_globs_impl(ctx):
@@ -81,27 +82,14 @@ def _sync_impl(ctx):
         fail("NuGet updates resolve packages explicitly; srcs caching is only for msbuild_sync")
     tc = ctx.toolchains[_TOOLCHAIN]
     payload = ctx.actions.declare_directory(ctx.label.name + ".project-sync")
-    ctx.actions.run_shell(
-        inputs = depset(ctx.files._sources, transitive = [tc.sdk]),
-        tools = [tc.dotnet],
-        outputs = [payload],
-        arguments = [tc.dotnet.path, ctx.file._project.path, payload.path],
-        command = """set -eu
-dotnet="$PWD/$1"; project="$PWD/$2"; output="$PWD/$3"
-scratch=$(mktemp -d)
-trap 'rm -rf "$scratch"' EXIT
-mkdir -p "$scratch/empty"
-export DOTNET_ROOT="$(dirname "$dotnet")" DOTNET_CLI_HOME="$scratch"
-export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
-export DOTNET_CLI_USE_MSBUILD_SERVER=false MSBUILDUSESERVER=0
-export DOTNET_GENERATE_ASPNET_CERTIFICATE=false DOTNET_MULTILEVEL_LOOKUP=0
-export NUGET_PACKAGES="$scratch/packages"
-cd "$scratch"
-"$dotnet" build "$project" -c Release -o "$output" --nologo \\
-    -p:BaseIntermediateOutputPath="$scratch/obj/" -p:UseSharedCompilation=false \\
-    -p:RestoreSources="$scratch/empty" -p:NuGetAudit=false -p:DebugType=None
-""",
-        mnemonic = "MSBuildSyncBootstrap",
+    bootstrap_project(
+        ctx,
+        tc.dotnet,
+        ctx.file._project,
+        depset(ctx.files._sources, transitive = [tc.sdk]),
+        [payload],
+        "MSBuildSyncBootstrap",
+        private_home = False,
     )
     if ctx.attr.nuget_update:
         launcher = ctx.actions.declare_file(ctx.label.name)
