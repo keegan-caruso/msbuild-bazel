@@ -236,6 +236,17 @@ def msbuild_graph_restore(name, linux_stable_paths = None, **kwargs):
     """Prepare Restore; generated optional Restore falls back on portable platforms."""
     _msbuild_graph_restore(name = name, linux_stable_paths = linux_stable_paths if linux_stable_paths != None else False, automatic_stable_paths = linux_stable_paths == None, **kwargs)
 
+def _copy_project_output(ctx, graph, directory, assembly, suffix, mnemonic):
+    output = ctx.actions.declare_directory(ctx.label.name + suffix)
+    ctx.actions.run_shell(
+        inputs = [graph.directory],
+        outputs = [output],
+        arguments = [graph.directory.path + "/workspace/" + directory, output.path, assembly],
+        command = 'set -eu; test -f "$1/$3"; mkdir -p "$2"; cp -pRL "$1/." "$2/"',
+        mnemonic = mnemonic,
+    )
+    return output
+
 def _runtime(ctx, test = False):
     graph = ctx.attr.graph[MSBuildGraphInfo]
     assembly = ctx.attr.assembly
@@ -252,14 +263,7 @@ def _runtime(ctx, test = False):
     for path in [directory, assembly]:
         if not _safe_relative_path(path):
             fail("Runtime outputs must be safe workspace-relative paths")
-    output = ctx.actions.declare_directory(ctx.label.name + ".runtime")
-    ctx.actions.run_shell(
-        inputs = [graph.directory],
-        outputs = [output],
-        arguments = [graph.directory.path + "/workspace/" + directory, output.path, assembly],
-        command = 'set -eu; test -f "$1/$3"; mkdir -p "$2"; cp -pRL "$1/." "$2/"',
-        mnemonic = "MSBuildGraphRuntime",
-    )
+    output = _copy_project_output(ctx, graph, directory, assembly, ".runtime", "MSBuildGraphRuntime")
     for target in ctx.attr.data_paths:
         if len(target[DefaultInfo].files.to_list()) != 1 or target[DefaultInfo].files.to_list()[0].is_directory:
             fail("data_paths requires one file per label")
@@ -299,14 +303,7 @@ def _layout(ctx):
     for path in [directory, assembly]:
         if not _safe_relative_path(path):
             fail("Graph layout requires safe workspace-relative outputs")
-    output = ctx.actions.declare_directory(ctx.label.name + ".layout")
-    ctx.actions.run_shell(
-        inputs = [graph.directory],
-        outputs = [output],
-        arguments = [graph.directory.path + "/workspace/" + directory, output.path, assembly],
-        command = 'set -eu; test -f "$1/$3"; mkdir -p "$2"; cp -pRL "$1/." "$2/"',
-        mnemonic = "MSBuildGraphLayout",
-    )
+    output = _copy_project_output(ctx, graph, directory, assembly, ".layout", "MSBuildGraphLayout")
     return [DefaultInfo(files = depset([output])), MSBuildLayoutInfo(directory = output)]
 
 def _combined_layout(ctx):
