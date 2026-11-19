@@ -1,0 +1,27 @@
+<Project>
+  <Import Project="MSBuildTool.props" />
+  <PropertyGroup>
+    <!-- MSBuild 18 promoted the experimental project-cache API. -->
+    <DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(MSBuildVersion)', '18.0'))">$(DefineConstants);STABLE_PROJECT_CACHE</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)AnalyzerConfigs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PackageSdks.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NuGetLocks.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)GraphEntryProperties.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)GraphSolutions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)GraphCompilerReferences.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)GraphProjectKind.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)GraphSourcePattern.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)OutputOwnershipIndex.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ProjectCache/FileObservation.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ProjectCache/SnapshotPayloads.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ProjectCache/BuildSeed.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ProjectCache/FileMaterializer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ProjectCache/CachedTargetItem.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ProjectCache/RemoteSnapshotStore.cs" />
+    <Reference Include="Microsoft.Build" HintPath="$(RulesMSBuildEngineRoot)/Microsoft.Build.dll" Private="true" />
+    <Reference Include="Microsoft.Build.Framework" HintPath="$(RulesMSBuildEngineRoot)/Microsoft.Build.Framework.dll" Private="true" />
+    <Reference Include="Microsoft.Build.Utilities.Core" HintPath="$(RulesMSBuildEngineRoot)/Microsoft.Build.Utilities.Core.dll" Private="true" />
+  </ItemGroup>
+</Project>
