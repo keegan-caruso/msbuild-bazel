@@ -91,7 +91,7 @@ run_app() {
     bazel run "//:$1" "${options[@]}" > "$TEST_TMPDIR/$1.log" 2>&1 || { cat "$TEST_TMPDIR/$1.log" >&2; exit 1; }
     assert_contains "$TEST_TMPDIR/$1.log" 'HTTP: Hello from MSBuild and Bazel'
     assert_contains "$TEST_TMPDIR/$1.log" "PAGE: <p>$2</p>"
-    assert_contains "$TEST_TMPDIR/$1.log" '/shared/Microsoft.AspNetCore.App/10.0.11/'
+    assert_contains "$TEST_TMPDIR/$1.log" '/shared/Microsoft.AspNetCore.App/11.0.0/'
     architecture=Arm64; if [[ "$SDK_TEST_RID" == linux-x64 ]]; then architecture=X64; fi
     assert_contains "$TEST_TMPDIR/$1.log" "ARCH: $architecture"
     if [[ "$1" == published_app ]]; then assert_contains "$TEST_TMPDIR/$1.log" "ASSET: $3"; fi
@@ -99,7 +99,7 @@ run_app() {
 run_app app page-v1 asset-v1
 run_app published_app page-v1 asset-v1
 bazel test //:web_test //:published_test //:tests "${options[@]}" --test_output=errors
-publish_products() { (cd "$1/App/bin/Release/net10.0/publish"; find . -type f -print0 | sort -z | xargs -0 sha256sum); }
+publish_products() { (cd "$1/App/bin/Release/net11.0/publish"; find . -type f -print0 | sort -z | xargs -0 sha256sum); }
 publish_products bazel-bin/publish.graph/workspace > "$TEST_TMPDIR/publish.sha256"
 for mode in ordinary graph; do
     cp -a "$scratch/authored" "$scratch/raw-$mode"
@@ -107,9 +107,9 @@ for mode in ordinary graph; do
     graph=(); if [[ "$mode" == graph ]]; then graph=(-graphBuild); fi
     bash "$runner_dir/raw_namespace.sh" "$sdk" "$scratch/raw-$mode" "$scratch/raw-$mode-scratch" msbuild App/App.csproj -restore -t:Publish -m:4 "${graph[@]}" -p:Configuration=Release -p:UseSharedCompilation=false -p:NuGetAudit=false > "$TEST_TMPDIR/raw-$mode.log" 2>&1 || { cat "$TEST_TMPDIR/raw-$mode.log" >&2; exit 1; }
     publish_products "$scratch/raw-$mode" > "$TEST_TMPDIR/raw-$mode.sha256"
-    cp "$scratch/raw-$mode/App/bin/Release/net10.0/publish/App.staticwebassets.endpoints.json" "$TEST_TMPDIR/raw-$mode.endpoints.json"
+    cp "$scratch/raw-$mode/App/bin/Release/net11.0/publish/App.staticwebassets.endpoints.json" "$TEST_TMPDIR/raw-$mode.endpoints.json"
 done
-cp bazel-bin/publish.graph/workspace/App/bin/Release/net10.0/publish/App.staticwebassets.endpoints.json "$TEST_TMPDIR/graph.endpoints.json"
+cp bazel-bin/publish.graph/workspace/App/bin/Release/net11.0/publish/App.staticwebassets.endpoints.json "$TEST_TMPDIR/graph.endpoints.json"
 # The SDK records source/compression timestamps in Last-Modified response headers.
 # Check every other byte and all endpoint metadata, normalizing only those values.
 for mode in raw-ordinary raw-graph publish; do
