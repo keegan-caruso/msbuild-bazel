@@ -1,6 +1,5 @@
 load("@bazel_binaries//:defs.bzl", "bazel_binaries")
-load("@rules_bazel_integration_test//bazel_integration_test:defs.bzl", "bazel_integration_tests", "integration_test_utils")
-load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load(":integration.bzl", "integration_case", "integration_runner", "integration_suite")
 
 # Archive only declared files. The runner extracts this into a private scratch directory.
 genrule(
@@ -11,18 +10,14 @@ genrule(
     cmd = 'tar -chf "$@" $(SRCS)',
 )
 
-sh_binary(
+integration_runner(
     name = "quickstart_runner",
-    testonly = True,
     srcs = ["quickstart.sh"],
-    data = ["common.sh"],
 )
 
-sh_binary(
+integration_runner(
     name = "sdk_lock_runner",
-    testonly = True,
     srcs = ["sdk_lock.sh"],
-    data = ["common.sh"],
 )
 
 filegroup(
@@ -31,194 +26,115 @@ filegroup(
     srcs = [bazel_binaries.label(bazel_binaries.versions.current)],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "sdk_lock_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
     data = [
         "sdk-10.0.302.metadata.json",
         ":rules_archive",
         ":sdk_lock_bazel_9",
     ],
     env = {
-        "RULES_ARCHIVE": "$(rootpath :rules_archive)",
         "BAZEL_9": "$(rootpaths :sdk_lock_bazel_9)",
         "SDK_QUALIFICATION_METADATA": "$(rootpath sdk-10.0.302.metadata.json)",
     },
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = ["@platforms//os:linux"],
     test_runner = ":sdk_lock_runner",
-    workspace_files = ["//:quickstart_sources"],
-    workspace_path = "examples/quickstart",
 )
 
-test_suite(
+integration_suite(
     name = "sdk_locks",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "sdk_lock_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["sdk_lock_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "sdk_versions_runner",
-    testonly = True,
     srcs = ["sdk_versions.sh"],
-    data = ["common.sh"],
 )
 
-sh_binary(
+integration_runner(
     name = "sdk_policy_runner",
-    testonly = True,
     srcs = ["sdk_policy.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "sdk_policy_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
     data = [
         "sdk-10.0.302.metadata.json",
         ":rules_archive",
     ],
-    env = {
-        "RULES_ARCHIVE": "$(rootpath :rules_archive)",
-        "SDK_POLICY_METADATA": "$(rootpath sdk-10.0.302.metadata.json)",
-    },
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
+    env = {"SDK_POLICY_METADATA": "$(rootpath sdk-10.0.302.metadata.json)"},
     target_compatible_with = ["@platforms//os:linux"],
     test_runner = ":sdk_policy_runner",
-    workspace_files = ["//:quickstart_sources"],
-    workspace_path = "examples/quickstart",
 )
 
-test_suite(
+integration_suite(
     name = "sdk_policies",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "sdk_policy_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["sdk_policy_cases"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "sdk_versions_cases",
     additional_env_inherit = [
         "BAZELISK_HOME",
         "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
         "SDK_VERSION_CACHE_URL",
     ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
     data = [
         "sdk-10.0.302.metadata.json",
         "sdk-11.0.100.metadata.json",
         ":rules_archive",
     ],
-    env = {
-        "RULES_ARCHIVE": "$(rootpath :rules_archive)",
-        "SDK_VERSION_METADATA": "$(rootpath sdk-10.0.302.metadata.json) $(rootpath sdk-11.0.100.metadata.json)",
-    },
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
+    env = {"SDK_VERSION_METADATA": "$(rootpath sdk-10.0.302.metadata.json) $(rootpath sdk-11.0.100.metadata.json)"},
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
     ],
     test_runner = ":sdk_versions_runner",
-    workspace_files = ["//:quickstart_sources"],
-    workspace_path = "examples/quickstart",
 )
 
-test_suite(
+integration_suite(
     name = "sdk_versions",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "sdk_versions_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["sdk_versions_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "runtime_lock_runner",
-    testonly = True,
     srcs = ["runtime_lock.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "runtime_lock_cases",
     additional_env_inherit = [
         "BAZELISK_HOME",
         "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
         "RUNTIME_CACHE_URL",
     ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
     data = [
         "runtime-10.0.12.metadata.json",
         "runtime-11.0.0.metadata.json",
         "runtime-9.0.20.metadata.json",
         ":rules_archive",
     ],
-    env = {
-        "RULES_ARCHIVE": "$(rootpath :rules_archive)",
-        "RUNTIME_TEST_METADATA": "$(rootpath runtime-9.0.20.metadata.json) $(rootpath runtime-10.0.12.metadata.json) $(rootpath runtime-11.0.0.metadata.json)",
-    },
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
+    env = {"RUNTIME_TEST_METADATA": "$(rootpath runtime-9.0.20.metadata.json) $(rootpath runtime-10.0.12.metadata.json) $(rootpath runtime-11.0.0.metadata.json)"},
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
     ],
     test_runner = ":runtime_lock_runner",
-    workspace_files = ["//:quickstart_sources"],
-    workspace_path = "examples/quickstart",
 )
 
-test_suite(
+integration_suite(
     name = "runtime_locks",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "runtime_lock_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["runtime_lock_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "aspnet_runtime_runner",
-    testonly = True,
     srcs = ["aspnet_runtime.sh"],
-    data = ["common.sh"],
 )
 
-sh_binary(
+integration_runner(
     name = "sdk_web_runner",
-    testonly = True,
     srcs = ["sdk_web.sh"],
     data = [
         "common.sh",
@@ -226,28 +142,13 @@ sh_binary(
     ],
 )
 
-sh_binary(
+integration_runner(
     name = "native_sdk_runner",
-    testonly = True,
     srcs = ["native_sdk.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "native_sdk_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = select({
         "@platforms//os:linux": [],
         "@platforms//os:osx": [],
@@ -258,18 +159,13 @@ bazel_integration_tests(
     workspace_path = "examples/catalog-web",
 )
 
-test_suite(
+integration_suite(
     name = "native_sdk",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "native_sdk_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["native_sdk_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "catalog_web_runner",
-    testonly = True,
     srcs = ["catalog_web.sh"],
     data = [
         "common.sh",
@@ -277,21 +173,12 @@ sh_binary(
     ],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "catalog_web_cases",
     additional_env_inherit = [
         "BAZELISK_HOME",
         "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
         "SDK_WEB_CACHE_URL",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
     ],
     target_compatible_with = ["@platforms//os:linux"],
     test_runner = ":catalog_web_runner",
@@ -299,55 +186,34 @@ bazel_integration_tests(
     workspace_path = "examples/catalog-web",
 )
 
-test_suite(
+integration_suite(
     name = "catalog_web",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "catalog_web_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["catalog_web_cases"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "sdk_web_cases",
     additional_env_inherit = [
         "BAZELISK_HOME",
         "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
         "SDK_WEB_CACHE_URL",
     ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = ["@platforms//os:linux"],
     test_runner = ":sdk_web_runner",
-    workspace_files = ["//:quickstart_sources"],
-    workspace_path = "examples/quickstart",
 )
 
-test_suite(
+integration_suite(
     name = "sdk_web",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "sdk_web_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["sdk_web_cases"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "aspnet_runtime_cases",
     additional_env_inherit = [
         "BAZELISK_HOME",
         "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
         "RUNTIME_CACHE_URL",
     ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
     data = [
         "aspnet-10.0.12.metadata.json",
         "aspnet-11.0.0.metadata.json",
@@ -355,45 +221,29 @@ bazel_integration_tests(
         ":rules_archive",
     ],
     env = {
-        "RULES_ARCHIVE": "$(rootpath :rules_archive)",
         "ASPNET_TEST_METADATA": "$(rootpath aspnet-10.0.12.metadata.json) $(rootpath aspnet-11.0.0.metadata.json)",
         "CORE_TEST_METADATA": "$(rootpath runtime-10.0.12.metadata.json)",
     },
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
     ],
     test_runner = ":aspnet_runtime_runner",
-    workspace_files = ["//:quickstart_sources"],
-    workspace_path = "examples/quickstart",
 )
 
-test_suite(
+integration_suite(
     name = "aspnet_runtimes",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "aspnet_runtime_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["aspnet_runtime_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "worker_runner",
-    testonly = True,
     srcs = ["worker.sh"],
-    data = ["common.sh"],
 )
 
-sh_binary(
+integration_runner(
     name = "graph_layouts_runner",
-    testonly = True,
     srcs = ["graph_layouts.sh"],
-    data = ["common.sh"],
 )
 
 genrule(
@@ -404,34 +254,18 @@ genrule(
     cmd = 'tar -chf "$@" $(SRCS)',
 )
 
-sh_binary(
+integration_runner(
     name = "native_preparation_runner",
-    testonly = True,
     srcs = ["native_preparation.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "native_preparation_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
     data = [
         ":native_preparation_helpers",
         ":rules_archive",
     ],
-    env = {
-        "RULES_ARCHIVE": "$(rootpath :rules_archive)",
-        "NATIVE_HELPERS": "$(rootpath :native_preparation_helpers)",
-    },
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
+    env = {"NATIVE_HELPERS": "$(rootpath :native_preparation_helpers)"},
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
@@ -441,197 +275,91 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/worker",
 )
 
-test_suite(
+integration_suite(
     name = "native_preparation",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "native_preparation_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["native_preparation_cases"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "graph_layouts_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     test_runner = ":graph_layouts_runner",
     workspace_files = glob(["fixtures/worker/**"]),
     workspace_path = "tests/integration/fixtures/worker",
 )
 
-test_suite(
+integration_suite(
     name = "graph_layouts",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "graph_layouts_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["graph_layouts_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "source_globs_runner",
-    testonly = True,
     srcs = ["source_globs.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "source_globs_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     test_runner = ":source_globs_runner",
-    workspace_files = ["//:quickstart_sources"],
-    workspace_path = "examples/quickstart",
 )
 
-test_suite(
+integration_suite(
     name = "source_globs",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "source_globs_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["source_globs_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "dynamic_sources_runner",
-    testonly = True,
     srcs = ["dynamic_sources.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "dynamic_sources_cases",
     additional_env_inherit = [
         "BAZELISK_HOME",
         "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
         "DYNAMIC_SOURCE_CACHE_URL",
     ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
     ],
     test_runner = ":dynamic_sources_runner",
-    workspace_files = ["//:quickstart_sources"],
-    workspace_path = "examples/quickstart",
 )
 
-test_suite(
+integration_suite(
     name = "dynamic_sources",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "dynamic_sources_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["dynamic_sources_cases"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "recursive_sources_cases",
     additional_env_inherit = [
         "BAZELISK_HOME",
         "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
         "DYNAMIC_SOURCE_CACHE_URL",
     ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {
-        "RULES_ARCHIVE": "$(rootpath :rules_archive)",
-        "DYNAMIC_SOURCE_RECURSIVE": "1",
-    },
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
+    env = {"DYNAMIC_SOURCE_RECURSIVE": "1"},
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
     ],
     test_runner = ":dynamic_sources_runner",
-    workspace_files = ["//:quickstart_sources"],
-    workspace_path = "examples/quickstart",
 )
 
-test_suite(
+integration_suite(
     name = "recursive_sources",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "recursive_sources_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["recursive_sources_cases"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "quickstart_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     test_runner = ":quickstart_runner",
-    workspace_files = ["//:quickstart_sources"],
-    workspace_path = "examples/quickstart",
 )
 
 [
-    bazel_integration_tests(
+    integration_case(
         name = "worker" + ("_uncached" if cache_mb == 0 else ""),
-        additional_env_inherit = [
-            "BAZELISK_HOME",
-            "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-        ],
-        bazel_binaries = bazel_binaries,
-        bazel_versions = bazel_binaries.versions.all,
-        data = [":rules_archive"],
-        env = {
-            "RULES_ARCHIVE": "$(rootpath :rules_archive)",
-            "WORKER_CACHE_MB": str(cache_mb),
-        },
-        tags = [
-            "exclusive",
-            "manual",
-            "no-sandbox",
-        ],
+        env = {"WORKER_CACHE_MB": str(cache_mb)},
         target_compatible_with = ["@platforms//os:linux"],
         test_runner = ":worker_runner",
         workspace_files = glob(["fixtures/worker/**"]),
@@ -644,30 +372,21 @@ bazel_integration_tests(
 ]
 
 # Explicit suites keep expensive nested builds out of //... and quick validation.
-test_suite(
+integration_suite(
     name = "quickstart",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "quickstart_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["quickstart_cases"],
 )
 
-test_suite(
+integration_suite(
     name = "workers",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
+    cases = [
         "worker",
-        bazel_binaries.versions.all,
-    ) + integration_test_utils.bazel_integration_test_names(
         "worker_uncached",
-        bazel_binaries.versions.all,
-    ),
+    ],
 )
 
-sh_binary(
+integration_runner(
     name = "traversal_runner",
-    testonly = True,
     srcs = ["traversal.sh"],
     data = [
         "CompilationLog.cs.txt",
@@ -681,21 +400,12 @@ sh_binary(
     ],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "traversal_cases",
     additional_env_inherit = [
         "TRAVERSAL_SLICE",
         "BAZELISK_HOME",
         "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
     ],
     target_compatible_with = [
         "@platforms//os:linux",
@@ -706,23 +416,17 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/traversal",
 )
 
-test_suite(
+integration_suite(
     name = "traversal",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "traversal_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["traversal_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "traversal_remote_runner",
-    testonly = True,
     srcs = ["traversal_remote.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "traversal_remote_cases",
     additional_env_inherit = [
         "BAZELISK_HOME",
@@ -730,15 +434,6 @@ bazel_integration_tests(
         "TRAVERSAL_CACHE_PHASE",
         "TRAVERSAL_CACHE_URL",
         "TRAVERSAL_CACHE_SEED",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
     ],
     target_compatible_with = [
         "@platforms//os:linux",
@@ -749,9 +444,8 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/traversal",
 )
 
-sh_binary(
+integration_runner(
     name = "notargets_runner",
-    testonly = True,
     srcs = ["notargets.sh"],
     data = [
         "common.sh",
@@ -759,21 +453,8 @@ sh_binary(
     ],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "notargets_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
@@ -783,23 +464,17 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/notargets",
 )
 
-test_suite(
+integration_suite(
     name = "notargets",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "notargets_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["notargets_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "notargets_remote_runner",
-    testonly = True,
     srcs = ["notargets_remote.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "notargets_remote_cases",
     additional_env_inherit = [
         "BAZELISK_HOME",
@@ -807,15 +482,6 @@ bazel_integration_tests(
         "NOTARGETS_CACHE_PHASE",
         "NOTARGETS_CACHE_URL",
         "NOTARGETS_CACHE_SEED",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
     ],
     target_compatible_with = [
         "@platforms//os:linux",
@@ -826,9 +492,8 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/notargets",
 )
 
-sh_binary(
+integration_runner(
     name = "worker_sdk_runner",
-    testonly = True,
     srcs = ["worker_sdk.sh"],
     data = [
         "common.sh",
@@ -836,21 +501,8 @@ sh_binary(
     ],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "worker_sdk_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
@@ -860,23 +512,17 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/worker_sdk",
 )
 
-test_suite(
+integration_suite(
     name = "worker_sdk",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "worker_sdk_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["worker_sdk_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "sdk_remote_runner",
-    testonly = True,
     srcs = ["sdk_remote.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "worker_sdk_remote_cases",
     additional_env_inherit = [
         "BAZELISK_HOME",
@@ -885,18 +531,7 @@ bazel_integration_tests(
         "SDK_CACHE_URL",
         "SDK_CACHE_SEED",
     ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {
-        "RULES_ARCHIVE": "$(rootpath :rules_archive)",
-        "SDK_CACHE_NODES": "2",
-    },
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
+    env = {"SDK_CACHE_NODES": "2"},
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
@@ -906,9 +541,8 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/worker_sdk",
 )
 
-sh_binary(
+integration_runner(
     name = "il_sdk_runner",
-    testonly = True,
     srcs = ["il_sdk.sh"],
     data = [
         "common.sh",
@@ -916,21 +550,8 @@ sh_binary(
     ],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "il_sdk_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
@@ -940,16 +561,12 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/il_sdk",
 )
 
-test_suite(
+integration_suite(
     name = "il_sdk",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "il_sdk_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["il_sdk_cases"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "il_sdk_remote_cases",
     additional_env_inherit = [
         "BAZELISK_HOME",
@@ -958,18 +575,7 @@ bazel_integration_tests(
         "SDK_CACHE_URL",
         "SDK_CACHE_SEED",
     ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {
-        "RULES_ARCHIVE": "$(rootpath :rules_archive)",
-        "SDK_CACHE_NODES": "2",
-    },
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
+    env = {"SDK_CACHE_NODES": "2"},
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
@@ -979,9 +585,8 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/il_sdk",
 )
 
-sh_binary(
+integration_runner(
     name = "arcade_sdk_runner",
-    testonly = True,
     srcs = ["arcade_sdk.sh"],
     data = [
         "common.sh",
@@ -989,21 +594,8 @@ sh_binary(
     ],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "arcade_sdk_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
@@ -1013,16 +605,12 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/arcade_sdk",
 )
 
-test_suite(
+integration_suite(
     name = "arcade_sdk",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "arcade_sdk_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["arcade_sdk_cases"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "arcade_sdk_remote_cases",
     additional_env_inherit = [
         "BAZELISK_HOME",
@@ -1031,18 +619,7 @@ bazel_integration_tests(
         "SDK_CACHE_URL",
         "SDK_CACHE_SEED",
     ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {
-        "RULES_ARCHIVE": "$(rootpath :rules_archive)",
-        "SDK_CACHE_NODES": "2",
-    },
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
+    env = {"SDK_CACHE_NODES": "2"},
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
@@ -1052,9 +629,8 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/arcade_sdk",
 )
 
-sh_binary(
+integration_runner(
     name = "evaluation_transfer_runner",
-    testonly = True,
     srcs = ["evaluation_transfer.sh"],
     data = [
         "EvaluationTransfer.cs.txt",
@@ -1062,21 +638,8 @@ sh_binary(
     ],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "evaluation_transfer_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
@@ -1086,18 +649,13 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/worker",
 )
 
-test_suite(
+integration_suite(
     name = "evaluation_transfer",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "evaluation_transfer_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["evaluation_transfer_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "evaluation_reuse_runner",
-    testonly = True,
     srcs = ["evaluation_reuse.sh"],
     data = [
         "EvaluationReuse.cs.txt",
@@ -1105,21 +663,8 @@ sh_binary(
     ],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "evaluation_reuse_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
@@ -1129,39 +674,18 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/worker",
 )
 
-test_suite(
+integration_suite(
     name = "evaluation_reuse",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "evaluation_reuse_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["evaluation_reuse_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "evaluation_worker_runner",
-    testonly = True,
     srcs = ["evaluation_worker.sh"],
-    data = [
-        "common.sh",
-    ],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "evaluation_worker_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
@@ -1171,37 +695,18 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/traversal",
 )
 
-test_suite(
+integration_suite(
     name = "evaluation_worker",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "evaluation_worker_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["evaluation_worker_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "replay_omissions_runner",
-    testonly = True,
     srcs = ["replay_omissions.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "replay_omissions_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
@@ -1211,18 +716,13 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/worker",
 )
 
-test_suite(
+integration_suite(
     name = "replay_omissions",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "replay_omissions_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["replay_omissions_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "complete_remote_runner",
-    testonly = True,
     srcs = ["complete_remote.sh"],
     data = [
         "common.sh",
@@ -1230,7 +730,7 @@ sh_binary(
     ],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "complete_remote_cases",
     additional_env_inherit = [
         "BAZELISK_HOME",
@@ -1241,15 +741,6 @@ bazel_integration_tests(
         "COMPLETE_REPLAY_OMISSIONS",
         "COMPLETE_EVALUATION_REUSE",
     ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
@@ -1259,9 +750,8 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/traversal",
 )
 
-sh_binary(
+integration_runner(
     name = "snapshot_replay_runner",
-    testonly = True,
     srcs = ["snapshot_replay.sh"],
     data = [
         "SnapshotReplay.cs.txt",
@@ -1269,21 +759,8 @@ sh_binary(
     ],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "snapshot_replay_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
@@ -1293,39 +770,18 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/worker",
 )
 
-test_suite(
+integration_suite(
     name = "snapshot_replay",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "snapshot_replay_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["snapshot_replay_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "package_copies_runner",
-    testonly = True,
     srcs = ["package_copies.sh"],
-    data = [
-        "common.sh",
-    ],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "package_copies_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
@@ -1335,39 +791,18 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/worker",
 )
 
-test_suite(
+integration_suite(
     name = "package_copies",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "package_copies_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["package_copies_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "compiler_inputs_runner",
-    testonly = True,
     srcs = ["compiler_inputs.sh"],
-    data = [
-        "common.sh",
-    ],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "compiler_inputs_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
@@ -1377,64 +812,35 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/worker",
 )
 
-test_suite(
+integration_suite(
     name = "compiler_inputs",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "compiler_inputs_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["compiler_inputs_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "resolved_inputs_runner",
-    testonly = True,
     srcs = ["resolved_inputs.sh"],
-    data = [
-        "common.sh",
-    ],
 )
 
-sh_binary(
+integration_runner(
     name = "restore_inputs_runner",
-    testonly = True,
     srcs = ["restore_inputs.sh"],
-    data = ["common.sh"],
 )
 
-sh_binary(
+integration_runner(
     name = "preparation_runner",
-    testonly = True,
     srcs = ["preparation.sh"],
-    data = ["common.sh"],
 )
 
-sh_binary(
+integration_runner(
     name = "cached_sync_runner",
-    testonly = True,
     srcs = ["cached_sync.sh"],
-    data = ["common.sh"],
 )
 
 [
-    bazel_integration_tests(
+    integration_case(
         name = name + "_cases",
-        additional_env_inherit = [
-            "BAZELISK_HOME",
-            "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-        ],
-        bazel_binaries = bazel_binaries,
-        bazel_versions = bazel_binaries.versions.all,
-        data = [":rules_archive"],
-        env = {
-            "RULES_ARCHIVE": "$(rootpath :rules_archive)",
-            "RESOLVE_REFERENCES": "1",
-        },
-        tags = [
-            "exclusive",
-            "manual",
-            "no-sandbox",
-        ],
+        env = {"RESOLVE_REFERENCES": "1"},
         target_compatible_with = [
             "@platforms//os:linux",
             "@platforms//cpu:aarch64",
@@ -1454,13 +860,9 @@ sh_binary(
 ]
 
 [
-    test_suite(
+    integration_suite(
         name = name,
-        tags = ["manual"],
-        tests = integration_test_utils.bazel_integration_test_names(
-            name + "_cases",
-            bazel_binaries.versions.all,
-        ),
+        cases = [name + "_cases"],
     )
     for name in [
         "resolved_inputs",
@@ -1472,28 +874,13 @@ sh_binary(
     ]
 ]
 
-sh_binary(
+integration_runner(
     name = "nuget_update_runner",
-    testonly = True,
     srcs = ["nuget_update.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "nuget_update_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = select({
         "@platforms//os:linux": [],
         "@platforms//os:osx": [],
@@ -1504,37 +891,22 @@ bazel_integration_tests(
     workspace_path = "examples/catalog-web",
 )
 
-test_suite(
+integration_suite(
     name = "nuget_update",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "nuget_update_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["nuget_update_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "nuget_graph_runner",
-    testonly = True,
     srcs = ["nuget_graph.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "nuget_graph_cases",
     additional_env_inherit = [
         "BAZELISK_HOME",
         "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
         "SDK_WEB_CACHE_URL",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
     ],
     target_compatible_with = ["@platforms//os:linux"],
     test_runner = ":nuget_graph_runner",
@@ -1542,37 +914,22 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/nuget",
 )
 
-test_suite(
+integration_suite(
     name = "nuget_graph",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "nuget_graph_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["nuget_graph_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "nuget_sdks_runner",
-    testonly = True,
     srcs = ["nuget_sdks.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "nuget_sdks_cases",
     additional_env_inherit = [
         "BAZELISK_HOME",
         "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
         "SDK_WEB_CACHE_URL",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
     ],
     target_compatible_with = [
         "@platforms//os:linux",
@@ -1583,139 +940,72 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/notargets",
 )
 
-test_suite(
+integration_suite(
     name = "nuget_sdks",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "nuget_sdks_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["nuget_sdks_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "nuget_configured_runner",
-    testonly = True,
     srcs = ["nuget_configured.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "nuget_configured_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = select({
         "@platforms//os:linux": [],
         "@platforms//os:osx": [],
         "//conditions:default": ["@platforms//:incompatible"],
     }),
     test_runner = ":nuget_configured_runner",
-    workspace_files = ["//:quickstart_sources"],
-    workspace_path = "examples/quickstart",
 )
 
-test_suite(
+integration_suite(
     name = "nuget_configured",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "nuget_configured_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["nuget_configured_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "nuget_hierarchy_runner",
-    testonly = True,
     srcs = ["nuget_hierarchy.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "nuget_hierarchy_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = select({
         "@platforms//os:linux": [],
         "@platforms//os:osx": [],
         "//conditions:default": ["@platforms//:incompatible"],
     }),
     test_runner = ":nuget_hierarchy_runner",
-    workspace_files = ["//:quickstart_sources"],
-    workspace_path = "examples/quickstart",
 )
 
-test_suite(
+integration_suite(
     name = "nuget_hierarchy",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "nuget_hierarchy_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["nuget_hierarchy_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "solutions_runner",
-    testonly = True,
     srcs = ["solutions.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "solutions_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = select({
         "@platforms//os:linux": [],
         "@platforms//os:osx": [],
         "//conditions:default": ["@platforms//:incompatible"],
     }),
     test_runner = ":solutions_runner",
-    workspace_files = ["//:quickstart_sources"],
-    workspace_path = "examples/quickstart",
 )
 
-test_suite(
+integration_suite(
     name = "solutions",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "solutions_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["solutions_cases"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "solutions_remote_cases",
     additional_env_inherit = [
         "BAZELISK_HOME",
@@ -1724,96 +1014,49 @@ bazel_integration_tests(
         "SDK_CACHE_SEED",
         "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
     ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
     ],
     test_runner = ":solutions_runner",
-    workspace_files = ["//:quickstart_sources"],
-    workspace_path = "examples/quickstart",
 )
 
-test_suite(
+integration_suite(
     name = "solutions_remote",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "solutions_remote_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["solutions_remote_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "nuget_shared_projects_runner",
-    testonly = True,
     srcs = ["nuget_shared_projects.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "nuget_shared_projects_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = select({
         "@platforms//os:linux": [],
         "@platforms//os:osx": [],
         "//conditions:default": ["@platforms//:incompatible"],
     }),
     test_runner = ":nuget_shared_projects_runner",
-    workspace_files = ["//:quickstart_sources"],
-    workspace_path = "examples/quickstart",
 )
 
-test_suite(
+integration_suite(
     name = "nuget_shared_projects",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "nuget_shared_projects_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["nuget_shared_projects_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "qualification_cache_runner",
-    testonly = True,
     srcs = ["qualification_cache.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "qualification_cache_cases",
     additional_env_inherit = [
         "BAZELISK_HOME",
         "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
         "QUALIFICATION_CACHE_URL",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
     ],
     target_compatible_with = [
         "@platforms//os:linux",
@@ -1824,37 +1067,22 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/worker",
 )
 
-test_suite(
+integration_suite(
     name = "qualification_cache",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "qualification_cache_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["qualification_cache_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "qualification_seed_runner",
-    testonly = True,
     srcs = ["qualification_seed.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "qualification_seed_cases",
     additional_env_inherit = [
         "BAZELISK_HOME",
         "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
         "QUALIFICATION_CACHE_URL",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
     ],
     target_compatible_with = [
         "@platforms//os:linux",
@@ -1865,40 +1093,25 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/worker",
 )
 
-test_suite(
+integration_suite(
     name = "qualification_seed",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
+    cases = [
         "qualification_seed_cases",
-        bazel_binaries.versions.all,
-    ) + integration_test_utils.bazel_integration_test_names(
         "qualification_seed_packages_cases",
-        bazel_binaries.versions.all,
-    ),
+    ],
 )
 
-sh_binary(
+integration_runner(
     name = "qualification_seed_packages_runner",
-    testonly = True,
     srcs = ["qualification_seed_packages.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "qualification_seed_packages_cases",
     additional_env_inherit = [
         "BAZELISK_HOME",
         "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
         "QUALIFICATION_CACHE_URL",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
     ],
     target_compatible_with = [
         "@platforms//os:linux",
@@ -1909,73 +1122,39 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/notargets",
 )
 
-test_suite(
+integration_suite(
     name = "qualification_seed_packages",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "qualification_seed_packages_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["qualification_seed_packages_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "visual_basic_runner",
-    testonly = True,
     srcs = ["visual_basic.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "visual_basic_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     test_runner = ":visual_basic_runner",
     workspace_files = glob(["fixtures/visual_basic/**"]),
     workspace_path = "tests/integration/fixtures/visual_basic",
 )
 
-test_suite(
+integration_suite(
     name = "visual_basic",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "visual_basic_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["visual_basic_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "defaults_runner",
-    testonly = True,
     srcs = ["defaults.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "defaults_cases",
     additional_env_inherit = [
         "BAZELISK_HOME",
         "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
         "QUALIFICATION_CACHE_URL",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
     ],
     target_compatible_with = [
         "@platforms//os:linux",
@@ -1986,37 +1165,18 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/worker",
 )
 
-test_suite(
+integration_suite(
     name = "defaults",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "defaults_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["defaults_cases"],
 )
 
-sh_binary(
+integration_runner(
     name = "worker_defaults_runner",
-    testonly = True,
     srcs = ["worker_defaults.sh"],
-    data = ["common.sh"],
 )
 
-bazel_integration_tests(
+integration_case(
     name = "worker_defaults_cases",
-    additional_env_inherit = [
-        "BAZELISK_HOME",
-        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
-    ],
-    bazel_binaries = bazel_binaries,
-    bazel_versions = bazel_binaries.versions.all,
-    data = [":rules_archive"],
-    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
-    tags = [
-        "exclusive",
-        "manual",
-        "no-sandbox",
-    ],
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
@@ -2026,11 +1186,7 @@ bazel_integration_tests(
     workspace_path = "tests/integration/fixtures/worker",
 )
 
-test_suite(
+integration_suite(
     name = "worker_defaults",
-    tags = ["manual"],
-    tests = integration_test_utils.bazel_integration_test_names(
-        "worker_defaults_cases",
-        bazel_binaries.versions.all,
-    ),
+    cases = ["worker_defaults_cases"],
 )
