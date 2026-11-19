@@ -414,7 +414,7 @@ public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, strin
 
     private static string ActionKey(string fingerprint) => Digest(Encoding.UTF8.GetBytes("rules-msbuild-project-snapshot-v1\n" + fingerprint));
     private static string Digest(byte[] bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes));
-    private static bool ValidDigest(string digest) => digest.Length == 64 && digest.All(char.IsAsciiHexDigit) && digest == digest.ToLowerInvariant();
+    private static bool ValidDigest(string digest) => digest.Length == 64 && digest.All(char.IsAsciiHexDigitLower);
     private static bool SameFiles(Dictionary<string, string>? left, Dictionary<string, string>? right) =>
         (left ?? []).Count == (right ?? []).Count && (left ?? []).All(file =>
             (right ?? []).TryGetValue(file.Key, out var digest) && file.Value == digest);
