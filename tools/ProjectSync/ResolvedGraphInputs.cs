@@ -221,7 +221,7 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
                     .Where(value => value.Length != 0).Select(value => Full(node.ProjectInstance, value))
                     .Where(Directory.Exists).SelectMany(directory => Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
                     .Concat(products(node).Where(File.Exists))).Distinct(StringComparer.Ordinal);
-            seed = new BuildSeed(1, root, sdkRoot, seedSdk!, seedInputs!, files.ToDictionary(path => Relative(path), BuildSeedProof.Digest, StringComparer.Ordinal),
+            seed = new BuildSeed(BuildSeedProof.Version, root, sdkRoot, seedSdk!, seedInputs!, files.ToDictionary(path => Relative(path), BuildSeedProof.Digest, StringComparer.Ordinal),
                 graph.ProjectNodes.Select(Describe).ToArray());
 
             SeedProject Describe(ProjectGraphNode node)
@@ -229,9 +229,9 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
                 var requested = cache!.Requested(node);
                 if (!GraphProjectKind.HasAssembly(node.ProjectInstance) || requested.Length == 0)
                 {
-                    return new(BuildSeedProof.Key(node.ProjectInstance), seedContexts[node], [], [], []);
+                    return new(ConfiguredProjectKey.Create(node.ProjectInstance), seedContexts[node], [], [], []);
                 }
-                return new(BuildSeedProof.Key(node.ProjectInstance), seedContexts[node], requested,
+                return new(ConfiguredProjectKey.Create(node.ProjectInstance), seedContexts[node], requested,
                     cache.Results(node, result).Select(target => new SeedTarget(target.Name,
                         target.Items.Select(item => new SeedItem(item.Include, item.Metadata)).ToArray())).ToArray(),
                     cache.State(node, result).References);

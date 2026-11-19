@@ -426,6 +426,15 @@ build recovery. Retention requires explicit compiler-only input review; see
 
 ## Project qualification cache
 
+Configured-project keys use versioned structural records, preserving ordinal
+property-name casing and values while separating embedded `;`, `=` and `|` data.
+Graph and qualification-project fingerprint epochs changed: old snapshots remain
+on disk but cold-miss. Qualification seed proofs now use version 2; rerun the sync
+target to regenerate a rejected version-1 proof. Retained Linux state version 1
+migrates cold: validated owned outputs clear and metadata rewrites as version 2
+before reuse. Other workspace/version mismatches still fail. Graph contract schema
+versions are unchanged.
+
 Closed sync automatically enables HTTP project reuse when complete `srcs`,
 package/reference qualification, the declared qualified Linux execution capability
 and a project HTTP endpoint are available. Explicit `qualification_cache = True`
@@ -496,6 +505,9 @@ worker transfer; the small cache fixture reports zero worker evaluations. Root
 A stopped-producer, relocated-VM control recovered Restore and all four projects
 through HTTP, including package-SDK resolution, with no local cache, zero
 compilations, identical declarations and matching artifact digests.
+
+Qualification and consumer sandboxes both disable CLI/MSBuild servers; these
+settings enter evaluated project state and must match for seed reuse.
 
 Build snapshot seeding (automatic with the declared qualified execution capability,
 or forced with `seed_build_cache = True`) passed a three-project chain, a five-node/two-framework

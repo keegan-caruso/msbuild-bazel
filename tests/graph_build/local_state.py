@@ -46,6 +46,17 @@ def main():
         warm = build(3)
         assert warm['retainedState'] and warm['materialization']['copies'] == 0, warm
         assert warm['operations']['retainedOutput']['calls'] > 0
+        # A v1 manifest must take the cold migration path even if its recorded
+        # identity happens to equal the current identity. Only owned outputs clear.
+        legacy = json.loads((state / 'state.json').read_text())
+        legacy['Version'] = 1
+        (state / 'state.json').write_text(json.dumps(legacy))
+        stale_v1 = root / 'P0/bin/Release/net11.0/obsolete-v1.txt'
+        stale_v1.write_text('legacy output')
+        migrated = build(3)
+        assert not migrated['retainedState'] and not stale_v1.exists()
+        assert json.loads((state / 'state.json').read_text())['Version'] == 2
+        assert run(DOTNET, root / 'P2/bin/Release/net11.0/P2.dll').stdout.strip() == '1'
         source = root / 'P0/Code.cs'
         source.write_text('public class P0 { public static int Value() => 2; }')
         body = build(2)
@@ -113,11 +124,16 @@ def main():
         changed = build(0)
         assert not changed['retainedState'] and not producer.parent.exists()
         assert run(DOTNET, root / 'P2/bin/Debug/net11.0/P2.dll').stdout.strip() == '2'
+        # Publish adds dependency copies below the publish directory. Keep this
+        # reviewed inventory out of the preceding Build cold/warm controls.
+        for declaration in contract['Projects'].values():
+            declaration['DependencyCopies'].update({str(Path(destination).parent / 'publish' / Path(destination).name): source
+                for destination, source in list(declaration['DependencyCopies'].items())})
         build(0, target='Publish')
         published = build(3, target='Publish')
         assert published['retainedState']
         assert run(DOTNET, root / 'P2/bin/Debug/net11.0/publish/P2.dll').stdout.strip() == '2'
-        print(json.dumps({'warm': warm, 'body': body, 'repair': repair, 'interruptedRecovery': recovered}, indent=2))
+        print(json.dumps({'warm': warm, 'v1Migration': migrated, 'body': body, 'repair': repair, 'interruptedRecovery': recovered}, indent=2))
         print('PASS: retained hits, fresh misses, body/API propagation, corrupt/obsolete output repair, hard-link isolation, ownership rejection, concurrent lease, SIGKILL recovery configuration cleanup and Publish reuse')
 
 

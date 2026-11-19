@@ -58,13 +58,13 @@ printf 'public class P0 { public static int Value() => 2; }\n' > P0/Code.cs
 run_app body 2 2 1
 products() { (cd bazel-bin/graph.graph/workspace; find P*/bin P*/obj -type f \( -name '*.dll' -o -name '*.pdb' \) -print0 | sort -z | xargs -0 sha256sum); }
 products > "$TEST_TMPDIR/body.sha256"
-run_app body_fresh 2 0 3 --action_env=RULES_MSBUILD_PROJECT_CACHE_URL=
+run_app body_fresh 2 0 3 --strategy=MSBuildGraph=linux-sandbox --action_env=RULES_MSBUILD_PROJECT_CACHE_URL=
 products > "$TEST_TMPDIR/body-fresh.sha256"
 cmp "$TEST_TMPDIR/body.sha256" "$TEST_TMPDIR/body-fresh.sha256"
 printf 'public class P0 { public static int Value() => 2; public static int Added() => 3; }\n' > P0/Code.cs
 run_app api 2 1 2
 products > "$TEST_TMPDIR/api.sha256"
-run_app api_fresh 2 0 3 --action_env=RULES_MSBUILD_PROJECT_CACHE_URL=
+run_app api_fresh 2 0 3 --strategy=MSBuildGraph=linux-sandbox --action_env=RULES_MSBUILD_PROJECT_CACHE_URL=
 products > "$TEST_TMPDIR/api-fresh.sha256"
 cmp "$TEST_TMPDIR/api.sha256" "$TEST_TMPDIR/api-fresh.sha256"
 # Explicit False retains the portable path even on the qualified execution platform.

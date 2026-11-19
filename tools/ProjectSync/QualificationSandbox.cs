@@ -101,7 +101,9 @@ internal static class QualificationSandbox
                 ["DOTNET_NOLOGO"] = "1",
                 ["DOTNET_GENERATE_ASPNET_CERTIFICATE"] = "false",
                 ["DOTNET_MULTILEVEL_LOOKUP"] = "0",
-                ["MSBUILDDISABLENODEREUSE"] = "1"
+                ["MSBUILDDISABLENODEREUSE"] = "1",
+                ["DOTNET_CLI_USE_MSBUILD_SERVER"] = "false",
+                ["MSBUILDUSESERVER"] = "0"
             })
             {
                 Args("--setenv", key, value);

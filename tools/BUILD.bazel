@@ -1,5 +1,6 @@
 exports_files([
     "AnalyzerConfigs.cs",
+    "ConfiguredProjectKey.cs",
     "BUILD.bazel",
     "Directory.Build.props",
     "MSBuildTool.props",
@@ -21,6 +22,7 @@ filegroup(
     name = "msbuild_adapter_sources",
     srcs = [
         "AnalyzerConfigs.cs",
+        "ConfiguredProjectKey.cs",
         "Directory.Build.props",
         "GraphCompilerReferences.cs",
         "GraphEntryProperties.cs",

@@ -148,7 +148,7 @@ internal sealed class GraphInputs : IDisposable
                     using (GraphProfile.Measure("importCapture"))
                     {
                         var paths = project.Imports.Select(import => import.ImportedProject.FullPath).Distinct().ToArray();
-                        imports[Key(instance)] = paths;
+                        imports[ConfiguredProjectKey.Create(instance)] = paths;
                         evaluationProfile?.Project(paths);
                     }
                     return instance;
@@ -247,7 +247,7 @@ internal sealed class GraphInputs : IDisposable
                 (node.ProjectInstance.GlobalProperties.TryGetValue(property.Key, out var value) ? value : "") == property.Value)).ToArray();
         if (matches.Length != 1)
         {
-            throw new InvalidDataException("Expected exactly one configuration contract for " + Key(node.ProjectInstance) + "; matched " + matches.Length);
+            throw new InvalidDataException("Expected exactly one configuration contract for " + ConfiguredProjectKey.Create(node.ProjectInstance) + "; matched " + matches.Length);
         }
         var selected = matches[0];
         return new ProjectContract(project.Inputs.Concat(selected.Inputs).Distinct().ToArray(),
@@ -282,7 +282,7 @@ internal sealed class GraphInputs : IDisposable
             .Select(name => Path.Combine(Path.GetFullPath(extensions, directory), name))
             .Where(File.Exists).Select(path => Path.GetRelativePath(Files.Root, path));
         var declaredRestore = (contract.Restore?.Outputs ?? []).ToHashSet(StringComparer.Ordinal);
-        var sharedImports = imports[Key(instance)].Select(path => Path.GetRelativePath(Files.Root, path))
+        var sharedImports = imports[ConfiguredProjectKey.Create(instance)].Select(path => Path.GetRelativePath(Files.Root, path))
             .Where(declaredRestore.Contains);
         return project with
         {
@@ -346,8 +346,6 @@ internal sealed class GraphInputs : IDisposable
 
     internal bool OwnsOutput(ProjectGraphNode node, string path) => OutputOwner(path) == node;
     internal ProjectGraphNode? OutputOwner(string path) => ownership.Owner(path);
-    internal static string Key(ProjectInstance project) => project.FullPath + "|" + string.Join(";", project.GlobalProperties
-        .OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => p.Key + "=" + p.Value));
 
     internal string Fingerprint(ProjectGraphNode node) => baseFingerprints[node];
 
@@ -359,13 +357,13 @@ internal sealed class GraphInputs : IDisposable
     private void ComputeFingerprints(ProjectGraphNode node)
     {
         var project = node.ProjectInstance;
-        var records = new List<string> { "graph-input-v2", Files.Root, Files.Sdk, SdkDigest, runnerDigest, sharedDigest, Relative(node) };
+        var records = new List<string> { "graph-input-v3", Files.Root, Files.Sdk, SdkDigest, runnerDigest, sharedDigest, Relative(node) };
         records.AddRange((contract.TemporaryDirectories ?? []).Order(StringComparer.Ordinal).Select(path => "temporary-directory:" + path));
         records.AddRange((contract.InputDirectories ?? []).Order(StringComparer.Ordinal).Select(path => "input-directory:" + path));
         records.AddRange((contract.InputTrees ?? []).OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => "input-tree:" + pair.Key + ":" + System.Text.Json.JsonSerializer.Serialize(pair.Value)));
         records.AddRange(project.Properties.OrderBy(p => p.Name, StringComparer.Ordinal)
             .Select(p => p.Name + "=" + (p.Name.Equals("MSBuildAllProjects", StringComparison.OrdinalIgnoreCase)
-                ? GraphImportState.FingerprintValue(project, imports[Key(project)], p.EvaluatedValue)
+                ? GraphImportState.FingerprintValue(project, imports[ConfiguredProjectKey.Create(project)], p.EvaluatedValue)
                 : p.EvaluatedValue)));
         records.AddRange(project.Items.Select(item => System.Text.Json.JsonSerializer.Serialize(new
         {
@@ -471,7 +469,7 @@ internal sealed class GraphInputs : IDisposable
         CompileGlobInputs.Validate(node.ProjectInstance, For(node), Files);
         var allowed = For(node).Inputs.Select(path => resolvedInputs[path]).ToHashSet(StringComparer.Ordinal);
         Require(node.ProjectInstance.FullPath);
-        foreach (var path in imports[Key(node.ProjectInstance)])
+        foreach (var path in imports[ConfiguredProjectKey.Create(node.ProjectInstance)])
         {
             // SDK imports are covered by the SDK tree. NuGet-generated imports
             // must be explicitly declared just like authored props and targets.
