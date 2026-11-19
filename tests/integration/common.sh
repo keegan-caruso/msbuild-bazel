@@ -45,3 +45,44 @@ trap cleanup EXIT
 assert_contains() {
     if ! grep -Fq -- "$2" "$1"; then cat "$1" >&2; echo "Missing: $2" >&2; exit 1; fi
 }
+
+# Assert exact mnemonic counts and real whole-action remote hits.
+assert_remote_hits() {
+    python3 - "$@" <<'PY'
+import json,sys
+expected=dict(expectation.split('=') for expectation in sys.argv[2:])
+selected={mnemonic:[] for mnemonic in expected}
+data=open(sys.argv[1]).read();decoder=json.JSONDecoder();position=0
+while position<len(data):
+    while position<len(data) and data[position].isspace():position+=1
+    if position==len(data):break
+    action,position=decoder.raw_decode(data,position)
+    matches=selected.get(action.get('mnemonic'))
+    if matches is not None:matches.append(action)
+for mnemonic,count in expected.items():
+    matches=selected[mnemonic]
+    assert len(matches)==int(count) and all(action.get('cacheHit') and action.get('runner')=='remote cache hit' for action in matches),(mnemonic,count,matches)
+PY
+}
+
+# Preserve each case's report, prepared-Restore check and timing row.
+assert_build_report() {
+    python3 - "$@" "$TEST_TMPDIR" <<'PY'
+import json,sys,time
+from pathlib import Path
+report,row,hits,misses,start,logs=sys.argv[1:]
+result=json.load(open(report))
+assert (result['hits'],result['misses'])==(int(hits),int(misses)),(row,result)
+assert result['preparedRestore']
+Path(logs,row+'-report.json').write_text(json.dumps(result))
+with open(Path(logs,'timings.tsv'),'a') as output:
+    output.write(f'{row}\t{time.monotonic()-float(start):.3f}\t{hits}\t{misses}\n')
+PY
+}
+
+# Retain the exact selected-file order and hashes used by raw/product parity.
+assert_product_parity() {
+    local expected="$1" actual="$2" root="$3"; shift 3
+    (cd "$root"; sha256sum "$@") > "$actual"
+    cmp "$expected" "$actual"
+}

@@ -166,14 +166,7 @@ fresh recovered test //:future_test "${options[@]}" --lockfile_mode=error --test
 products > "$TEST_TMPDIR/recovered.sha256"
 cmp "$TEST_TMPDIR/seed.sha256" "$TEST_TMPDIR/recovered.sha256"
 if [[ -n "${RUNTIME_CACHE_URL:-}" ]]; then
-    python3 - "$TEST_TMPDIR/recovered.execution.json" <<'PY'
-import json,sys
-s=open(sys.argv[1]).read();decoder=json.JSONDecoder();graphs=[]
-while s.strip():
-    action,end=decoder.raw_decode(s.lstrip());s=s.lstrip()[end:]
-    if action.get('mnemonic')=='MSBuildGraph':graphs.append(action)
-assert len(graphs)==1 and graphs[0].get('cacheHit') and graphs[0].get('runner')=='remote cache hit',graphs
-PY
+    assert_remote_hits "$TEST_TMPDIR/recovered.execution.json" MSBuildGraph=1
 fi
 case "$("$BIT_BAZEL_BINARY" --version)" in
     'bazel 9.3.'*)
