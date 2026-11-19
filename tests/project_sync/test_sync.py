@@ -668,8 +668,35 @@ class GraphSyncTests(unittest.TestCase):
                 self.assertIn("explicit contract", self.sync({"projects": {"App.csproj": {field: value}}}, success=False))
 
     def test_duplicate_and_ambiguous_keys_fail(self):
-        for text in ['{"projects":{},"projects":{}}', '{"projectDefaults":{"properties":{"Flavor":"a","flavor":"b"}}}']:
+        for text in ['{"projects":{},"projects":{}}',
+                     '{"projectDefaults":{"documents":{"App.csproj":{"sha256":"a","sha256":"b"}}}}',
+                     '{"projects":{"App.csproj":{"frameworkOverrides":{"net11.0":{"inputItems":{"Extra":[],"Extra":[]}}}}}}',
+                     '{"projectDefaults":{"properties":{"Flavor":"a","flavor":"b"}}}']:
             self.assertIn("mapping", self.sync(text, success=False).lower())
+
+    def test_project_and_framework_dictionary_overrides_match_explicit_contract(self):
+        project = self.project.replace('</Project>', '<Target Name="Reviewed" /></Project>')
+        (self.root / "App.csproj").write_text(project)
+        side = '<Project><Target Name="Side" /></Project>'
+        (self.root / "Directory.Build.targets").write_text(side)
+        for name in ['default.txt', 'project.txt', 'framework.txt']:
+            (self.root / name).write_text(name)
+        def document(body, target, inputs):
+            return {"sha256": hashlib.sha256(body.encode()).hexdigest(), "targets": [target], "tasks": [], "inputs": inputs}
+        inherited = {"App.csproj": document(project, "Reviewed", ["default.txt"]),
+                     "Directory.Build.targets": document(side, "Side", [])}
+        selected = document(project, "Reviewed", ["framework.txt"])
+        mapping = {"projectDefaults": {"documents": inherited, "inputItems": {"FirstInput": []}},
+                   "projects": {"App.csproj": {"documents": {"App.csproj": document(project, "Reviewed", ["project.txt"])},
+                       "inputItems": {"SecondInput": []}, "frameworkOverrides": {"net11.0": {"documents": {"App.csproj": selected}}}}}}
+        self.sync(mapping)
+        expected = [(self.root / name).read_bytes() for name in ['graph.generated.json', 'graph.generated.bzl']]
+        explicit = {"projects": {"App.csproj": {"documents": dict(inherited, **{"App.csproj": selected}),
+                    "inputItems": {"FirstInput": [], "SecondInput": []}}}}
+        self.sync(explicit)
+        self.assertEqual([(self.root / name).read_bytes() for name in ['graph.generated.json', 'graph.generated.bzl']], expected)
+        mapping['projects']['App.csproj']['frameworkOverrides']['net11.0']['documents']['App.csproj'] = {"inputs": ["framework.txt"]}
+        self.assertIn("Custom document contract changed", self.sync(mapping, success=False))
 
     def test_invalid_paths_and_restore_contracts_fail(self):
         for mappings in [{"projects": {"../App.csproj": {}}}, {"projects": {"App.csproj": {"restoreInputs": ["props.xml"]}}}]:

@@ -1350,6 +1350,11 @@ with SDK 11.0.100 also passes all 63 ProjectSync controls without skips, includi
 seeded qualification reuse, SDK inventory preservation and overlapping-owner
 exclusion; see the [platform matrix](#sdk-11-platform-qualification).
 
+ProjectSync mapping controls reject exact duplicate JSON keys at every depth and
+case-ambiguous contract fields. Shared project/framework merging retains dictionary
+inheritance and whole-record document replacement; 300 baseline/current expansion
+comparisons are byte-identical, and merged/explicit mappings emit identical graphs.
+
 Graph contracts, sync inputs, worker paths, cache entries and ArtifactTools share
 span-based relative-path component checks. Caller-specific character, containment
 and symlink policies remain separate. Native SDK 11.0.100 differential controls
