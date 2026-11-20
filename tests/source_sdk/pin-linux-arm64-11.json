@@ -30,5 +30,6 @@
   "configuration": {
     "architecture": "arm64"
   },
-  "branding": ""
+  "branding": "",
+  "extractWithoutOwnership": true
 }

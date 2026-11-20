@@ -83,8 +83,8 @@ def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False, pin=No
     framework = "net" + sdk_version.split(".")[0] + ".0"
     controller = 'dotnet.sdk(name="controller",version="10.0.400",platforms=["linux-arm64"])'
     if architecture == "x64":
-        pin = json.loads(Path(__file__).with_name('pin-linux-x64.json').read_text())
-        driver = pin['controllerSdk']
+        controller_pin = json.loads(Path(__file__).with_name('pin-linux-x64.json').read_text())
+        driver = controller_pin['controllerSdk']
         integrity = 'sha256-' + base64.b64encode(bytes.fromhex(driver['sha256'])).decode()
         controller = ('dotnet.sdk_archive(name="controller",version="10.0.400",runtime_version=' +
                       json.dumps(driver['runtimeVersion']) + ',platform="linux-x64",urls=[' +
@@ -117,10 +117,14 @@ def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False, pin=No
 
 def build_script(architecture="arm64", pin=None):
     platform_configuration(architecture)
-    release = pin['releaseManifest'] if pin else json.loads(Path(__file__).with_name('pin.json').read_text())['releaseManifest']
-    revision = pin['sourceRevision'] if pin else 'b0f34d51fccc69fd334253924abd8d6853fad7aa'
-    branding = ' --branding ' + pin.get('branding', 'rtm') if pin and pin.get('branding', 'rtm') else ('' if pin else ' --branding rtm')
-    patch_command = '    patch -p1 < identitymodel.patch\n' if not pin or pin.get('applyIdentityModelPatch', True) else '    export TAR_OPTIONS=--no-same-owner\n'
+    if pin is None:
+        pin = json.loads(Path(__file__).with_name('pin.json').read_text())
+    release = pin['releaseManifest']
+    revision = pin['sourceRevision']
+    branding = ' --branding ' + pin.get('branding', 'rtm') if pin.get('branding', 'rtm') else ''
+    patch_command = '    patch -p1 < identitymodel.patch\n' if pin.get('applyIdentityModelPatch', True) else ''
+    if pin.get('extractWithoutOwnership', False):
+        patch_command += '    export TAR_OPTIONS=--no-same-owner\n'
     script = build_prefix(architecture) + (sdk_account_check() if architecture == 'x64' else '') + '''
     export DOTNET_PROCESSOR_COUNT=2 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_GENERATE_ASPNET_CERTIFICATE=false NuGetAudit=false
 ''' + patch_command + '''    ./prep-source-build.sh --no-sdk --no-bootstrap --no-artifacts --no-prebuilts > preparation.log 2>&1 || { tail -100 preparation.log; exit 1; }
