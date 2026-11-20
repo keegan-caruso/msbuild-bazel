@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+import tarfile
 import unittest
 from unittest.mock import patch
 import source_action_prepare
@@ -38,6 +39,21 @@ class SourceActionTemplatesTests(unittest.TestCase):
                 for name in ('MODULE.bazel', 'BUILD.bazel'):
                     subprocess.run([buildifier, '-mode=fix', str(workspace / name)],
                                    stdout=subprocess.DEVNULL, check=True)
+
+    def test_bootstrap_inventory_ignores_metadata_and_rejects_changed_members(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            archive = Path(temporary) / 'bootstrap.tar.gz'
+            def write(body, timestamp):
+                with tarfile.open(archive, 'w:gz') as output:
+                    entry = tarfile.TarInfo('package.nupkg')
+                    entry.size, entry.mtime = len(body), timestamp
+                    output.addfile(entry, io.BytesIO(body))
+            write(b'original', 0)
+            expected = source_action_prepare.bootstrap_inventory_digest(archive)
+            write(b'original', 100)
+            self.assertEqual(source_action_prepare.bootstrap_inventory_digest(archive), expected)
+            write(b'changed!', 100)
+            self.assertNotEqual(source_action_prepare.bootstrap_inventory_digest(archive), expected)
 
     def test_net11_pin_selects_product_and_release_identity(self):
         pin = json.loads(Path(source_action_prepare.__file__).with_name('pin-linux-arm64-11.json').read_text())

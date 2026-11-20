@@ -21,6 +21,10 @@
     "sha256": "a63f77bda2335c85d4f9f76a57f9cc216d3d6bfc5277fc26a492c637bc502898"
   },
   "portableBootstrap": {
-    "sha256": "669f23b14a8eb2668b5389d37a4dee3e540b468b3f90136a0d5ce8b3b593fe13"
+    "inventorySha256": "938537bd15ab1121b33f7e2a1b10a5f31a192f203bbe848356e3b262c49b966d"
+  },
+  "previouslySourceBuiltArtifacts": {
+    "url": "https://builds.dotnet.microsoft.com/dotnet/source-built-artifacts/11.0.100-rc.2.26504.105/Private.SourceBuilt.Artifacts.11.0.100-rc.2.26504.105.centos.10-x64.tar.gz",
+    "sha256": "5bd1bbf2bf9ef75d24a816f976ebefcbf7a46c1dade359c3b0186f2d3993e527"
   }
 }

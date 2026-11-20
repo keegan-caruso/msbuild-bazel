@@ -7,6 +7,7 @@ bootstrap and native-tool identities.
 import argparse
 import base64
 import io
+import hashlib
 import json
 from pathlib import Path
 import platform
@@ -56,6 +57,23 @@ def validate_bootstrap_host(path, architecture):
     if (len(header) != 20 or header[:6] != b'\x7fELF\x02\x01' or
             int.from_bytes(header[18:20], 'little') != expected):
         raise ValueError('Bootstrap SDK host architecture mismatch')
+
+
+def bootstrap_inventory_digest(path):
+    members = {}
+    with tarfile.open(path, 'r:gz') as archive:
+        for entry in archive:
+            if entry.isdir():
+                continue
+            if not entry.isfile() or entry.name in members:
+                raise ValueError('Bootstrap archive contains duplicate or non-regular members')
+            with archive.extractfile(entry) as stream:
+                member_digest = hashlib.sha256()
+                for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+                    member_digest.update(chunk)
+                members[entry.name] = member_digest.hexdigest()
+    encoded = json.dumps(members, sort_keys=True, separators=(',', ':')).encode()
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False, pin=None):
@@ -174,7 +192,7 @@ def main():
 
     bootstrap_archive = baseline / 'prereqs/packages/archive/Private.SourceBuilt.Artifacts.Bootstrap.tar.gz'
     assert bootstrap_archive.is_file()
-    if pin.get('portableBootstrap') and digest(bootstrap_archive) != pin['portableBootstrap']['sha256']:
+    if pin.get('portableBootstrap') and bootstrap_inventory_digest(bootstrap_archive) != pin['portableBootstrap']['inventorySha256']:
         raise ValueError('Portable bootstrap archive identity mismatch')
     with tarfile.open(w / 'bootstrap.tar', 'w') as archive:
         archive.add(baseline / '.dotnet', arcname='.dotnet', filter=normalize)
