@@ -71,6 +71,9 @@ configuration changes. `--check` verifies declarations on build servers.
 
 ## Source-built SDK
 
+To build SDK 11.0.100 and its runtime from the signed VMR release on Linux ARM64,
+use the [VMR producer recipe](../../tests/source_sdk/LINUX_ARM64_11.md).
+
 Use this scenario when your workspace has an SDK source producer. The public
 `msbuild_sdk` API consumes its declared outputs. The upstream
 [component producer](../../tests/source_sdk/component_graph_prepare.py) is

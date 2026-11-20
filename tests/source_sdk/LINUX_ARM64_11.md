@@ -1,0 +1,100 @@
+# Build the .NET 11 VMR on Linux ARM64
+
+The release targets SDK 11.0.100 with Microsoft.NETCore.App and Microsoft.AspNetCore.App
+11.0.0. The upstream release manifest identifies VMR commit
+`297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f` and official build ID `20261029.18`.
+Use the build-produced source archive linked from the
+[upstream release](https://github.com/dotnet/dotnet/releases/tag/v11.0.100).
+The release signature covers that archive's ownership metadata.
+
+## Prepare the bootstrap on Linux ARM64
+
+Start in an empty directory with Bash, curl, GnuPG, GNU tar and sha256sum.
+The bootstrap project replaces its working copy of the raw package archive. Keep the original downloads for subsequent runs. NuGet needs network
+access during this preparation.
+
+```bash
+set -euo pipefail
+release=https://github.com/dotnet/dotnet/releases/download/v11.0.100
+feed=https://builds.dotnet.microsoft.com/dotnet
+rc=11.0.100-rc.2.26504.105
+raw=Private.SourceBuilt.Artifacts.$rc.centos.10-x64.tar.gz
+curl -fLsS "$feed/source-build/dotnet-source-11.0.100-rtm.26529.118.tar.gz" -o source.tar.gz
+curl -fLsS "$release/dotnet-11.0.100.tar.gz.sig" -o source.sig
+curl -fLsS https://dot.net/release-key-2023 | gpg --dearmor > release-key.gpg
+gpgv --keyring "$PWD/release-key.gpg" source.sig source.tar.gz
+curl -fLsS "$feed/Sdk/$rc/dotnet-sdk-$rc-linux-arm64.tar.gz" -o sdk-bootstrap.tar.gz
+curl -fLsS "$feed/source-build/$raw" -o "$raw"
+sha256sum -c <<HASHES
+87df2a2d4b8931e50c88e4fb2b150092960135d649a57bfb41bec72085e9d38a  source.tar.gz
+a63f77bda2335c85d4f9f76a57f9cc216d3d6bfc5277fc26a492c637bc502898  sdk-bootstrap.tar.gz
+5bd1bbf2bf9ef75d24a816f976ebefcbf7a46c1dade359c3b0186f2d3993e527  $raw
+HASHES
+mkdir vmr
+tar -xzf source.tar.gz --strip-components=1 -C vmr
+mkdir -p vmr/.dotnet vmr/prereqs/packages/archive vmr/artifacts/{prep-bootstrap,log}
+tar -xzf sdk-bootstrap.tar.gz -C vmr/.dotnet
+cp "$raw" vmr/prereqs/packages/archive/
+tar -xzf "$raw" -C vmr/artifacts/prep-bootstrap PackageVersions.props
+(
+  cd vmr
+  cp eng/bootstrap/buildBootstrapPreviouslySB.csproj src/sdk/NuGet.config artifacts/prep-bootstrap/
+  export DOTNET_ROOT="$PWD/.dotnet" DOTNET_CLI_HOME="$PWD/artifacts/cli-home"
+  "$DOTNET_ROOT/dotnet" restore artifacts/prep-bootstrap/buildBootstrapPreviouslySB.csproj \
+    /bl:artifacts/log/prep-bootstrap.binlog \
+    -p:ArchiveDir="$PWD/prereqs/packages/archive/" -p:PortableTargetRid=linux-arm64
+)
+sha256sum vmr/prereqs/packages/archive/Private.SourceBuilt.Artifacts.Bootstrap.tar.gz
+```
+
+The source signature verifies with key `A30E1CAFB4BBD279FEC7E47CFDBF53C24DB4872E`.
+The VMR bootstrap project consumes the CentOS x64 package collection and replaces
+target-specific packages using its Linux ARM64 restore. Record the generated
+archive digest alongside the binary log for each run. The RC SDK runs the bootstrap
+and the source build. Product tests use the resulting 11.0.100 SDK.
+
+## Run the Bazel producer
+
+In the Linux ARM64 guest, set `rules` to the absolute checkout path and
+`native` to the qualified Ubuntu 26.04 / LLVM 18.1.8 native input archive.
+The preparation step checks the source digest, bootstrap host architecture and
+version, portable package inventory, and native archive digest. Use a fresh
+workspace directory on a filesystem with room for the extracted VMR and its
+intermediate products.
+
+```bash
+work=$(mktemp -d)
+python3 "$rules/tests/source_sdk/source_action_prepare.py" \
+  "$PWD/source.tar.gz" "$PWD/vmr" "$work/workspace" \
+  --pin="$rules/tests/source_sdk/pin-linux-arm64-11.json" \
+  --native-tools="$native" \
+  --native-tools-sha256=1854d067717cba3afe85c01e166e2a2c7d95c4dafea89e172b69da8b536c874a
+(
+  cd "$work/workspace"
+  bash "$rules/scripts/bazel-launcher.sh" --batch --output_base="$work/base" \
+    --ignore_all_rc_files test //:smoke --jobs=1 --lockfile_mode=off \
+    --test_output=all --execution_log_json_file="$work/producer.execution.json"
+)
+```
+
+The smoke target requests the SDK as a Bazel toolchain, builds a net11.0
+executable and checks its runtime version. The controller SDK compiles the Bazel
+action driver. The VMR uses its pinned RC SDK to build the product toolchain.
+
+## Run an app with the runtime alone
+
+Copy the produced SDK archive to a second Linux ARM64 guest and compare its SHA-256
+with the producer's. Set `sdk_archive` to that verified copy. From a fresh directory:
+
+```bash
+mkdir sdk
+tar -xzf "$sdk_archive" -C sdk
+python3 "$rules/tests/source_sdk/vmr_runtime.py" --sdk="$PWD/sdk" \
+  --vmr-revision=297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f "$PWD/runtime-check"
+```
+
+The check compares the SDK and shared-framework version stamps with the VMR
+revision, packages the host and both shared frameworks, then extracts the runtime
+archive again. It builds a net11.0 app with the source-built SDK, launches it
+with the extracted host, and records the loaded CoreLib path, architecture and
+runtime version in `runtime-check/report.json`.
