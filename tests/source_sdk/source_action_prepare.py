@@ -117,11 +117,14 @@ def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False, pin=No
 
 def build_script(architecture="arm64", pin=None):
     platform_configuration(architecture)
+    release = pin['releaseManifest'] if pin else json.loads(Path(__file__).with_name('pin.json').read_text())['releaseManifest']
+    revision = pin['sourceRevision'] if pin else 'b0f34d51fccc69fd334253924abd8d6853fad7aa'
+    branding = ' --branding ' + pin.get('branding', 'rtm') if pin and pin.get('branding', 'rtm') else ('' if pin else ' --branding rtm')
+    patch_command = '    patch -p1 < identitymodel.patch\n' if not pin or pin.get('applyIdentityModelPatch', True) else '    export TAR_OPTIONS=--no-same-owner\n'
     script = build_prefix(architecture) + (sdk_account_check() if architecture == 'x64' else '') + '''
     export DOTNET_PROCESSOR_COUNT=2 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_GENERATE_ASPNET_CERTIFICATE=false NuGetAudit=false
-    patch -p1 < identitymodel.patch
-    ./prep-source-build.sh --no-sdk --no-bootstrap --no-artifacts --no-prebuilts > preparation.log 2>&1 || { tail -100 preparation.log; exit 1; }
-    /usr/bin/time -v -o build.time ./build.sh -sb --clean-while-building --configuration Release --arch ''' + architecture + ''' --official-build-id 20251023.11 --branding rtm --source-repository https://github.com/dotnet/dotnet --source-version b0f34d51fccc69fd334253924abd8d6853fad7aa /p:BuildInParallel=false > build.log 2>&1 || { tail -120 build.log; grep -R -m2 "error NU" artifacts/log src/source-build-reference-packages/artifacts/log 2>/dev/null | head -40 || true; exit 1; }
+''' + patch_command + '''    ./prep-source-build.sh --no-sdk --no-bootstrap --no-artifacts --no-prebuilts > preparation.log 2>&1 || { tail -100 preparation.log; exit 1; }
+    /usr/bin/time -v -o build.time ./build.sh -sb --clean-while-building --configuration Release --arch ''' + architecture + ''' --official-build-id ''' + release['officialBuildId'] + branding + ''' --source-repository https://github.com/dotnet/dotnet --source-version ''' + revision + ''' /p:BuildInParallel=false > build.log 2>&1 || { tail -120 build.log; grep -R -m2 "error NU" artifacts/log src/source-build-reference-packages/artifacts/log 2>/dev/null | head -40 || true; exit 1; }
     mapfile -t archives < <(find artifacts/assets/Release/Sdk -name 'dotnet-sdk-*.tar.gz')
     test "${#archives[@]}" = 1
     mkdir result
@@ -130,10 +133,6 @@ def build_script(architecture="arm64", pin=None):
     tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf result.tar preparation.log build.log build.time sdk-info.txt artifacts/log
     '''
 
-    if pin:
-        script = script.replace('20251023.11', pin['releaseManifest']['officialBuildId']).replace('b0f34d51fccc69fd334253924abd8d6853fad7aa', pin['sourceRevision'])
-        if pin.get('applyIdentityModelPatch', True) is False:
-            script = script.replace('    patch -p1 < identitymodel.patch\n', '')
     return script
 
 
@@ -162,6 +161,8 @@ def main():
     here = Path(__file__).resolve().parent
     rules = here.parents[1]
     pin = json.loads(a.pin.read_text())
+    if pin.get('configuration', {}).get('architecture', a.architecture) != a.architecture:
+        raise ValueError('Source SDK pin architecture mismatch')
     assert digest(a.source_archive) == pin['sourceArchive']['sha256']
     baseline = a.prepared_baseline.resolve()
     validate_bootstrap_host(baseline / '.dotnet/dotnet', a.architecture)

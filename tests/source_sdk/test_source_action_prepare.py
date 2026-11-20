@@ -69,7 +69,25 @@ class SourceActionTemplatesTests(unittest.TestCase):
         self.assertIn('--official-build-id 20261029.18', script)
         self.assertIn('--source-version 297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f', script)
         self.assertNotIn('patch -p1', script)
+        self.assertIn('export TAR_OPTIONS=--no-same-owner', script)
         subprocess.run(['bash', '-n'], input=script, text=True, check=True)
+
+    def test_arm64_release_pin_rejects_x64_preparation(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            native = root / 'native.tar'
+            native.write_bytes(b'fixture')
+            digest = hashlib.sha256(b'fixture').hexdigest()
+            args = ['prepare', str(root / 'source.tar.gz'), str(root / 'baseline'), str(root / 'out'),
+                    '--architecture=x64', '--pin=' + str(Path(source_action_prepare.__file__).with_name('pin-linux-arm64-11.json')),
+                    '--native-tools=' + str(native), '--native-tools-sha256=' + digest,
+                    '--sandbox=' + str(native), '--sandbox-sha256=' + digest]
+            with patch.object(source_action_prepare.platform, 'system', return_value='Linux'), \
+                    patch.object(source_action_prepare.platform, 'machine', return_value='x86_64'), \
+                    patch('sys.argv', args):
+                with self.assertRaisesRegex(ValueError, 'pin architecture mismatch'):
+                    source_action_prepare.main()
+            self.assertFalse((root / 'out').exists())
 
     def test_x64_requires_verified_declared_root_before_preparing_outputs(self):
         with tempfile.TemporaryDirectory() as temporary:
