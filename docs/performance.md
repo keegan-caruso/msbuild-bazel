@@ -443,6 +443,55 @@ Use the [producer](../tests/source_sdk/source_action_prepare.py) with verified
 VMR/bootstrap inputs, then the [recovery driver](../tests/source_sdk/source_action_recovery.py)
 and [consumer scenarios](../tests/source_sdk/consumer_scenarios.py).
 
+## Fresh .NET 11 VMR smoke-test recovery
+
+The [Linux ARM64 VMR recipe](../tests/source_sdk/LINUX_ARM64_11.md#recover-the-sdk-and-exercise-consumers)
+supports Bazel's top-level output download mode. It lets a fresh consumer run
+`//:smoke` while the complete SDK archive and intermediate compiler layouts
+stay in the HTTP cache.
+
+The comparison used Bazel 9.3.2, Ubuntu 26.04 ARM64, four CPUs, 6 GiB RAM and
+the same source-produced SDK 11.0.100 / runtime 11.0.0 seed. The producer had
+stopped. Both modes used one remote connection, disabled cache uploads and disk
+caching, and forced the local test to execute. Each invocation used fresh
+workspace, output base and output user root directories in one guest. Times
+measure the Bazel invocation; guest preparation and seed extraction preceded
+the trials.
+
+| Pair | All outputs | Top-level outputs | Speedup |
+| --- | ---: | ---: | ---: |
+| 1 | 905.8 s | 74.7 s | 12.1× |
+| 2 | 945.1 s | 71.9 s | 13.1× |
+| 3 | 901.1 s | 71.6 s | 12.6× |
+
+Median paired speedup was **12.6×**. All six runs executed the smoke test on
+runtime 11.0.0 and recovered the same SDK digest. Only the full-download runs
+materialized the SDK archive. Trial order was top-level/all, all/top-level,
+then top-level/all. These timings cover fresh smoke tests against a populated
+cache on this hardware. SDK production and builds requiring local compilation
+have different input requirements.
+
+In the first top-level run, the test's runfiles contained two copies of the
+shared frameworks at different paths: the launch helper's runtime and the
+application's selected runtime. All 333 relative file paths and digests matched.
+Core accounted for 184.0 MiB and ASP.NET Core for 25.7 MiB per layout. These
+are uncompressed file sizes. The test process itself took 76 ms. Bazel's
+profiles for the second and third top-level runs attributed 48.93 and 48.32
+seconds to staging remote inputs for the test, starting about 21 seconds
+into each Bazel invocation. The profiles do not measure wire bytes per layout.
+
+To reproduce a pair, set `seed` and `cache` to the prepared seed workspace and
+its populated HTTP cache. Set `RULES_MSBUILD_BAZEL` to the repository's Bazel
+launcher. Use a new `trial` directory for each pair:
+
+```bash
+for mode in all toplevel; do
+  python3 "$rules/tests/source_sdk/source_action_recovery.py" \
+    "$seed" "$trial/$mode" --cache="$cache" --smoke-only \
+    --download-outputs="$mode" --remote-connections=1
+done
+```
+
 ## Retained source SDK consumer recovery
 
 On Ubuntu 26.04 ARM64 with Bazel **9.3.2**, a retained source-built SDK archive
