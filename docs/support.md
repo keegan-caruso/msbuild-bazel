@@ -766,6 +766,21 @@ ambient Git, Helix and full native Arcade orchestration are unqualified.
 
 ## Source toolchains and NativeAOT
 
+### .NET 11 VMR on Ubuntu ARM64
+
+The [ARM64 VMR recipe](../tests/source_sdk/LINUX_ARM64_11.md) uses the signed
+11.0.100 release source and the upstream bootstrap project. Its
+[pin](../tests/source_sdk/pin-linux-arm64-11.json) identifies the bootstrap SDK
+and portable package inventory. The Bazel source action builds both the SDK and
+its runtimes from the same VMR revision. On Ubuntu 26.04 ARM64, Clang 18.1.8
+compiled the native runtime. The VMR emitted a standalone 75,756,582-byte
+Core runtime archive with SHA-256
+`2600fd21410a9f04aa10b8130195b8e95dd87369efb1712578940edbb36c68d0`.
+The host, hostfxr, CoreCLR and JIT were ARM64 ELF binaries. The Core framework
+stamp identified the release VMR revision and runtime 11.0.0.
+
+### .NET 10 VMR on Ubuntu ARM64
+
 The coarse qualification producer rebuilt the pinned .NET 10 VMR on Ubuntu
 26.04 ARM64 / Clang 18.1.8 / Bazel **9.3.2**, producing SDK **10.0.100** and
 Core/ASP.NET runtimes **10.0.0**. Its controller remains SDK 10.0.400; the upstream
@@ -792,8 +807,7 @@ bootstrap inputs. The [quick start](../examples/quickstart/README.md#source-buil
 shows the public toolchain handoff, not a standalone upstream bootstrap recipe.
 This ARM64 evidence qualifies local production and same-host recovery; native x64
 production is covered separately below. Older-glibc deployment, signing and full
-upstream test parity remain unqualified. The product remains
-.NET 10; using SDK 11 rules does not turn it into an SDK 11 source build.
+upstream test parity remain unqualified. These runs produced SDK 10.0.100 and runtime 10.0.0.
 
 ### Native Ubuntu 26.04 x64 SDK
 
