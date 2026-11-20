@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "sourceRepository": "https://github.com/dotnet/dotnet",
+  "sourceTag": "v11.0.100",
+  "sourceRevision": "297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f",
+  "bootstrapSdkVersion": "11.0.100-rc.2.26504.105",
+  "applyIdentityModelPatch": false,
+  "sourceArchive": {
+    "url": "https://builds.dotnet.microsoft.com/dotnet/source-build/dotnet-source-11.0.100-rtm.26529.118.tar.gz",
+    "sha256": "87df2a2d4b8931e50c88e4fb2b150092960135d649a57bfb41bec72085e9d38a",
+    "bytes": 487930849,
+    "verifiedSigningKey": "A30E1CAFB4BBD279FEC7E47CFDBF53C24DB4872E"
+  },
+  "releaseManifest": {
+    "officialBuildId": "20261029.18",
+    "sdkVersion": "11.0.100",
+    "runtimeVersion": "11.0.0"
+  },
+  "bootstrapSdk": {
+    "version": "11.0.100-rc.2.26504.105",
+    "sha256": "a63f77bda2335c85d4f9f76a57f9cc216d3d6bfc5277fc26a492c637bc502898"
+  },
+  "portableBootstrap": {
+    "sha256": "669f23b14a8eb2668b5389d37a4dee3e540b468b3f90136a0d5ce8b3b593fe13"
+  }
+}
