@@ -27,19 +27,23 @@ def main():
     sdk = args.sdk.resolve()
     folder = args.directory.resolve()
     folder.mkdir(parents=True, exist_ok=False)
+    (folder / 'global.json').write_text(json.dumps(dict(sdk=dict(
+        version=args.sdk_version, rollForward='disable', allowPrerelease=False))) + '\n')
     report = dict(vmrRevision=args.vmr_revision, sdk=str(sdk),
                   sdkVersion=args.sdk_version, runtimeVersion=args.runtime_version,
                   stamps={}, nativeFiles={}, commands=[])
     env = dict(os.environ, DOTNET_ROOT=str(sdk), DOTNET_MULTILEVEL_LOOKUP='0',
                DOTNET_ROLL_FORWARD='Disable', DOTNET_CLI_HOME=str(folder / 'home'),
-               DOTNET_SKIP_FIRST_TIME_EXPERIENCE='1', DOTNET_NOLOGO='1')
+               DOTNET_SKIP_FIRST_TIME_EXPERIENCE='1', DOTNET_NOLOGO='1',
+               NUGET_PACKAGES=str(folder / 'packages'),
+               NUGET_HTTP_CACHE_PATH=str(folder / 'http-cache'))
     def save():
         (folder / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
 
     save()
 
     def run(command):
-        result = subprocess.run([str(x) for x in command], env=env, text=True,
+        result = subprocess.run([str(x) for x in command], env=env, cwd=folder, text=True,
                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=300)
         report['commands'].append(dict(command=[str(x) for x in command],
                                        exitCode=result.returncode, output=result.stdout))
@@ -67,6 +71,8 @@ def main():
         if data[:6] != b'\x7fELF\x02\x01' or struct.unpack_from('<H', data, 18)[0] != 183:
             raise ValueError('Expected ELF64 little-endian AArch64: ' + relative)
         report['nativeFiles'][relative] = hashlib.sha256(data).hexdigest()
+    if run([sdk / 'dotnet', '--version']).strip() != args.sdk_version:
+        raise ValueError('Produced SDK selected an unexpected version')
     archive = folder / 'runtime.tar.gz'
     run(['tar', '--sort=name', '--mtime=@0', '--owner=0', '--group=0', '--numeric-owner',
          '-czf', archive, '-C', runtime, '.'])
@@ -89,6 +95,7 @@ using System.Runtime.InteropServices;
 Console.WriteLine("VERSION=" + Environment.Version);
 Console.WriteLine("FRAMEWORK=" + RuntimeInformation.FrameworkDescription);
 Console.WriteLine("ARCH=" + RuntimeInformation.ProcessArchitecture);
+Console.WriteLine("PROCESS=" + Environment.ProcessPath);
 Console.WriteLine("CORELIB=" + typeof(object).Assembly.Location);
 Console.WriteLine("RUNTIME=" + RuntimeEnvironment.GetRuntimeDirectory());
 ''')
@@ -99,6 +106,7 @@ Console.WriteLine("RUNTIME=" + RuntimeEnvironment.GetRuntimeDirectory());
     output = run([runtime / 'dotnet', '--fx-version', args.runtime_version, app / 'out/app.dll'])
     expected = runtime / 'shared/Microsoft.NETCore.App' / args.runtime_version
     for line in ['VERSION=' + args.runtime_version, 'ARCH=Arm64',
+                 'PROCESS=' + str(runtime / 'dotnet'),
                  'CORELIB=' + str(expected / 'System.Private.CoreLib.dll'),
                  'RUNTIME=' + str(expected) + '/']:
         if line not in output.splitlines():
