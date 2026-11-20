@@ -39,6 +39,22 @@ class SourceActionTemplatesTests(unittest.TestCase):
                     subprocess.run([buildifier, '-mode=fix', str(workspace / name)],
                                    stdout=subprocess.DEVNULL, check=True)
 
+    def test_net11_pin_selects_product_and_release_identity(self):
+        pin = json.loads(Path(source_action_prepare.__file__).with_name('pin-linux-arm64-11.json').read_text())
+        with tempfile.TemporaryDirectory() as temporary:
+            workspace = Path(temporary)
+            write_bazel_files(workspace, Path('/rules'), pin=pin)
+            build = (workspace / 'BUILD.bazel').read_text()
+            ast.parse(build)
+            self.assertIn('sdk_version="11.0.100"', build)
+            self.assertIn('runtime_version="11.0.0"', build)
+            self.assertIn('App.csproj|net11.0', build)
+        script = source_action_prepare.build_script(pin=pin)
+        self.assertIn('--official-build-id 20261029.18', script)
+        self.assertIn('--source-version 297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f', script)
+        self.assertNotIn('patch -p1', script)
+        subprocess.run(['bash', '-n'], input=script, text=True, check=True)
+
     def test_x64_requires_verified_declared_root_before_preparing_outputs(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

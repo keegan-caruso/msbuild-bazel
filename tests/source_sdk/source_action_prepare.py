@@ -58,8 +58,11 @@ def validate_bootstrap_host(path, architecture):
         raise ValueError('Bootstrap SDK host architecture mismatch')
 
 
-def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False):
+def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False, pin=None):
     configuration = platform_configuration(architecture)
+    sdk_version = pin["releaseManifest"]["sdkVersion"] if pin else "10.0.100"
+    runtime_version = pin["releaseManifest"]["runtimeVersion"] if pin else "10.0.0"
+    framework = "net" + sdk_version.split(".")[0] + ".0"
     controller = 'dotnet.sdk(name="controller",version="10.0.400",platforms=["linux-arm64"])'
     if architecture == "x64":
         pin = json.loads(Path(__file__).with_name('pin-linux-x64.json').read_text())
@@ -87,16 +90,16 @@ def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False):
     filegroup(name="driver",srcs=[":sdk"],output_group="driver")
     sdk_layout(name="layout",archive=":sdk")
     filegroup(name="dotnet",srcs=[":layout"],output_group="dotnet")
-    msbuild_sdk(name="produced",dotnet=":dotnet",files=[":layout"],sdk_version="10.0.100",runtime_version="10.0.0",runtime_identifier="%s")
+    msbuild_sdk(name="produced",dotnet=":dotnet",files=[":layout"],sdk_version="%s",runtime_version="%s",runtime_identifier="%s")
     msbuild_graph_runner(name="runner")
-    msbuild_graph(name="graph",runner=":runner",contract="app-contract.json",srcs=["App.csproj","App.cs"],project_outputs={"App.csproj|net10.0":["bin/Release/net10.0","App.dll","Exe"]})
+    msbuild_graph(name="graph",runner=":runner",contract="app-contract.json",srcs=["App.csproj","App.cs"],project_outputs={"App.csproj|%s":["bin/Release/%s","App.dll","Exe"]})
     msbuild_graph_test(name="smoke",graph=":graph",project="App.csproj")
-    ''') % ('system_bwrap=True,' if system_bwrap else '', configuration['cpu'], configuration['rid']))
+    ''') % ('system_bwrap=True,' if system_bwrap else '', configuration['cpu'], sdk_version, runtime_version, configuration['rid'], framework, framework))
 
 
-def build_script(architecture="arm64"):
+def build_script(architecture="arm64", pin=None):
     platform_configuration(architecture)
-    return build_prefix(architecture) + (sdk_account_check() if architecture == 'x64' else '') + '''
+    script = build_prefix(architecture) + (sdk_account_check() if architecture == 'x64' else '') + '''
     export DOTNET_PROCESSOR_COUNT=2 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_GENERATE_ASPNET_CERTIFICATE=false NuGetAudit=false
     patch -p1 < identitymodel.patch
     ./prep-source-build.sh --no-sdk --no-bootstrap --no-artifacts --no-prebuilts > preparation.log 2>&1 || { tail -100 preparation.log; exit 1; }
@@ -109,12 +112,19 @@ def build_script(architecture="arm64"):
     tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf result.tar preparation.log build.log build.time sdk-info.txt artifacts/log
     '''
 
+    if pin:
+        script = script.replace('20251023.11', pin['releaseManifest']['officialBuildId']).replace('b0f34d51fccc69fd334253924abd8d6853fad7aa', pin['sourceRevision'])
+        if pin.get('applyIdentityModelPatch', True) is False:
+            script = script.replace('    patch -p1 < identitymodel.patch\n', '')
+    return script
+
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('source_archive', type=Path)
     p.add_argument('prepared_baseline', type=Path)
     p.add_argument('directory', type=Path)
+    p.add_argument('--pin', type=Path, default=Path(__file__).with_name('pin.json'))
     p.add_argument('--native-tools', type=Path)
     p.add_argument('--native-tools-sha256')
     p.add_argument('--sandbox', type=Path)
@@ -133,7 +143,7 @@ def main():
         raise ValueError('x64 preparation requires declared native tools and sandbox inputs')
     here = Path(__file__).resolve().parent
     rules = here.parents[1]
-    pin = json.loads((here / 'pin.json').read_text())
+    pin = json.loads(a.pin.read_text())
     assert digest(a.source_archive) == pin['sourceArchive']['sha256']
     baseline = a.prepared_baseline.resolve()
     validate_bootstrap_host(baseline / '.dotnet/dotnet', a.architecture)
@@ -164,11 +174,13 @@ def main():
 
     bootstrap_archive = baseline / 'prereqs/packages/archive/Private.SourceBuilt.Artifacts.Bootstrap.tar.gz'
     assert bootstrap_archive.is_file()
+    if pin.get('portableBootstrap') and digest(bootstrap_archive) != pin['portableBootstrap']['sha256']:
+        raise ValueError('Portable bootstrap archive identity mismatch')
     with tarfile.open(w / 'bootstrap.tar', 'w') as archive:
         archive.add(baseline / '.dotnet', arcname='.dotnet', filter=normalize)
         archive.add(bootstrap_archive, arcname='prereqs/packages/archive/Private.SourceBuilt.Artifacts.Bootstrap.tar.gz', filter=normalize)
 
-    script = build_script(a.architecture)
+    script = build_script(a.architecture, pin)
     with tarfile.open(a.source_archive, 'r|gz') as original, tarfile.open(w / 'sources.tar', 'w') as archive:
         for entry in original:
             parts = entry.name.split('/', 1)
@@ -189,10 +201,13 @@ def main():
     shutil.copyfile(here / 'source_action.bzl', w / 'source_action.bzl')
     shutil.copyfile(rules / 'tests/runtime/NativeBuild.cs.txt', w / 'Driver.cs')
     (w / 'Driver.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><Nullable>enable</Nullable></PropertyGroup></Project>')
-    write_bazel_files(w, rules, a.architecture, a.system_bwrap)
-    (w / 'App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><UseAppHost>false</UseAppHost><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup><ItemGroup><Compile Include="App.cs" /></ItemGroup></Project>')
-    (w / 'App.cs').write_text('System.Console.WriteLine("SDK_FROM_SOURCE="+System.Environment.Version); return System.Environment.Version.ToString()=="10.0.0" ? 0 : 1;')
-    (w / 'app-contract.json').write_text(json.dumps(dict(Version=1,Entry='App.csproj',SdkVersion='10.0.100',Properties={'Configuration':'Release'},SharedInputs=[],Projects={'App.csproj':dict(Inputs=['App.csproj','App.cs'],OutputDirectories=['bin/Release/net10.0','obj/Release/net10.0'])})))
+    write_bazel_files(w, rules, a.architecture, a.system_bwrap, pin)
+    sdk_version = pin['releaseManifest']['sdkVersion']
+    runtime_version = pin['releaseManifest']['runtimeVersion']
+    framework = 'net' + sdk_version.split('.')[0] + '.0'
+    (w / 'App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>' + framework + '</TargetFramework><OutputType>Exe</OutputType><UseAppHost>false</UseAppHost><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup><ItemGroup><Compile Include="App.cs" /></ItemGroup></Project>')
+    (w / 'App.cs').write_text('System.Console.WriteLine("SDK_FROM_SOURCE="+System.Environment.Version); return System.Environment.Version.ToString()=="' + runtime_version + '" ? 0 : 1;')
+    (w / 'app-contract.json').write_text(json.dumps(dict(Version=1,Entry='App.csproj',SdkVersion=sdk_version,Properties={'Configuration':'Release'},SharedInputs=[],Projects={'App.csproj':dict(Inputs=['App.csproj','App.cs'],OutputDirectories=['bin/Release/' + framework,'obj/Release/' + framework])})))
     report = {'platform': configuration['rid'], 'systemBwrap': a.system_bwrap,
               'nativeToolsSource': 'declared-archive' if a.native_tools else 'captured-environment',
               'nativeEnvironmentSha256': digest(rules / 'tests/runtime/native_environment.py'),
