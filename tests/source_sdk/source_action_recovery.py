@@ -38,8 +38,19 @@ def main():
     parser.add_argument('seed', type=Path)
     parser.add_argument('directory', type=Path)
     parser.add_argument('--cache', required=True)
+    parser.add_argument('--seed-output-base', type=Path, help='Explicit producer output base to shut down; omit when producer was stopped externally')
+    parser.add_argument('--runtime-version', help='Expected runtime version (default: seed SDK major.minor.0)')
     args = parser.parse_args()
     seed, folder = args.seed.resolve(), args.directory.resolve()
+    contract = json.loads((seed / 'app-contract.json').read_text())
+    runtime_version = args.runtime_version or '.'.join(contract['SdkVersion'].split('.')[:2]) + '.0'
+    seed_base = None
+    if args.seed_output_base:
+        seed_base = args.seed_output_base.resolve(strict=True)
+        seed_out = seed / 'bazel-out'
+        assert seed_out.is_symlink() and seed_out.resolve(strict=True).is_relative_to(seed_base / 'execroot'), seed_out
+        subprocess.run([os.environ['RULES_MSBUILD_BAZEL'], '--output_base=' + str(seed_base),
+                        '--ignore_all_rc_files', 'shutdown'], cwd=seed, check=True, timeout=120)
     archives = list((seed / 'bazel-out').rglob('sdk.generated/sdk.tar.gz'))
     assert len(archives) == 1, archives
     expected = digest(archives[0])
@@ -50,10 +61,11 @@ def main():
     reports = []
     for name, source in [
         ('recover', None),
-        ('body-edit', 'System.Console.WriteLine("EDITED_SDK_FROM_SOURCE="+System.Environment.Version); return System.Environment.Version.ToString()=="10.0.0" ? 0 : 1;'),
-        ('api-edit', 'public class Program { public static int Main() => Verify(System.Environment.Version); public static int Verify(System.Version version) => version.ToString()=="10.0.0" ? 0 : 1; }'),
+        ('body-edit', 'System.Console.WriteLine("EDITED_SDK_FROM_SOURCE="+System.Environment.Version); return System.Environment.Version.ToString()=="{runtime_version}" ? 0 : 1;'),
+        ('api-edit', 'public class Program { public static int Main() => Verify(System.Environment.Version); public static int Verify(System.Version version) => version.ToString()=="{runtime_version}" ? 0 : 1; }'),
     ]:
         if source is not None:
+            source = source.replace('{runtime_version}', runtime_version)
             temporary = workspace / 'App.cs.tmp'
             temporary.write_text(source)
             temporary.replace(workspace / 'App.cs')
@@ -63,7 +75,7 @@ def main():
                    '--ignore_all_rc_files', 'test', '//:smoke', '--jobs=1', '--lockfile_mode=off',
                    '--disk_cache=', '--remote_cache=' + args.cache, '--remote_upload_local_results=false',
                    '--remote_cache_async=false', '--remote_download_outputs=all', '--test_output=all',
-                   '--execution_log_json_file=' + str(log)]
+                   '--execution_log_json_file=' + str(log)] + (['--nocache_test_results'] if source is not None else [])
         started = time.perf_counter()
         with (folder / (name + '.log')).open('w') as output:
             completed = subprocess.run(command, cwd=workspace, stdout=output, stderr=subprocess.STDOUT, timeout=3600)
@@ -81,7 +93,8 @@ def main():
         recovered = list((workspace / 'bazel-out').rglob('sdk.generated/sdk.tar.gz'))
         assert len(recovered) == 1 and digest(recovered[0]) == expected, recovered
         reports.append({'case': name, 'wallSeconds': time.perf_counter() - started, 'actions': rows})
-        (folder / 'report.json').write_text(json.dumps({'sdkArchiveSha256': expected, 'runs': reports}, indent=2) + '\n')
+        (folder / 'report.json').write_text(json.dumps({'sdkArchiveSha256': expected, 'sdkVersion': contract['SdkVersion'],
+                                                        'runtimeVersion': runtime_version, 'stoppedProducerOutputBase': str(seed_base) if seed_base else None, 'runs': reports}, indent=2) + '\n')
         print(name, round(reports[-1]['wallSeconds'], 2), flush=True)
 
 
