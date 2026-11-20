@@ -81,7 +81,7 @@ def _sdk_layout(ctx):
         command = """set -eu
 archive="$1"; root="$2"; shift 2
 mkdir -p "$root"
-tar -xzf "$archive" -C "$root"
+tar --no-same-owner -xzf "$archive" -C "$root"
 for directory in host shared sdk packs sdk-manifests templates library-packs metadata; do mkdir -p "$root/$directory"; done
 while test "$#" -gt 0; do
     package="$1"; destination="$2"; shift 2
