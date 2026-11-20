@@ -22,6 +22,7 @@ parser.add_argument('--batch', action='store_true')
 parser.add_argument('--bazel-option', action='append', default=[])
 parser.add_argument('--bazel-startup-option', action='append', default=[])
 parser.add_argument('--require-source-reuse', action='store_true', help='Reject a newly executed source SDK producer in consumer evidence')
+parser.add_argument('--runtime-version', help='Expected runtime version (default: SDK major.minor.0)')
 parser.add_argument('--jobs', type=int, default=2)
 parser.add_argument('--timeout', type=int, default=600)
 a = parser.parse_args()
@@ -60,20 +61,27 @@ if a.sdk_bundle:
 assert (w / 'BUILD.bazel').is_file(), 'Prepare the produced SDK workspace first'
 
 
+seed_contract = ({'SdkVersion': pin['releaseManifest']['sdkVersion']} if a.sdk_bundle
+                 else json.loads((w / 'app-contract.json').read_text()))
+sdk_version = seed_contract['SdkVersion']
+tfm = 'net' + '.'.join(sdk_version.split('.')[:2])
+runtime_version = a.runtime_version or '.'.join(sdk_version.split('.')[:2]) + '.0'
+
+
 def put(name, text):
     path = w / 'scenarios' / name
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text)
+    path.write_text(text.replace('{tfm}', tfm))
 
 
-put('Package.csproj', '''<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><PackageId>SourceSdk.Package</PackageId><Version>1.0.0</Version><GeneratePackageOnBuild>false</GeneratePackageOnBuild><PackageOutputPath>bin/Package/packages/</PackageOutputPath></PropertyGroup></Project>''')
+put('Package.csproj', '''<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>{tfm}</TargetFramework><PackageId>SourceSdk.Package</PackageId><Version>1.0.0</Version><GeneratePackageOnBuild>false</GeneratePackageOnBuild><PackageOutputPath>bin/Package/packages/</PackageOutputPath></PropertyGroup></Project>''')
 put('Value.cs', 'public static class PackageValue { public static int Get() => 42; }')
-put('PackageApp.csproj', '''<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><PackageReference Include="SourceSdk.Package" Version="1.0.0" /></ItemGroup></Project>''')
+put('PackageApp.csproj', '''<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>{tfm}</TargetFramework></PropertyGroup><ItemGroup><PackageReference Include="SourceSdk.Package" Version="1.0.0" /></ItemGroup></Project>''')
 put('PackageApp.cs', 'System.Console.WriteLine("SOURCE_SDK_PACKAGE="+PackageValue.Get()); return PackageValue.Get()==42 ? 0 : 1;')
-put('Views.csproj', '''<Project Sdk="Microsoft.NET.Sdk.Razor"><PropertyGroup><TargetFramework>net10.0</TargetFramework><AddRazorSupportForMvc>true</AddRazorSupportForMvc></PropertyGroup><ItemGroup><FrameworkReference Include="Microsoft.AspNetCore.App" /></ItemGroup></Project>''')
+put('Views.csproj', '''<Project Sdk="Microsoft.NET.Sdk.Razor"><PropertyGroup><TargetFramework>{tfm}</TargetFramework><AddRazorSupportForMvc>true</AddRazorSupportForMvc></PropertyGroup><ItemGroup><FrameworkReference Include="Microsoft.AspNetCore.App" /></ItemGroup></Project>''')
 put('Marker.cs', 'public class ViewMarker {}')
 put('Views/Hello.cshtml', '<p>source SDK razor</p>')
-put('RazorApp.csproj', '''<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><FrameworkReference Include="Microsoft.AspNetCore.App" /><ProjectReference Include="Views.csproj" /></ItemGroup></Project>''')
+put('RazorApp.csproj', '''<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>{tfm}</TargetFramework></PropertyGroup><ItemGroup><FrameworkReference Include="Microsoft.AspNetCore.App" /><ProjectReference Include="Views.csproj" /></ItemGroup></Project>''')
 put('RazorApp.cs', '''using System;
 using System.IO;
 using System.Linq;
@@ -89,8 +97,9 @@ await page.ExecuteAsync();
 Console.WriteLine(writer.ToString());
 return writer.ToString()=="<p>source SDK razor</p>" ? 0 : 1;
 ''')
-put('Publish.csproj', '''<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><UseAppHost>false</UseAppHost><PublishDir>bin/Publish/publish/</PublishDir></PropertyGroup></Project>''')
-put('Publish.cs', 'System.Console.WriteLine("SOURCE_SDK_PUBLISH");')
+put('Publish.csproj', '''<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>{tfm}</TargetFramework><OutputType>Exe</OutputType><UseAppHost>false</UseAppHost><PublishDir>bin/Publish/publish/</PublishDir></PropertyGroup></Project>''')
+put('Publish.cs', '''System.Console.WriteLine("SOURCE_SDK_PUBLISH");
+System.Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new { runtimeVersion = System.Environment.Version.ToString(), processPath = System.Environment.ProcessPath, coreLibraryPath = typeof(object).Assembly.Location }));''')
 put('Directory.Build.props', '<Project><PropertyGroup><EnableDefaultNoneItems>false</EnableDefaultNoneItems><EnableDefaultContentItems>false</EnableDefaultContentItems><BaseOutputPath>bin/$(MSBuildProjectName)/</BaseOutputPath><BaseIntermediateOutputPath>obj/$(MSBuildProjectName)/</BaseIntermediateOutputPath><MSBuildProjectExtensionsPath>$(BaseIntermediateOutputPath)</MSBuildProjectExtensionsPath></PropertyGroup></Project>')
 projects = {'Package.csproj':['Value.cs'], 'PackageApp.csproj':['PackageApp.cs'], 'Views.csproj':['Marker.cs','Views/Hello.cshtml'], 'RazorApp.csproj':['RazorApp.cs'], 'Publish.csproj':['Publish.cs']}
 for project, inputs in projects.items():
@@ -103,8 +112,8 @@ for project, inputs in projects.items():
     path.write_text(text)
 
 def contract(name, entry, members, extra=None):
-    rows = {p:dict(Inputs=[p]+projects[p],OutputDirectories=[f'bin/{p[:-7]}/Release/net10.0',f'obj/{p[:-7]}/Release/net10.0']+((extra or {}).get(p,[]))) for p in members}
-    put(name+'.json',json.dumps(dict(Version=1,Entry=entry,SdkVersion='10.0.100',Properties={'Configuration':'Release'},SharedInputs=['Directory.Build.props'],Projects=rows)))
+    rows = {p:dict(Inputs=[p]+projects[p],OutputDirectories=[f'bin/{p[:-7]}/Release/{tfm}',f'obj/{p[:-7]}/Release/{tfm}']+((extra or {}).get(p,[]))) for p in members}
+    put(name+'.json',json.dumps(dict(Version=1,Entry=entry,SdkVersion=sdk_version,Properties={'Configuration':'Release'},SharedInputs=['Directory.Build.props'],Projects=rows)))
     return ['Directory.Build.props']+[file for p in members for file in [p]+projects[p]]
 pack_inputs = contract('pack','Package.csproj',['Package.csproj'],{'Package.csproj':['bin/Package/packages']})
 app_inputs = contract('package-app','PackageApp.csproj',['PackageApp.csproj'])
@@ -117,11 +126,11 @@ put('BUILD.bazel', '\n'.join([
  'msbuild_graph_output(name="pack",graph=":pack_graph",path="bin/Package/packages/SourceSdk.Package.1.0.0.nupkg")',
  'msbuild_generated_nuget_package(name="package",package_id="SourceSdk.Package",version="1.0.0",archive=":pack")',
  'msbuild_package_lock(name="lock",packages=[":package"])',
- 'msbuild_graph(name="package_graph",runner=":runner",contract="package-app.json",source_root="scenarios",srcs='+json.dumps(app_inputs)+',package_lock=":lock",project_outputs={"PackageApp.csproj|net10.0":["bin/PackageApp/Release/net10.0","PackageApp.dll","Exe"]})',
+ 'msbuild_graph(name="package_graph",runner=":runner",contract="package-app.json",source_root="scenarios",srcs='+json.dumps(app_inputs)+',package_lock=":lock",project_outputs={"PackageApp.csproj|{tfm}":["bin/PackageApp/Release/{tfm}","PackageApp.dll","Exe"]})',
  'msbuild_graph_test(name="package_test",graph=":package_graph",project="PackageApp.csproj")',
- 'msbuild_graph(name="razor_graph",runner=":runner",contract="razor.json",source_root="scenarios",srcs='+json.dumps(razor_inputs)+',project_outputs={"RazorApp.csproj|net10.0":["bin/RazorApp/Release/net10.0","RazorApp.dll","Exe"]})',
+ 'msbuild_graph(name="razor_graph",runner=":runner",contract="razor.json",source_root="scenarios",srcs='+json.dumps(razor_inputs)+',project_outputs={"RazorApp.csproj|{tfm}":["bin/RazorApp/Release/{tfm}","RazorApp.dll","Exe"]})',
  'msbuild_graph_test(name="razor_test",graph=":razor_graph",project="RazorApp.csproj")',
- 'msbuild_graph(name="publish_graph",target="Publish",runner=":runner",contract="publish.json",source_root="scenarios",srcs='+json.dumps(publish_inputs)+',publish_outputs={"Publish.csproj|net10.0":["bin/Publish/publish","Publish.dll","Exe"]})',
+ 'msbuild_graph(name="publish_graph",target="Publish",runner=":runner",contract="publish.json",source_root="scenarios",srcs='+json.dumps(publish_inputs)+',publish_outputs={"Publish.csproj|{tfm}":["bin/Publish/publish","Publish.dll","Exe"]})',
  'msbuild_graph_layout(name="publish",graph=":publish_graph",project="Publish.csproj")','']))
 base = ([os.environ['RULES_MSBUILD_BAZEL']] + a.bazel_startup_option + (['--batch'] if a.batch else []) +
         ['--output_base=' + str(a.output_base.resolve() if a.output_base else folder / 'base'), '--ignore_all_rc_files'])
@@ -134,7 +143,7 @@ try:
     ]:
         result = subprocess.run(base + [command, *targets, '--jobs=' + str(a.jobs), '--lockfile_mode=off',
                                  '--execution_log_json_file=' + str(folder / (case + '.execution.json'))] + a.bazel_option +
-                                (['--test_output=all'] if command == 'test' else []), cwd=w,
+                                (['--test_output=all', '--nocache_test_results'] if command == 'test' else []), cwd=w,
                                 capture_output=True, text=True, timeout=a.timeout)
         output = result.stdout + result.stderr
         (folder / (case + '.log')).write_text(output)
@@ -152,13 +161,23 @@ try:
         assert len(specifications) == 1, specifications
         metadata = {node.tag.rsplit('}', 1)[-1]: node.text for node in ET.fromstring(archive.read(specifications[0])).iter()}
         assert metadata['id'] == 'SourceSdk.Package' and metadata['version'] == '1.0.0', metadata
-        assert archive.read('lib/net10.0/Package.dll').startswith(b'MZ'), archive.namelist()
+        assert archive.read(f'lib/{tfm}/Package.dll').startswith(b'MZ'), archive.namelist()
     reports.append({'case': 'inspect-package', 'id': metadata['id'], 'version': metadata['version'],
                     'sha256': hashlib.sha256(package.read_bytes()).hexdigest()})
     published = w / 'bazel-bin/scenarios/publish.layout'
-    result = subprocess.run([w / 'bazel-bin/produced_runtime.runtime/dotnet', published / 'Publish.dll'], capture_output=True, text=True)
-    assert result.returncode == 0 and result.stdout.strip() == 'SOURCE_SDK_PUBLISH', result
-    reports.append({'case': 'execute-published-app', 'output': result.stdout.strip()})
+    host = (w / 'bazel-bin/produced_runtime.runtime/dotnet').resolve(strict=True)
+    environment = dict(os.environ, DOTNET_ROOT=str(host.parent), DOTNET_MULTILEVEL_LOOKUP='0')
+    result = subprocess.run([host, published / 'Publish.dll'], env=environment,
+                            capture_output=True, text=True, timeout=a.timeout)
+    lines = result.stdout.strip().splitlines()
+    assert result.returncode == 0 and len(lines) == 2 and lines[0] == 'SOURCE_SDK_PUBLISH', result
+    identity = json.loads(lines[1])
+    assert identity['runtimeVersion'] == runtime_version, identity
+    assert Path(identity['processPath']).resolve(strict=True) == host, identity
+    core_library = Path(identity['coreLibraryPath']).resolve(strict=True)
+    assert core_library.is_relative_to(host.parent / 'shared/Microsoft.NETCore.App' / runtime_version), identity
+    reports.append({'case': 'execute-published-app', 'output': lines[0],
+                    'sdkVersion': sdk_version, 'targetFramework': tfm, **identity})
     (folder / 'scenarios-report.json').write_text(json.dumps(reports, indent=2) + '\n')
 finally:
     subprocess.run(base + ['shutdown'], cwd=w, check=True)
