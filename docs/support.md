@@ -284,14 +284,15 @@ SDK **11.0.100** / runtime **11.0.0** and Bazel **9.3.2** pass these checks:
 | Ubuntu 26.04 ARM64, four CPUs / 6 GiB | Owned checks including all 61 ProjectSync controls available at that revision, real broker lifetime/preparation, cached and uncached workers, evaluation worker, quickstart and automatic worker defaults. The default-worker body edit reuses two projects and compiles one. |
 | Ubuntu 26.04 AMD64 under Rosetta, four CPUs / 6 GiB | Fresh prebuilt toolchain image, public quickstart sync/check, app greeting and forced executable test. |
 | Native Ubuntu 26.04 x64, four CPUs / 6 GiB | Full owned gate without skips, nine broker/transfer/input controls, and stopped-seed fresh-output HTTP graph recovery with forced test execution and zero consumer PUTs. |
-| Ubuntu 26.04 ARM64 source producer, four CPUs / 12 GiB | Official source-to-app setup, managed compilation, runtime packaging, two forced tests and retained host launcher. The upstream product remains .NET 10; see [product qualification](#complete-source-runtime-product). |
+| Ubuntu 26.04 ARM64 dotnet/runtime graph, four CPUs / 12 GiB | Official source-to-app setup, managed compilation, runtime packaging, two forced tests and retained host launcher. The upstream product remains .NET 10; see [product qualification](#complete-source-runtime-product). |
+| Ubuntu 26.04 ARM64 VMR source producer, four CPUs / 8 GiB | Built SDK 11.0.100 and runtime 11.0.0, then built and ran a net11.0 app. A separate ARM64 guest built a probe and ran it on the SDK-derived and standalone runtime layouts. [VMR qualification](#net-11-vmr-on-ubuntu-arm64) |
 
 The Rosetta integration-test archive helper fails in GNU tar while following Bazel
 input symlinks (`Function not implemented`); it does not reach the test. The direct
 public quickstart above passes without that helper. This limitation is separate
 from SDK/archive extraction, which uses the pinned libarchive tool.
 
-Source-runtime bootstrap uses SDK 11 while its pinned upstream product remains
+The separate dotnet/runtime graph uses SDK 11 for bootstrap while its pinned upstream product remains
 runtime 10.0.0. The retained source-built SDK 10.0.100 and NativeAOT compiler retain
 their own recorded pins; they are not SDK 11 products.
 
@@ -791,6 +792,15 @@ The producer's Bazel smoke test built a net11.0 app with that SDK and ran it on
 transferred SDK, then ran the same DLL on two SDK-free layouts: the runtime
 exported from the SDK and the VMR's separate Core runtime archive. Both hosts
 reported ARM64 and loaded CoreLib from their respective runtime roots.
+
+With the producer stopped, a fresh guest recovered all 12 recorded Bazel actions
+from the read-only HTTP cache in 957 seconds, including the source SDK build,
+both SDK layouts, the app build and the test. The recovered SDK archive matched
+the producer digest. Body and API edits each executed the graph and its test
+without rebuilding the SDK. On the recovered SDK, NuGet Pack and package
+consumption, Razor rendering, Publish, and explicit execution of the published
+net11.0 app passed. The published app reported runtime 11.0.0 and loaded CoreLib
+from the produced runtime. The .NET 11 qualification covers native Linux ARM64.
 
 ### .NET 10 VMR on Ubuntu ARM64
 
