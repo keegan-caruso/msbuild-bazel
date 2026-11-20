@@ -27,9 +27,9 @@
     "url": "https://builds.dotnet.microsoft.com/dotnet/source-build/Private.SourceBuilt.Artifacts.11.0.100-rc.2.26504.105.centos.10-x64.tar.gz",
     "sha256": "5bd1bbf2bf9ef75d24a816f976ebefcbf7a46c1dade359c3b0186f2d3993e527"
   },
-  "configuration": {
-    "architecture": "arm64"
-  },
   "branding": "",
-  "extractWithoutOwnership": true
+  "extractWithoutOwnership": true,
+  "supportedArchitectures": [
+    "arm64"
+  ]
 }

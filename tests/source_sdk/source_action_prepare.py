@@ -59,6 +59,12 @@ def validate_bootstrap_host(path, architecture):
         raise ValueError('Bootstrap SDK host architecture mismatch')
 
 
+def validate_pin_architecture(pin, architecture):
+    supported = pin.get('supportedArchitectures')
+    if supported is not None and architecture not in supported:
+        raise ValueError('Source SDK pin architecture mismatch')
+
+
 def bootstrap_inventory_digest(path):
     members = {}
     with tarfile.open(path, 'r:gz') as archive:
@@ -165,8 +171,7 @@ def main():
     here = Path(__file__).resolve().parent
     rules = here.parents[1]
     pin = json.loads(a.pin.read_text())
-    if pin.get('configuration', {}).get('architecture', a.architecture) != a.architecture:
-        raise ValueError('Source SDK pin architecture mismatch')
+    validate_pin_architecture(pin, a.architecture)
     assert digest(a.source_archive) == pin['sourceArchive']['sha256']
     baseline = a.prepared_baseline.resolve()
     validate_bootstrap_host(baseline / '.dotnet/dotnet', a.architecture)
