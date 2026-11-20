@@ -84,11 +84,12 @@ action driver. The VMR uses its pinned RC SDK to build the product toolchain.
 ## Run an app with the runtime alone
 
 Copy the produced SDK archive to a second Linux ARM64 guest and compare its SHA-256
-with the producer's. Set `sdk_archive` to that verified copy. From a fresh directory:
+with the producer's. Set `sdk_archive` to that verified copy. Extract it on a native Linux filesystem that supports symbolic
+links. From a fresh directory, run the following check.
 
 ```bash
 mkdir sdk
-tar -xzf "$sdk_archive" -C sdk
+tar --no-same-owner -xzf "$sdk_archive" -C sdk
 python3 "$rules/tests/source_sdk/vmr_runtime.py" --sdk="$PWD/sdk" \
   --vmr-revision=297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f "$PWD/runtime-check"
 ```
@@ -98,3 +99,40 @@ revision, packages the host and both shared frameworks, then extracts the runtim
 archive again. It builds a net11.0 app with the source-built SDK, launches it
 with the extracted host, and records the loaded CoreLib path, architecture and
 runtime version in `runtime-check/report.json`.
+
+To check the separate Core runtime tarball emitted under
+`artifacts/assets/Release/Runtime/`, set `runtime_archive` to its path and
+`runtime_sha256` to the digest recorded by the producer. Run the same compiled
+app on that runtime:
+
+```bash
+python3 "$rules/tests/source_sdk/vmr_runtime.py" --sdk="$PWD/sdk" \
+  --vmr-revision=297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f \
+  --runtime-archive="$runtime_archive" --runtime-sha256="$runtime_sha256" \
+  --app="$PWD/runtime-check/app/out/app.dll" "$PWD/standalone-check"
+```
+
+## Recover the SDK and exercise consumers
+
+For a cache recovery run, add `--remote_cache="$cache"`,
+`--remote_upload_local_results=true`, `--remote_cache_async=false` and
+`--remote_download_outputs=all` to the producer's Bazel test. Set `cache` to
+the HTTP cache shared by producer and consumer. With the original workspace
+and its output symlinks available, run:
+
+```bash
+export RULES_MSBUILD_BAZEL="$rules/scripts/bazel-launcher.sh"
+python3 "$rules/tests/source_sdk/source_action_recovery.py" \
+  "$work/workspace" "$work/recovery" --cache="$cache" --seed-output-base="$work/base"
+python3 "$rules/tests/source_sdk/consumer_scenarios.py" "$work/scenarios" \
+  --workspace="$work/recovery/workspace" --output-base="$work/recovery/base" \
+  --batch --bazel-startup-option="--output_user_root=$work/recovery/user" \
+  --require-source-reuse --bazel-option="--remote_cache=$cache" \
+  --bazel-option=--remote_upload_local_results=false \
+  --bazel-option=--remote_download_outputs=all
+```
+
+Recovery checks a fresh output base, the exact SDK archive digest, and actual
+smoke-test execution after body and API edits. The scenario driver packs and
+consumes a NuGet package, renders a Razor view, publishes an app, and checks
+which runtime executed it.

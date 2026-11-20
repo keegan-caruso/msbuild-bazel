@@ -779,6 +779,19 @@ Core runtime archive with SHA-256
 The host, hostfxr, CoreCLR and JIT were ARM64 ELF binaries. The Core framework
 stamp identified the release VMR revision and runtime 11.0.0.
 
+The completed VMR produced SDK **11.0.100** with Core and ASP.NET **11.0.0**
+for `ubuntu.26.04-arm64`. The 411,487,487-byte SDK archive has SHA-256
+`993765849ca1f97d64ca1a157b34158b37dc75facff43d41707365dc8724ec85`.
+Its SDK and both framework stamps identified VMR commit
+`297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f`. The host, hostfxr, CoreCLR
+and JIT matched the standalone runtime byte for byte.
+
+The producer's Bazel smoke test built a net11.0 app with that SDK and ran it on
+11.0.0. A second native Linux ARM64 guest on the Mac mini built an app with the
+transferred SDK, then ran the same DLL on two SDK-free layouts: the runtime
+exported from the SDK and the VMR's separate Core runtime archive. Both hosts
+reported ARM64 and loaded CoreLib from their respective runtime roots.
+
 ### .NET 10 VMR on Ubuntu ARM64
 
 The coarse qualification producer rebuilt the pinned .NET 10 VMR on Ubuntu
