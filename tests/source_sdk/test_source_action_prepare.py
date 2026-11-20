@@ -72,6 +72,16 @@ class SourceActionTemplatesTests(unittest.TestCase):
         self.assertIn('export TAR_OPTIONS=--no-same-owner', script)
         subprocess.run(['bash', '-n'], input=script, text=True, check=True)
 
+    def test_legacy_pin_still_supports_both_native_preparations(self):
+        here = Path(source_action_prepare.__file__).parent
+        legacy = json.loads((here / 'pin.json').read_text())
+        release = json.loads((here / 'pin-linux-arm64-11.json').read_text())
+        for architecture in ['arm64', 'x64']:
+            source_action_prepare.validate_pin_architecture(legacy, architecture)
+        source_action_prepare.validate_pin_architecture(release, 'arm64')
+        with self.assertRaisesRegex(ValueError, 'pin architecture mismatch'):
+            source_action_prepare.validate_pin_architecture(release, 'x64')
+
     def test_arm64_release_pin_rejects_x64_preparation(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
