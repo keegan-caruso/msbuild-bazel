@@ -73,6 +73,12 @@ def main():
     report['runtimeArchive'] = dict(path=str(archive), sha256=hashlib.sha256(archive.read_bytes()).hexdigest(),
                                    bytes=archive.stat().st_size)
     save()
+    runtime = folder / 'execution-runtime'
+    runtime.mkdir()
+    run(['tar', '-xzf', archive, '-C', runtime])
+    for relative, digest in report['nativeFiles'].items():
+        if hashlib.sha256((runtime / relative).read_bytes()).hexdigest() != digest:
+            raise ValueError('Runtime archive changed native payload: ' + relative)
     app = folder / 'app'
     app.mkdir()
     tfm = 'net' + '.'.join(args.runtime_version.split('.')[:2])
