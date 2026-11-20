@@ -132,6 +132,33 @@ python3 "$rules/tests/source_sdk/consumer_scenarios.py" "$work/scenarios" \
   --bazel-option=--remote_download_outputs=all
 ```
 
+For a fresh consumer that only needs to **run the app**, select top-level output
+downloads and force test execution. In a prepared consumer workspace with the
+producer stopped and its actions already in the cache, run:
+
+```bash
+cd "$work/workspace"
+bash "$rules/scripts/bazel-launcher.sh" --batch --output_base="$work/smoke-base" \
+  --output_user_root="$work/smoke-user" --ignore_all_rc_files test //:smoke \
+  --lockfile_mode=off --disk_cache= --remote_cache="$cache" \
+  --remote_upload_local_results=false --remote_download_outputs=toplevel \
+  --nocache_test_results --test_output=all
+```
+
+Bazel retrieves the files required by the local test. The SDK archive and the
+expanded SDK layouts can stay in the remote cache. To verify this mode using
+the qualification driver, run the following from the guest with the seed
+workspace and its output symlinks available:
+
+```bash
+python3 "$rules/tests/source_sdk/source_action_recovery.py" \
+  "$work/workspace" "$work/smoke-recovery" --cache="$cache" --smoke-only
+```
+
+The driver compares the SDK digest in Bazel's execution log with the seed archive
+and checks the runtime version printed by the local test. Use the full recovery
+command above when you need to download the SDK and hash its bytes locally.
+
 Recovery checks a fresh output base, the exact SDK archive digest, and actual
 smoke-test execution after body and API edits. The scenario driver packs and
 consumes a NuGet package, renders a Razor view, publishes an app, and checks
