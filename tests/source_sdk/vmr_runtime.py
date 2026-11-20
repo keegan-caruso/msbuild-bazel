@@ -20,8 +20,15 @@ def main():
     parser.add_argument('--vmr-revision', required=True)
     parser.add_argument('--sdk-version', default='11.0.100')
     parser.add_argument('--runtime-version', default='11.0.0')
+    parser.add_argument('--runtime-archive', type=Path, help='Official standalone runtime archive; otherwise export from the SDK')
+    parser.add_argument('--runtime-sha256', help='Required digest for --runtime-archive')
+    parser.add_argument('--app', type=Path, help='Reuse a compiled app and its adjacent runtimeconfig instead of compiling another')
     parser.add_argument('directory', type=Path)
     args = parser.parse_args()
+    if bool(args.runtime_archive) != bool(args.runtime_sha256):
+        parser.error('Provide --runtime-archive and --runtime-sha256 together')
+    if args.runtime_archive and hashlib.sha256(args.runtime_archive.read_bytes()).hexdigest() != args.runtime_sha256:
+        raise ValueError('Standalone runtime archive digest differs from the expected digest')
     if platform.system() != 'Linux' or platform.machine() != 'aarch64':
         parser.error('Run on native Linux ARM64')
     sdk = args.sdk.resolve()
@@ -73,24 +80,38 @@ def main():
         report['nativeFiles'][relative] = hashlib.sha256(data).hexdigest()
     if run([sdk / 'dotnet', '--version']).strip() != args.sdk_version:
         raise ValueError('Produced SDK selected an unexpected version')
-    archive = folder / 'runtime.tar.gz'
-    run(['tar', '--sort=name', '--mtime=@0', '--owner=0', '--group=0', '--numeric-owner',
-         '-czf', archive, '-C', runtime, '.'])
+    archive = args.runtime_archive.resolve() if args.runtime_archive else folder / 'runtime.tar.gz'
+    if not args.runtime_archive:
+        run(['tar', '--sort=name', '--mtime=@0', '--owner=0', '--group=0', '--numeric-owner',
+             '-czf', archive, '-C', runtime, '.'])
     report['runtimeArchive'] = dict(path=str(archive), sha256=hashlib.sha256(archive.read_bytes()).hexdigest(),
-                                   bytes=archive.stat().st_size)
+                                   bytes=archive.stat().st_size,
+                                   kind='standalone' if args.runtime_archive else 'sdk-export')
     save()
     runtime = folder / 'execution-runtime'
     runtime.mkdir()
     run(['tar', '-xzf', archive, '-C', runtime])
-    for relative, digest in report['nativeFiles'].items():
-        if hashlib.sha256((runtime / relative).read_bytes()).hexdigest() != digest:
+    stamp = (runtime / 'shared/Microsoft.NETCore.App' / args.runtime_version / '.version').read_text().splitlines()
+    if stamp[:2] != [args.vmr_revision, args.runtime_version]:
+        raise ValueError('Unexpected runtime archive provenance: ' + repr(stamp))
+    report['runtimeStamp'] = stamp
+    for relative, digest in list(report['nativeFiles'].items()):
+        data = (runtime / relative).read_bytes()
+        if data[:6] != b'\x7fELF\x02\x01' or struct.unpack_from('<H', data, 18)[0] != 183:
+            raise ValueError('Expected ELF64 little-endian AArch64 in runtime archive: ' + relative)
+        actual = hashlib.sha256(data).hexdigest()
+        if not args.runtime_archive and actual != digest:
             raise ValueError('Runtime archive changed native payload: ' + relative)
-    app = folder / 'app'
-    app.mkdir()
-    tfm = 'net' + '.'.join(args.runtime_version.split('.')[:2])
-    (app / 'NuGet.Config').write_text('<configuration><packageSources><clear /></packageSources></configuration>')
-    (app / 'app.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>' + tfm + '</TargetFramework><OutputType>Exe</OutputType><UseAppHost>false</UseAppHost></PropertyGroup></Project>')
-    (app / 'Program.cs').write_text('''using System;
+        report['nativeFiles'][relative] = actual
+    if args.app:
+        app_dll = args.app.resolve()
+    else:
+        app = folder / 'app'
+        app.mkdir()
+        tfm = 'net' + '.'.join(args.runtime_version.split('.')[:2])
+        (app / 'NuGet.Config').write_text('<configuration><packageSources><clear /></packageSources></configuration>')
+        (app / 'app.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>' + tfm + '</TargetFramework><OutputType>Exe</OutputType><UseAppHost>false</UseAppHost></PropertyGroup></Project>')
+        (app / 'Program.cs').write_text('''using System;
 using System.Runtime.InteropServices;
 Console.WriteLine("VERSION=" + Environment.Version);
 Console.WriteLine("FRAMEWORK=" + RuntimeInformation.FrameworkDescription);
@@ -99,11 +120,16 @@ Console.WriteLine("PROCESS=" + Environment.ProcessPath);
 Console.WriteLine("CORELIB=" + typeof(object).Assembly.Location);
 Console.WriteLine("RUNTIME=" + RuntimeEnvironment.GetRuntimeDirectory());
 ''')
-    run([sdk / 'dotnet', 'build', app / 'app.csproj', '-c', 'Release', '-o', app / 'out', '--nologo', '--configfile', app / 'NuGet.Config'])
+        run([sdk / 'dotnet', 'build', app / 'app.csproj', '-c', 'Release', '-o', app / 'out', '--nologo', '--configfile', app / 'NuGet.Config'])
+        app_dll = app / 'out/app.dll'
+    report['app'] = dict(path=str(app_dll), sha256=hashlib.sha256(app_dll.read_bytes()).hexdigest())
     env['DOTNET_ROOT'] = str(runtime)
     if run([runtime / 'dotnet', '--list-sdks']).strip():
         raise ValueError('Runtime-only layout contains SDKs')
-    output = run([runtime / 'dotnet', '--fx-version', args.runtime_version, app / 'out/app.dll'])
+    runtimes = run([runtime / 'dotnet', '--list-runtimes'])
+    if 'Microsoft.NETCore.App ' + args.runtime_version + ' [' + str(runtime / 'shared/Microsoft.NETCore.App') + ']' not in runtimes.splitlines():
+        raise ValueError('Runtime host did not list the selected product')
+    output = run([runtime / 'dotnet', '--fx-version', args.runtime_version, app_dll])
     expected = runtime / 'shared/Microsoft.NETCore.App' / args.runtime_version
     for line in ['VERSION=' + args.runtime_version, 'ARCH=Arm64',
                  'PROCESS=' + str(runtime / 'dotnet'),
