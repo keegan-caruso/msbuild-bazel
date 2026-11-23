@@ -87,6 +87,7 @@ def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False, pin=No
     sdk_version = pin["releaseManifest"]["sdkVersion"] if pin else "10.0.100"
     runtime_version = pin["releaseManifest"]["runtimeVersion"] if pin else "10.0.0"
     framework = "net" + sdk_version.split(".")[0] + ".0"
+    direct_smoke = architecture == "arm64" and sdk_version == "11.0.100" and runtime_version == "11.0.0"
     controller = 'dotnet.sdk(name="controller",version="10.0.400",platforms=["linux-arm64"])'
     if architecture == "x64":
         controller_pin = json.loads(Path(__file__).with_name('pin-linux-x64.json').read_text())
@@ -117,8 +118,9 @@ def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False, pin=No
     msbuild_sdk(name="produced",dotnet=":dotnet",files=[":layout"],sdk_version="%s",runtime_version="%s",runtime_identifier="%s")
     msbuild_graph_runner(name="runner")
     msbuild_graph(name="graph",runner=":runner",contract="app-contract.json",srcs=["App.csproj","App.cs"],project_outputs={"App.csproj|%s":["bin/Release/%s","App.dll","Exe"]})
-    msbuild_graph_test(name="smoke",graph=":graph",project="App.csproj")
-    ''') % ('system_bwrap=True,' if system_bwrap else '', configuration['cpu'], sdk_version, runtime_version, configuration['rid'], framework, framework))
+    msbuild_graph_test(name="smoke",graph=":graph",project="App.csproj"%s)
+    ''') % ('system_bwrap=True,' if system_bwrap else '', configuration['cpu'], sdk_version, runtime_version, configuration['rid'], framework, framework,
+           ',direct_executable_smoke=True' if direct_smoke else ''))
 
 
 def build_script(architecture="arm64", pin=None):

@@ -1,7 +1,7 @@
 """Graph inputs, worker defaults, complete layouts and launch contracts."""
 
 load("@rules_testing//lib:analysis_test.bzl", "analysis_test")
-load("//msbuild:defs.bzl", "MSBuildLayoutInfo", "MSBuildRuntimeInfo", "MSBuildToolInfo", "msbuild_file_binding", "msbuild_graph", "msbuild_graph_binary", "msbuild_graph_layout", "msbuild_graph_layouts", "msbuild_graph_output", "msbuild_graph_restore", "msbuild_graph_test", "msbuild_layout", "msbuild_nuget_package", "msbuild_package_lock", "msbuild_runtime", "msbuild_runtime_layout", "msbuild_tool")
+load("//msbuild:defs.bzl", "MSBuildLayoutInfo", "MSBuildRuntimeInfo", "MSBuildToolInfo", "msbuild_file_binding", "msbuild_graph", "msbuild_graph_binary", "msbuild_graph_layout", "msbuild_graph_layouts", "msbuild_graph_output", "msbuild_graph_restore", "msbuild_graph_test", "msbuild_layout", "msbuild_nuget_package", "msbuild_package_lock", "msbuild_runtime", "msbuild_runtime_layout", "msbuild_test_tool", "msbuild_tool")
 load(":helpers.bzl", "action", "failure_test", "paths", "request")
 
 def _inputs(env, targets):
@@ -26,6 +26,28 @@ def _launch(env, targets):
     env.expect.that_str(request(targets.app, ".launch.json")["runtimeHost"]["launchMode"]).equals("corerun")
     env.expect.that_collection(targets.app[DefaultInfo].default_runfiles.files.to_list()).contains_at_least(host.files.to_list())
     env.expect.that_collection(paths(targets.app[DefaultInfo].default_runfiles.files)).not_contains("tests/analysis/sdk.txt")
+
+def _direct_launch(env, targets):
+    host = targets.host[MSBuildRuntimeInfo]
+    app = targets.app[DefaultInfo]
+    runtime = action(targets.app, "MSBuildGraphRuntime").outputs.to_list()
+
+    # Exact membership rejects helper runtime/support files and launch requests.
+    env.expect.that_collection(app.default_runfiles.files.to_list()).contains_exactly(runtime + host.files.to_list() + [app.files_to_run.executable])
+    env.expect.that_collection(paths(app.default_runfiles.files)).not_contains("tests/analysis/Runner.dll")
+    env.expect.that_collection(paths(app.default_runfiles.files)).not_contains("tests/analysis/dotnet")
+
+def _classic_launch(env, targets):
+    host = targets.host[MSBuildRuntimeInfo]
+    runfiles = targets.app[DefaultInfo].default_runfiles.files
+    env.expect.that_collection(runfiles.to_list()).contains_at_least(host.files.to_list())
+    env.expect.that_collection(paths(runfiles)).contains_at_least([
+        "tests/analysis/dotnet",
+        "tests/analysis/Runner.dll",
+        "tests/analysis/host/fxr/mock",
+        "tests/analysis/shared/Microsoft.NETCore.App/mock",
+        "tests/analysis/classic_smoke.launch.json",
+    ])
 
 def _combined_layout(env, target):
     layout = action(target, "MSBuildGraphLayout")
@@ -64,6 +86,35 @@ def graph_tests(name):
     msbuild_runtime(name = "source_host", layout = ":tool_layout", entry_point = "corerun", launch_mode = "corerun", tags = ["manual"])
     msbuild_graph_binary(name = "app", graph = ":graph", project = "App.csproj", runtime_host = ":source_host", tags = ["manual"])
     analysis_test(name = name + "_launch", targets = {"host": ":source_host", "app": ":app"}, impl = _launch)
+    msbuild_layout(name = "direct_host_layout", paths = {"dotnet": "dotnet"}, tags = ["manual"])
+    msbuild_runtime(name = "direct_host", layout = ":direct_host_layout", entry_point = "dotnet", runtime_identifier = "linux-arm64", version = "11.0.0", data = ["payload.txt"], tags = ["manual"])
+    msbuild_graph_test(name = "direct_smoke", graph = ":graph", project = "App.csproj", runtime_host = ":direct_host", direct_executable_smoke = True, tags = ["manual"])
+    analysis_test(name = name + "_direct_launch", targets = {"host": ":direct_host", "app": ":direct_smoke"}, impl = _direct_launch)
+    msbuild_graph_test(name = "registered_direct_smoke", graph = ":graph", project = "App.csproj", direct_executable_smoke = True, tags = ["manual"])
+    analysis_test(name = name + "_registered_direct_launch", targets = {"host": ":fake_runtime", "app": ":registered_direct_smoke"}, impl = _direct_launch)
+    msbuild_graph_test(name = "classic_smoke", graph = ":graph", project = "App.csproj", runtime_host = ":direct_host", tags = ["manual"])
+    analysis_test(name = name + "_classic_launch", targets = {"host": ":direct_host", "app": ":classic_smoke"}, impl = _classic_launch)
+    msbuild_test_tool(name = "direct_test_tool", package = ":package", path = "Runner.dll", tags = ["manual"])
+    msbuild_runtime(name = "direct_env_host", layout = ":direct_host_layout", entry_point = "dotnet", runtime_identifier = "linux-arm64", env = {"CUSTOM_HOST_SETTING": "value"}, tags = ["manual"])
+    for case, attrs, message in [
+        ("protocol", {"test_protocol": "mtp"}, "direct_executable_smoke requires the executable test protocol"),
+        ("exit", {"expected_exit_code": 100}, "direct_executable_smoke requires expected_exit_code = 0"),
+        ("settings", {"test_settings": "settings.xml"}, "direct_executable_smoke does not support test_settings"),
+        ("settings_output", {"test_settings_output": "generated.xml"}, "direct_executable_smoke does not support test_settings_output"),
+        ("filter", {"test_filter_argument": "--filter"}, "direct_executable_smoke does not support test_filter_argument"),
+        ("empty", {"allow_empty_tests": True}, "direct_executable_smoke does not support allow_empty_tests"),
+        ("output_dirs", {"test_output_dirs": ["results"]}, "direct_executable_smoke does not support test_output_dirs"),
+        ("working_directory", {"test_working_directory": "work"}, "direct_executable_smoke does not support test_working_directory"),
+        ("data", {"data_paths": {"payload.txt": "payload.txt"}}, "direct_executable_smoke does not support data_paths"),
+        ("host", {"runtime_host": ":source_host"}, "direct_executable_smoke requires a dotnet runtime host"),
+        ("host_env", {"runtime_host": ":direct_env_host"}, "direct_executable_smoke does not support custom runtime host environment"),
+        ("sharding", {"shard_count": 2}, "Executable tests do not yet support sharding"),
+        ("diagnostics", {"test_diagnostics": True}, "test_diagnostics currently requires VSTest"),
+        ("runner", {"test_runner": ":direct_test_tool"}, "test_runner and test_adapters are only supported by VSTest"),
+        ("adapters", {"test_adapters": [":direct_test_tool"]}, "test_runner and test_adapters are only supported by VSTest"),
+    ]:
+        msbuild_graph_test(name = "invalid_direct_" + case, **dict({"graph": ":graph", "project": "App.csproj", "runtime_host": ":direct_host", "direct_executable_smoke": True, "tags": ["manual"]}, **attrs))
+        failure_test(name + "_direct_" + case, ":invalid_direct_" + case, message)
     msbuild_graph_layout(name = "export", graph = ":graph", project = "App.csproj", tags = ["manual"])
     msbuild_graph_layouts(name = "combined_export", graph = ":graph", projects = {"App.csproj|net10.0": "app"}, tags = ["manual"])
     analysis_test(name = name + "_combined_layout", target = ":combined_export", impl = _combined_layout)

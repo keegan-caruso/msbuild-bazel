@@ -2,7 +2,7 @@
 
 load("//msbuild/private:defaults.bzl", "STABLE_PATHS_TOOLCHAIN", "stable_paths")
 load("//msbuild/private:paths.bzl", _RUNTIME_TOOLCHAIN = "RUNTIME_TOOLCHAIN", _TOOLCHAIN = "TOOLCHAIN")
-load("//msbuild/private:project_launch.bzl", _create_launcher = "create_launcher")
+load("//msbuild/private:project_launch.bzl", _create_direct_smoke_launcher = "create_direct_smoke_launcher", _create_launcher = "create_launcher")
 load("//msbuild/private:providers.bzl", "MSBuildBindingInfo", "MSBuildLayoutInfo", "MSBuildPackageLockInfo", "MSBuildRuntimeInfo")
 load("//msbuild/private:sdk_bootstrap.bzl", "bootstrap_project")
 load("//msbuild/private:test_options.bzl", _TEST_OPTIONS_ATTRS = "TEST_OPTIONS_ATTRS", _validate_test = "validate_test")
@@ -264,6 +264,10 @@ def _runtime(ctx, test = False):
         if not _safe_relative_path(path):
             fail("Runtime outputs must be safe workspace-relative paths")
     output = _copy_project_output(ctx, graph, directory, assembly, ".runtime", "MSBuildGraphRuntime")
+    if test and ctx.attr.direct_executable_smoke:
+        if not assembly.endswith(".dll"):
+            fail("direct_executable_smoke requires a .dll entry assembly")
+        return _create_direct_smoke_launcher(ctx, assembly, output)
     for target in ctx.attr.data_paths:
         if len(target[DefaultInfo].files.to_list()) != 1 or target[DefaultInfo].files.to_list()[0].is_directory:
             fail("data_paths requires one file per label")
@@ -292,7 +296,7 @@ msbuild_graph_binary = rule(
 
 msbuild_graph_test = rule(
     implementation = _test,
-    attrs = dict(_RUNTIME_ATTRS, **{key: value for key, value in _TEST_OPTIONS_ATTRS.items() if key != "test_output_type"}),
+    attrs = dict(_RUNTIME_ATTRS, direct_executable_smoke = attr.bool(doc = "Opt in to a restricted executable smoke launcher using only the selected runtime host."), **{key: value for key, value in _TEST_OPTIONS_ATTRS.items() if key != "test_output_type"}),
     toolchains = [_TOOLCHAIN, config_common.toolchain_type(_RUNTIME_TOOLCHAIN, mandatory = False)],
     test = True,
 )

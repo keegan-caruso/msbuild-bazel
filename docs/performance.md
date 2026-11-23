@@ -488,9 +488,32 @@ launcher. Use a new `trial` directory for each pair:
 for mode in all toplevel; do
   python3 "$rules/tests/source_sdk/source_action_recovery.py" \
     "$seed" "$trial/$mode" --cache="$cache" --smoke-only \
-    --download-outputs="$mode" --remote-connections=1
+    --smoke-launcher=classic --download-outputs="$mode" --remote-connections=1
 done
 ```
+
+### Compare smoke launchers
+
+Use the stopped Ubuntu 26.04 ARM64 producer, its populated cache and the
+same SDK 11.0.100 seed. The seed's rules override must resolve to this checkout.
+Each trial overrides the launcher in a fresh copy of that workspace.
+
+```bash
+set -e
+export RULES_MSBUILD_BAZEL="$rules/scripts/bazel-launcher.sh"
+i=0
+for mode in classic direct direct classic classic direct; do
+  i=$((i+1))
+  python3 "$rules/tests/source_sdk/source_action_recovery.py" \
+    "$seed" "$work/trial-$i-$mode" --cache="$cache" --smoke-only \
+    --smoke-launcher="$mode" --download-outputs=toplevel --remote-connections=1 --profile
+done
+```
+
+Compare adjacent pairs using the reports, execution logs and profiles. Check SDK
+digest, graph cache hits and actual test execution before comparing staging spans,
+wall time and runfiles inventories. The effect on the ARM64 staging time remains
+unmeasured.
 
 ## Retained source SDK consumer recovery
 
