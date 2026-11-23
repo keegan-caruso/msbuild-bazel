@@ -8,6 +8,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -22,7 +23,7 @@ def digest(path):
     return value.hexdigest()
 
 
-def actions(path):
+def actions(path, include_test_details=False):
     data = path.read_text()
     decoder = json.JSONDecoder()
     result = []
@@ -30,11 +31,90 @@ def actions(path):
         row, end = decoder.raw_decode(data.lstrip())
         data = data.lstrip()[end:]
         summary = {key: row.get(key) for key in ['mnemonic', 'targetLabel', 'cacheHit', 'commandArgs']}
+        if include_test_details and row.get('mnemonic') == 'TestRunner' and row.get('commandArgs') and \
+                row['commandArgs'][0].endswith('/test-setup.sh'):
+            summary['metrics'] = row.get('metrics', {})
+            summary['runfilesInputs'] = [entry for entry in row.get('inputs', [])
+                                         if re.search(r'(?:^|/)smoke\.runfiles/', entry.get('path', ''))]
         if row.get('mnemonic') == 'SourceSdkBuild':
             summary['sdkDigests'] = [output['digest']['hash'] for output in row.get('actualOutputs', [])
                                      if output['path'].endswith('/sdk.generated/sdk.tar.gz')]
         result.append(summary)
     return result
+
+
+def configure_launcher(workspace, mode):
+    """Change only the copied fixture, breaking the hard link to its seed."""
+    build = workspace / 'BUILD.bazel'
+    text = build.read_text()
+    pattern = r'(?m)^[ \t]*msbuild_graph_test\(name="smoke",graph=":graph",project="App\.csproj"(?:,direct_executable_smoke=(True|False))?\)[ \t]*$'
+    matches = list(re.finditer(pattern, text))
+    if len(matches) != 1:
+        raise ValueError('Expected exactly one generated //:smoke declaration')
+    match = matches[0]
+    current = 'direct' if match.group(1) == 'True' else 'classic'
+    if mode is None or mode == current:
+        return current
+    replacement = 'msbuild_graph_test(name="smoke",graph=":graph",project="App.csproj"'
+    if mode == 'direct':
+        replacement += ',direct_executable_smoke=True'
+    replacement += ')'
+    temporary = workspace / 'BUILD.bazel.tmp'
+    temporary.write_text(text[:match.start()] + replacement + text[match.end():])
+    temporary.replace(build)
+    return mode
+
+
+def profile_summary(path):
+    """Use Bazel 9.3.2 SpawnRunner's stage span and enclosing test action."""
+    data = json.loads(path.read_text())
+    events = data.get('traceEvents', []) if isinstance(data, dict) else data
+    staging = [event for event in events if event.get('ph') == 'X' and
+               event.get('cat') == 'remote output download' and event.get('name') == 'stage remote inputs']
+    tests = [event for event in events if event.get('ph') == 'X' and
+             event.get('args', {}).get('mnemonic') == 'TestRunner' and
+             event.get('args', {}).get('target') == '//:smoke']
+    scoped = [event for event in staging if any(
+        event.get('tid') == test.get('tid') and test['ts'] <= event['ts'] and
+        event['ts'] + event['dur'] <= test['ts'] + test['dur'] for test in tests)]
+    return {'path': str(path), 'remoteInputStagingSpanCount': len(staging),
+            'remoteInputStagingSpanSeconds': sum(event['dur'] for event in staging) / 1_000_000 if staging else None,
+            'testRemoteInputStagingSpanCount': len(scoped),
+            'testRemoteInputStagingSpanSeconds': sum(event['dur'] for event in scoped) / 1_000_000 if scoped else None,
+            'note': 'Summed spans may overlap. Test attribution requires matching lane and containment; null means unavailable. Not wire traffic.'}
+
+
+def runfiles_inventory(rows, destination):
+    """Inventory logical smoke runfiles paths from the execution log only."""
+    logged = {}
+    for row in rows:
+        if row.get('mnemonic') != 'TestRunner' or not row.get('commandArgs') or not row['commandArgs'][0].endswith('/test-setup.sh'):
+            continue
+        for entry in row.get('runfilesInputs', []):
+            match = re.search(r'(?:^|/)smoke\.runfiles/(.+)$', entry['path'])
+            if match:
+                logged[match.group(1)] = entry
+    entries = [{'path': path, 'logicalBytes': int(entry.get('digest', {}).get('sizeBytes', 0)),
+                'sha256': entry.get('digest', {}).get('hash')} for path, entry in sorted(logged.items())]
+    frameworks = {}
+    for entry in entries:
+        match = re.search(r'^(.*?/shared/[^/]+/[^/]+)(?:/|$)', entry['path'])
+        if match:
+            layout = frameworks.setdefault(match.group(1), {'fileCount': 0, 'logicalBytes': 0})
+            layout['fileCount'] += 1
+            layout['logicalBytes'] += entry['logicalBytes']
+    destination.write_text(json.dumps({'files': entries}, indent=2) + '\n')
+    return {'path': str(destination), 'source': 'execution-log', 'available': bool(entries),
+            'fileCount': len(entries), 'logicalBytes': sum(entry['logicalBytes'] for entry in entries),
+            'frameworkLayouts': frameworks}
+
+
+def test_execution_seconds(rows):
+    durations = [row.get('metrics', {}).get('executionWallTime') for row in rows
+                 if row['mnemonic'] == 'TestRunner' and not row['cacheHit'] and
+                 row.get('commandArgs') and row['commandArgs'][0].endswith('/test-setup.sh')]
+    return sum(float(value.removesuffix('s')) for value in durations) if durations and all(
+        value is not None for value in durations) else None
 
 
 def main():
@@ -49,7 +129,12 @@ def main():
     parser.add_argument('--download-outputs', choices=['all', 'toplevel', 'minimal'],
                         help='Bazel output download mode for a smoke-only run (default: toplevel)')
     parser.add_argument('--remote-connections', type=int, help='Maximum concurrent connections to the Bazel cache')
+    parser.add_argument('--smoke-launcher', choices=['classic', 'direct'],
+                        help='Override only the copied generated smoke target (default: preserve seed)')
+    parser.add_argument('--profile', action='store_true', help='Retain JSON Bazel traces and summarize staging spans')
     args = parser.parse_args()
+    if args.smoke_launcher and not args.smoke_only:
+        parser.error('--smoke-launcher requires --smoke-only')
     if args.download_outputs and not args.smoke_only:
         parser.error('--download-outputs requires --smoke-only')
     if args.remote_connections is not None and args.remote_connections < 1:
@@ -72,6 +157,7 @@ def main():
     workspace = folder / 'workspace'
     shutil.copytree(seed, workspace, copy_function=os.link,
                     ignore=shutil.ignore_patterns('bazel-*', 'MODULE.bazel.lock'))
+    launcher = configure_launcher(workspace, args.smoke_launcher)
     reports = []
     cases = [
         ('recover', None),
@@ -91,6 +177,10 @@ def main():
                    '--disk_cache=', '--remote_cache=' + args.cache, '--remote_upload_local_results=false',
                    '--remote_cache_async=false', '--remote_download_outputs=' + download, '--test_output=all',
                    '--execution_log_json_file=' + str(log)]
+        profile = folder / (name + '.profile.json')
+        if args.profile:
+            command += ['--profile=' + str(profile), '--generate_json_trace_profile',
+                        '--noslim_profile', '--experimental_profile_include_target_label']
         if args.smoke_only or source is not None:
             command.append('--nocache_test_results')
         if args.remote_connections:
@@ -100,13 +190,14 @@ def main():
             completed = subprocess.run(command, cwd=workspace, stdout=output, stderr=subprocess.STDOUT, timeout=3600)
         elapsed = time.perf_counter() - started
         assert completed.returncode == 0, folder / (name + '.log')
-        rows = actions(log)
+        rows = actions(log, include_test_details=True)
         source_actions = [r for r in rows if r['mnemonic'] == 'SourceSdkBuild']
         if name == 'recover':
             assert len(source_actions) == 1 and source_actions[0]['cacheHit'], source_actions
             if args.smoke_only:
                 assert source_actions[0]['sdkDigests'] == [expected], source_actions
                 assert all(row['cacheHit'] for row in rows if row['mnemonic'] != 'TestRunner'), rows
+                assert any(row['mnemonic'] == 'MSBuildGraph' and row['cacheHit'] for row in rows), rows
                 assert any(row['mnemonic'] == 'TestRunner' and not row['cacheHit'] and
                            row['commandArgs'][0].endswith('/test-setup.sh') for row in rows), rows
                 assert 'SDK_FROM_SOURCE=' + runtime_version in (folder / (name + '.log')).read_text().splitlines()
@@ -121,10 +212,22 @@ def main():
             recovered = list((workspace / 'bazel-out').rglob('sdk.generated/sdk.tar.gz'))
             assert len(recovered) == 1 and digest(recovered[0]) == expected, recovered
         reports.append({'case': name, 'bazelSeconds': elapsed, 'wallSeconds': time.perf_counter() - started,
-                        'actions': rows})
+                        'actions': rows, 'testExecutionSeconds': test_execution_seconds(rows),
+                        'runfiles': runfiles_inventory(rows, folder / (name + '.runfiles.json'))})
+        if args.smoke_only and args.profile:
+            inventory = reports[-1]['runfiles']
+            layouts = inventory['frameworkLayouts']
+            assert inventory['available'], 'Smoke profile requires a runfiles inventory'
+            if launcher == 'direct':
+                assert len({path.split('/shared/', 1)[0] for path in layouts}) == 1, layouts
+                assert any(path.endswith('/shared/Microsoft.NETCore.App/' + runtime_version) for path in layouts), layouts
+        for row in rows:
+            row.pop('runfilesInputs', None)
+        if args.profile:
+            reports[-1]['profile'] = profile_summary(profile)
         (folder / 'report.json').write_text(json.dumps({'sdkArchiveSha256': expected, 'sdkVersion': contract['SdkVersion'],
                                                         'downloadOutputs': download, 'remoteConnections': args.remote_connections,
-                                                        'smokeOnly': args.smoke_only,
+                                                        'smokeOnly': args.smoke_only, 'smokeLauncher': launcher, 'profile': args.profile,
                                                         'runtimeVersion': runtime_version, 'stoppedProducerOutputBase': str(seed_base) if seed_base else None, 'runs': reports}, indent=2) + '\n')
         print(name, round(reports[-1]['wallSeconds'], 2), flush=True)
 

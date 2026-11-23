@@ -527,6 +527,14 @@ is explicit. MTP/VSTest collect TRX and normalize Bazel XML. Failures, crashes,
 timeouts and missing/malformed results fail. Sharding is unsupported.
 See [test attributes](../msbuild/private/test_options.bzl).
 
+For a read-only executable smoke test, `direct_executable_smoke = True` on
+`msbuild_graph_test` launches the DLL in place with the selected runtime.
+Arguments and exit status pass through. The app must run from Bazel's test
+working directory without a writable copy beside the DLL. This mode requires
+the executable protocol, expected exit zero and a dotnet host with no custom
+host environment. Settings, adapters, data paths, custom test directories,
+filtering and sharding require other test behavior and are rejected.
+
 ## Caching and workers
 
 Bazel caches unchanged graph actions. Changed graphs need a Linux persistent worker

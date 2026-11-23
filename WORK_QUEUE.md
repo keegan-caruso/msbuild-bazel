@@ -15,6 +15,10 @@ minimize idle cost, preserve reports on a Mac, clean owned state and deallocate
 after each batch. ARM64 producer qualification stays on the Macs.
 The x64 host does not replace Ubuntu ARM64 qualification or a declared producer.
 
+## Direct smoke launcher (#215)
+
+Codex, Linux x64, worktree `restore-215`. Scaffold, 49 Bazel analysis tests, 62 source SDK controls and the managed runtime probe passed. Paired ARM64 qualification requires the stopped VMR producer and populated cache.
+
 ## Agreed release scope
 
 - Bazel 9.3.2 only initially; drop Bazel 8.x support and qualify later 9.x updates

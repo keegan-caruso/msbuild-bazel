@@ -802,6 +802,11 @@ consumption, Razor rendering, Publish, and explicit execution of the published
 net11.0 app passed. The published app reported runtime 11.0.0 and loaded CoreLib
 from the produced runtime. The .NET 11 qualification covers native Linux ARM64.
 
+The direct launcher passed the Linux x64 downloaded-SDK control
+(`python3 tests/graph_build/direct_executable_smoke.py`, Bazel 9.3.2, runtime
+11.0.0), including selected CoreLib location, argument forwarding, nonzero exit
+and missing-host behavior. [ARM64 launcher comparison recipe](performance.md#compare-smoke-launchers).
+
 ### .NET 10 VMR on Ubuntu ARM64
 
 The coarse qualification producer rebuilt the pinned .NET 10 VMR on Ubuntu
