@@ -73,39 +73,60 @@ source_sdk = rule(
 def _sdk_layout(ctx):
     dotnet = ctx.actions.declare_file(ctx.label.name + "/dotnet")
     files = [dotnet] + [ctx.actions.declare_file(ctx.label.name + "/" + name) for name in ["dnx", "LICENSE.txt", "ThirdPartyNotices.txt"]]
-    host = ctx.actions.declare_directory(ctx.label.name + "/host")
+    pack_names = ctx.attr.pack_names
+    for name in pack_names:
+        if not name or name in [".", ".."]:
+            fail("Pack names must be single path components: " + name)
+        for index in range(len(name)):
+            if name[index] not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-":
+                fail("Pack names must contain only letters, digits, dot, underscore or hyphen: " + name)
+    if len(pack_names) != len({name: True for name in pack_names}):
+        fail("Pack names must be unique")
+    for name in ctx.attr.native_aot_packs:
+        if name not in pack_names:
+            fail("NativeAOT packs must be declared in pack_names: " + name)
     shared = ["shared/Microsoft.NETCore.App", "shared/Microsoft.AspNetCore.App"] if ctx.attr.split_frameworks else ["shared"]
-    frameworks = [ctx.actions.declare_directory(ctx.label.name + "/" + name) for name in shared]
-    directories = [host] + frameworks + [ctx.actions.declare_directory(ctx.label.name + "/" + name) for name in ["sdk", "packs", "sdk-manifests", "templates", "library-packs", "metadata"]]
+    directory_names = ["host"] + shared + ["sdk", "sdk-manifests", "templates", "library-packs", "metadata"] + (["packs/" + name for name in pack_names] if pack_names else ["packs"])
+    directories = [ctx.actions.declare_directory(ctx.label.name + "/" + name) for name in directory_names]
+    managed_directories = [directory for name, directory in zip(directory_names, directories) if name not in ["packs/" + pack for pack in ctx.attr.native_aot_packs]]
+    host = directories[0]
+    frameworks = directories[1:1 + len(shared)]
     ctx.actions.run_shell(
         inputs = [ctx.file.archive] + ctx.files.packages,
         outputs = files + directories,
-        arguments = [ctx.file.archive.path, dotnet.dirname, "split" if ctx.attr.split_frameworks else "full"] + [value for package, destination in ctx.attr.packages.items() for value in [package.files.to_list()[0].path, destination]],
+        arguments = [ctx.file.archive.path, dotnet.dirname, "split" if ctx.attr.split_frameworks else "full", " ".join(pack_names)] + [value for package, destination in ctx.attr.packages.items() for value in [package.files.to_list()[0].path, destination]],
         command = """set -eu
-archive="$1"; root="$2"; framework_mode="$3"; shift 3
+archive="$1"; root="$2"; framework_mode="$3"; declared_packs="$4"; shift 4
 mkdir -p "$root"
 tar --no-same-owner -xzf "$archive" -C "$root"
-if test "$framework_mode" = split; then
-    for framework in "$root"/shared/*; do
-        case "${framework##*/}" in
-            Microsoft.NETCore.App|Microsoft.AspNetCore.App) ;;
-            *) echo "Unexpected shared framework: $framework" >&2; exit 1 ;;
-        esac
-    done
-    test -d "$root/shared/Microsoft.NETCore.App"
-    test -d "$root/shared/Microsoft.AspNetCore.App"
-fi
 for directory in host shared sdk packs sdk-manifests templates library-packs metadata; do mkdir -p "$root/$directory"; done
 while test "$#" -gt 0; do
     package="$1"; destination="$2"; shift 2
     python3 -m zipfile -e "$package" "$root/$destination"
 done
+if test "$framework_mode" = split || test -n "$declared_packs"; then
+python3 - "$root" "$framework_mode" "$declared_packs" <<'PYTHON'
+from pathlib import Path
+import sys
+root = Path(sys.argv[1])
+def check(directory, expected):
+    children = {entry.name: entry for entry in (root / directory).iterdir()}
+    if set(children) != set(expected):
+        raise ValueError("Unexpected " + directory + " inventory: " + repr(sorted(children)))
+    if any(not entry.is_dir() or entry.is_symlink() for entry in children.values()):
+        raise ValueError("Expected ordinary directories in " + directory)
+if sys.argv[2] == "split":
+    check("shared", ["Microsoft.NETCore.App", "Microsoft.AspNetCore.App"])
+if sys.argv[3]:
+    check("packs", sys.argv[3].split())
+PYTHON
+fi
 """,
         mnemonic = "SourceSdkLayout",
     )
-    groups = {"dotnet": depset([dotnet])}
+    groups = {"dotnet": depset([dotnet]), "managed": depset(files + managed_directories)}
     if ctx.attr.split_frameworks:
         groups["core_runtime"] = depset([dotnet, host, frameworks[0]])
     return [DefaultInfo(files = depset(files + directories)), OutputGroupInfo(**groups)]
 
-sdk_layout = rule(implementation = _sdk_layout, attrs = {"split_frameworks": attr.bool(), "archive": attr.label(allow_single_file = [".tar.gz"], mandatory = True, cfg = "exec"), "packages": attr.label_keyed_string_dict(allow_files = [".nupkg"])})
+sdk_layout = rule(implementation = _sdk_layout, attrs = {"split_frameworks": attr.bool(), "archive": attr.label(allow_single_file = [".tar.gz"], mandatory = True, cfg = "exec"), "packages": attr.label_keyed_string_dict(allow_files = [".nupkg"]), "pack_names": attr.string_list(doc = "Exact pack directory inventory; empty preserves the complete packs tree."), "native_aot_packs": attr.string_list(doc = "Declared pack directories omitted only from the managed output group.")})
