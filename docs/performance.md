@@ -512,8 +512,70 @@ done
 
 Compare adjacent pairs using the reports, execution logs and profiles. Check SDK
 digest, graph cache hits and actual test execution before comparing staging spans,
-wall time and runfiles inventories. The effect on the ARM64 staging time remains
-unmeasured.
+wall time and runfiles inventories. The retained-archive control below measures
+ARM64 staging separately from full source-action recovery.
+
+### Retained-archive launcher and connection control
+
+A separate Ubuntu 26.04 ARM64 control used the retained SDK 11.0.100 / runtime
+11.0.0 archive (SHA-256 `993765849ca1f97d64ca1a157b34158b37dc75facff43d41707365dc8724ec85`),
+Bazel 9.3.2, four CPUs and 6 GiB RAM. The original producer seed was no longer
+available. An explicit archive-copy action replaced `SourceSdkBuild`; the SDK
+layout, one-project graph and smoke test used rules at `6608ac6`. This measures
+fresh consumer recovery with that archive handoff, independently of source
+production or the historical full-producer action key.
+
+The driver uploaded two seed closures, then ran three paired trials per launcher
+and connection cap. Every measured trial had a fresh workspace, output base and
+output user root, top-level downloads, no disk cache, uploads disabled and an
+actually executed test. All non-test actions hit the shared HTTPS cache through
+the guest UNIX-socket relay. Classic/direct order and the 1/8 connection block
+order reversed for pair 2. Profiles were enabled in all trials.
+
+| Connections | Pair | Classic wall / staging | Direct wall / staging | Wall speedup |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | 1 | 54.32 / 45.16 s | 30.81 / 22.81 s | 1.76× |
+| 1 | 2 | 50.62 / 42.32 s | 31.11 / 22.56 s | 1.63× |
+| 1 | 3 | 51.72 / 42.89 s | 30.24 / 21.77 s | 1.71× |
+| 8 | 1 | 22.77 / 14.03 s | 16.21 / 8.06 s | 1.40× |
+| 8 | 2 | 23.71 / 15.55 s | 16.04 / 7.74 s | 1.48× |
+| 8 | 3 | 25.12 / 16.37 s | 16.06 / 7.88 s | 1.56× |
+
+Median paired classic/direct wall speedups were **1.71×** with one connection and
+**1.48×** with eight. Comparing one versus eight connections within each pair,
+median paired wall speedups were **2.13× classic / 1.90× direct**. The staging
+columns come from profile spans enclosed by the smoke `TestRunner` on the same
+lane. Direct staging medians were 22.56 / 7.88 seconds at one / eight connections;
+wall medians were 30.81 / 16.06 seconds. Setup, SDK extraction and seed uploads
+preceded measured invocations; profiles and fresh Bazel installation overhead are
+included in wall time.
+
+Combining the direct launcher with eight connections gave a **3.22× median paired
+wall speedup** over classic with one connection: wall medians fell from 51.72 to
+16.06 seconds and staging medians from 42.89 to 7.88 seconds. Prefer eight
+connections for this measured smoke setup; this does not qualify other workloads
+or change global cache defaults.
+
+These are logical runfiles sizes, not wire traffic: classic exposed 681 files /
+448,503,210 bytes and direct exposed 341 files / 224,145,656 bytes. The two classic
+framework roots became one direct root; both modes still included Core and ASP.NET
+Core. Request bytes and duplicate network transfers were not measured. Each trial
+verified the cached archive output digest, graph hit and runtime 11.0.0 test output.
+
+To run this control inside the qualified Linux ARM64 environment, provide the
+verified retained archive and a cache writable during seeding. The driver disables
+uploads for all measured trials and writes reports outside the checkout. Pin the
+rules checkout when reproducing the table; a current checkout measures current rules.
+Set `baseline_rules` to a new detached worktree path and `fresh_results` to a new
+guest-local directory. The benchmark script runs from the current checkout.
+
+```bash
+git -C "$rules" worktree add --detach "$baseline_rules" 6608ac6f61ca7d0ff376ca28fcdb3403aacf5d45
+export RULES_MSBUILD_BAZEL="$rules/scripts/bazel-launcher.sh"
+python3 "$rules/tests/source_sdk/smoke_latency.py" "$sdk_archive" "$fresh_results" \
+  --sha256=993765849ca1f97d64ca1a157b34158b37dc75facff43d41707365dc8724ec85 \
+  --rules="$baseline_rules" --cache="$cache"
+```
 
 ## Retained source SDK consumer recovery
 
