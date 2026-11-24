@@ -19,7 +19,7 @@ independently managed services. Pausing work does not authorize discarding it.
 
 The sole build interface is `msbuild/defs.bzl` / `msbuild/graph.bzl` with
 `tools/GraphBuild` and its MSBuild project-cache plugin. ProjectSync emits explicit
-graph contracts; ArtifactTools handles artifact extraction/composition and launch.
+graph contracts; ArtifactTools handles artifact extraction/composition and MTP/VSTest protocols.
 See docs/api.md and docs/support.md for scope and limits.
 Bazel 9.3.2 is the supported baseline.
 

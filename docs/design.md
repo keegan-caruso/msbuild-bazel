@@ -11,7 +11,7 @@ configuration and scheduling; sharing evaluation avoids a process per project.
 | Bazel | Declared inputs/toolchains, producer actions, action caching and tests |
 | ProjectSync | Evaluating projects into committed declarations and contracts |
 | MSBuild + cache plugin | SDK targets, compilation and reuse of configured projects |
-| ArtifactTools | Package extraction, layout composition and app/test launch |
+| ArtifactTools | Package extraction, layout composition and MTP/VSTest protocol execution |
 
 SDKs, runtimes, packages and task tools are artifacts. NuGet resolves only in the
 explicit update job; committed project locks and archive manifests become Bazel

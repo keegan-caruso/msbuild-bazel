@@ -688,6 +688,28 @@ worker, additional-platform or source-built qualification. Other shared framewor
 need a complete declared layout. See
 [runtime configuration](api.md#runtimes).
 
+## Graph executable and test launchers
+
+With Bazel 9.3.2 and SDK 11.0.100, both executable staging modes passed on
+Ubuntu 26.04 ARM64. The default writable test returned its expected exit code
+of 7. Its runfiles contained the declared runtime and app and omitted the
+compiler runtime and `ArtifactTools.dll`. Run
+`python3 tests/graph_build/direct_executable_smoke.py` for the Bazel fixture.
+On macOS ARM64, `python3 tests/graph_build/executable_launcher.py` also checked
+terminal and pipe input, descendant cancellation, file collisions and output
+directories. A separate Bazel binary returned 100 through a CoreRun host built
+from dotnet/runtime v11.0.0, and its test passed with `expected_exit_code = 100`.
+
+On the same Linux ARM64 configuration, `python3 tests/graph_build/protocols.py`
+passed MTP and VSTest pass, failure, filtered, empty-selection and dependency-edit
+cases. Repeating with `--graph-worker` verified compilation reuse. A separate
+mixed-runtime run exercised the same MTP and VSTest cases with the adapter
+on .NET 11.0.0 and the test process loading CoreLib from the declared .NET
+10.0.10 runtime. On macOS,
+the protocol adapter built and passed its artifact tests with SDKs 10.0.400
+and 11.0.100. A .NET 11 adapter launched a .NET 10 application using the
+declared 10.0.11 runtime.
+
 ## Graph inputs
 
 `//tests/integration:preparation` passed on Linux ARM64 / Bazel 8.8.0 and 9.3.0:
@@ -819,7 +841,7 @@ measurement.
 The direct launcher passed the Linux x64 downloaded-SDK control
 (`python3 tests/graph_build/direct_executable_smoke.py`, Bazel 9.3.2, runtime
 11.0.0), including selected CoreLib location, argument forwarding, nonzero exit
-and missing-host behavior. [ARM64 launcher comparison recipe](performance.md#compare-smoke-launchers).
+and missing-host behavior. [Historical ARM64 launcher measurements](performance.md#retained-archive-launcher-and-connection-control).
 
 ### .NET 10 VMR on Ubuntu ARM64
 

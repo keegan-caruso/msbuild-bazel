@@ -527,6 +527,11 @@ is explicit. MTP/VSTest collect TRX and normalize Bazel XML. Failures, crashes,
 timeouts and missing/malformed results fail. Sharding is unsupported.
 See [test attributes](../msbuild/private/test_options.bzl).
 
+Binaries and executable tests use their selected runtime directly. By default
+the launcher stages the application and declared data in a private writable
+directory and starts the application there. MTP and VSTest use a managed adapter
+for runner configuration, results and Bazel XML.
+
 For a read-only executable smoke test, `direct_executable_smoke = True` on
 `msbuild_graph_test` launches the DLL in place with the selected runtime.
 Arguments and exit status pass through. The app must run from Bazel's test

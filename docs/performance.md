@@ -496,40 +496,10 @@ ARM64 guest, the console app loaded CoreLib from the smaller layout and a web
 probe loaded ASP.NET Core from the full layout. The smaller layout rejected
 the web probe for its missing framework. These are uncompressed layout sizes.
 
-To reproduce a pair, set `seed` and `cache` to the prepared seed workspace and
-its populated HTTP cache. Set `RULES_MSBUILD_BAZEL` to the repository's Bazel
-launcher. Use a new `trial` directory for each pair:
-
-```bash
-for mode in all toplevel; do
-  python3 "$rules/tests/source_sdk/source_action_recovery.py" \
-    "$seed" "$trial/$mode" --cache="$cache" --smoke-only \
-    --smoke-launcher=classic --download-outputs="$mode" --remote-connections=1
-done
-```
-
-### Compare smoke launchers
-
-Use the stopped Ubuntu 26.04 ARM64 producer, its populated cache and the
-same SDK 11.0.100 seed. The seed's rules override must resolve to this checkout.
-Each trial overrides the launcher in a fresh copy of that workspace.
-
-```bash
-set -e
-export RULES_MSBUILD_BAZEL="$rules/scripts/bazel-launcher.sh"
-i=0
-for mode in classic direct direct classic classic direct; do
-  i=$((i+1))
-  python3 "$rules/tests/source_sdk/source_action_recovery.py" \
-    "$seed" "$work/trial-$i-$mode" --cache="$cache" --smoke-only \
-    --smoke-launcher="$mode" --download-outputs=toplevel --remote-connections=1 --profile
-done
-```
-
-Compare adjacent pairs using the reports, execution logs and profiles. Check SDK
-digest, graph cache hits and actual test execution before comparing staging spans,
-wall time and runfiles inventories. The retained-archive control below measures
-ARM64 staging separately from full source-action recovery.
+The historical download comparison and launcher A/B require the classic
+launcher. See the [pinned recovery commands](https://github.com/keegan-caruso/msbuild-bazel/blob/7a6d573/docs/performance.md#compare-smoke-launchers).
+For a current recovery profile, run the source SDK recovery driver with
+`--smoke-only --download-outputs=toplevel --remote-connections=8 --profile`.
 
 ### Retained-archive launcher and connection control
 
@@ -578,20 +548,9 @@ framework roots became one direct root; both modes still included Core and ASP.N
 Core. Request bytes and duplicate network transfers were not measured. Each trial
 verified the cached archive output digest, graph hit and runtime 11.0.0 test output.
 
-To run this control inside the qualified Linux ARM64 environment, provide the
-verified retained archive and a cache writable during seeding. The driver disables
-uploads for all measured trials and writes reports outside the checkout. Pin the
-rules checkout when reproducing the table; a current checkout measures current rules.
-Set `baseline_rules` to a new detached worktree path and `fresh_results` to a new
-guest-local directory. The benchmark script runs from the current checkout.
-
-```bash
-git -C "$rules" worktree add --detach "$baseline_rules" 6608ac6f61ca7d0ff376ca28fcdb3403aacf5d45
-export RULES_MSBUILD_BAZEL="$rules/scripts/bazel-launcher.sh"
-python3 "$rules/tests/source_sdk/smoke_latency.py" "$sdk_archive" "$fresh_results" \
-  --sha256=993765849ca1f97d64ca1a157b34158b37dc75facff43d41707365dc8724ec85 \
-  --rules="$baseline_rules" --cache="$cache"
-```
+To reproduce the historical table, run the
+[pinned benchmark driver and recipe](https://github.com/keegan-caruso/msbuild-bazel/blob/7a6d573/docs/performance.md#retained-archive-launcher-and-connection-control)
+from checkout `7a6d573` with the separate rules checkout at `6608ac6`.
 
 ## Retained source SDK consumer recovery
 
