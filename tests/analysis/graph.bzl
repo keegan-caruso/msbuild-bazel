@@ -23,9 +23,8 @@ def _worker(env, target):
 
 def _launch(env, targets):
     host = targets.host[MSBuildRuntimeInfo]
-    env.expect.that_str(request(targets.app, ".launch.json")["runtimeHost"]["launchMode"]).equals("corerun")
     env.expect.that_collection(targets.app[DefaultInfo].default_runfiles.files.to_list()).contains_at_least(host.files.to_list())
-    env.expect.that_collection(paths(targets.app[DefaultInfo].default_runfiles.files)).not_contains("tests/analysis/sdk.txt")
+    env.expect.that_collection(paths(targets.app[DefaultInfo].default_runfiles.files)).not_contains("tests/analysis/Runner.dll")
 
 def _direct_launch(env, targets):
     host = targets.host[MSBuildRuntimeInfo]
@@ -36,18 +35,6 @@ def _direct_launch(env, targets):
     env.expect.that_collection(app.default_runfiles.files.to_list()).contains_exactly(runtime + host.files.to_list() + [app.files_to_run.executable])
     env.expect.that_collection(paths(app.default_runfiles.files)).not_contains("tests/analysis/Runner.dll")
     env.expect.that_collection(paths(app.default_runfiles.files)).not_contains("tests/analysis/dotnet")
-
-def _classic_launch(env, targets):
-    host = targets.host[MSBuildRuntimeInfo]
-    runfiles = targets.app[DefaultInfo].default_runfiles.files
-    env.expect.that_collection(runfiles.to_list()).contains_at_least(host.files.to_list())
-    env.expect.that_collection(paths(runfiles)).contains_at_least([
-        "tests/analysis/dotnet",
-        "tests/analysis/Runner.dll",
-        "tests/analysis/host/fxr/mock",
-        "tests/analysis/shared/Microsoft.NETCore.App/mock",
-        "tests/analysis/classic_smoke.launch.json",
-    ])
 
 def _combined_layout(env, target):
     layout = action(target, "MSBuildGraphLayout")
@@ -92,8 +79,8 @@ def graph_tests(name):
     analysis_test(name = name + "_direct_launch", targets = {"host": ":direct_host", "app": ":direct_smoke"}, impl = _direct_launch)
     msbuild_graph_test(name = "registered_direct_smoke", graph = ":graph", project = "App.csproj", direct_executable_smoke = True, tags = ["manual"])
     analysis_test(name = name + "_registered_direct_launch", targets = {"host": ":fake_runtime", "app": ":registered_direct_smoke"}, impl = _direct_launch)
-    msbuild_graph_test(name = "classic_smoke", graph = ":graph", project = "App.csproj", runtime_host = ":direct_host", tags = ["manual"])
-    analysis_test(name = name + "_classic_launch", targets = {"host": ":direct_host", "app": ":classic_smoke"}, impl = _classic_launch)
+    msbuild_graph_test(name = "writable_smoke", graph = ":graph", project = "App.csproj", runtime_host = ":direct_host", tags = ["manual"])
+    analysis_test(name = name + "_writable_launch", targets = {"host": ":direct_host", "app": ":writable_smoke"}, impl = _direct_launch)
     msbuild_test_tool(name = "direct_test_tool", package = ":package", path = "Runner.dll", tags = ["manual"])
     msbuild_runtime(name = "direct_env_host", layout = ":direct_host_layout", entry_point = "dotnet", runtime_identifier = "linux-arm64", env = {"CUSTOM_HOST_SETTING": "value"}, tags = ["manual"])
     for case, attrs, message in [

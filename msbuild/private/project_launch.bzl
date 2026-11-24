@@ -11,58 +11,159 @@ def _runtime_host(ctx):
         fail("No SDK runtime matches the target platform; declare a compatible SDK platform or runtime_host")
     return host
 
-def create_direct_smoke_launcher(ctx, assembly, runtime):
-    """Launch a restricted executable smoke test with its declared runtime only.
+def create_executable_launcher(ctx, assembly, runtime, runtime_data, test):
+    """Run executable outputs using only their declared runtime host.
 
     Args:
-        ctx: Test rule context.
+        ctx: Project rule context.
         assembly: Entry assembly filename.
-        runtime: Copied application output tree.
+        runtime: Application output tree.
+        runtime_data: Runtime data file destinations.
+        test: Whether to apply executable test options.
 
     Returns:
-        The executable DefaultInfo and RunEnvironmentInfo providers.
+        Executable and optional test environment providers.
     """
-    if ctx.attr.test_protocol != "executable":
-        fail("direct_executable_smoke requires the executable test protocol")
-    if ctx.attr.expected_exit_code != 0:
-        fail("direct_executable_smoke requires expected_exit_code = 0")
-    for attribute in ["test_settings", "test_settings_output", "test_filter_argument", "allow_empty_tests", "test_diagnostics", "test_output_dirs", "test_working_directory", "test_runner", "test_adapters", "data_paths"]:
-        if getattr(ctx.attr, attribute):
-            fail("direct_executable_smoke does not support " + attribute)
     host = _runtime_host(ctx)
-    if host.launch_mode != "dotnet":
-        fail("direct_executable_smoke requires a dotnet runtime host")
-    if host.environment:
-        fail("direct_executable_smoke does not support custom runtime host environment")
+    readonly = test and ctx.attr.direct_executable_smoke
+    if readonly:
+        if ctx.attr.expected_exit_code != 0:
+            fail("direct_executable_smoke requires expected_exit_code = 0")
+        for attribute in ["test_settings", "test_settings_output", "test_filter_argument", "allow_empty_tests", "test_diagnostics", "test_output_dirs", "test_working_directory", "test_runner", "test_adapters", "data_paths"]:
+            if getattr(ctx.attr, attribute):
+                fail("direct_executable_smoke does not support " + attribute)
+        if host.launch_mode != "dotnet":
+            fail("direct_executable_smoke requires a dotnet runtime host")
+        if host.environment:
+            fail("direct_executable_smoke does not support custom runtime host environment")
+    if test and (ctx.attr.test_settings or ctx.attr.test_settings_output):
+        fail("Executable test filtering/settings is not supported")
+    for path in [row.destination for row in runtime_data.to_list()] + (ctx.attr.test_output_dirs if test else []):
+        if not path or path.startswith("/") or "\\" in path or any([part in ["", ".", ".."] for part in path.split("/")]) or any([char in path for char in ["\n", "\r"]]):
+            fail("Runtime destinations must be safe relative paths: " + path)
     launcher = ctx.actions.declare_file(ctx.label.name)
+    setup = ["copy_input \"$runfiles/\"" + _quote(_runfile(ctx, row.file)) + " \"$temporary/\"" + _quote(row.destination) for row in runtime_data.to_list()]
+    outputs = ["output_directory " + _quote(path) for path in ctx.attr.test_output_dirs] if test else []
+    owned_environment = ["CORE_ROOT", "DOTNET_ROOT", "DOTNET_HOST_PATH", "DOTNET_MULTILEVEL_LOOKUP"] + ["DOTNET_ROOT_" + architecture for architecture in ["X64", "X86", "ARM", "ARM64"]]
+    host_environment = " ".join([_quote(name + "=" + value) for name, value in host.environment.items() if name not in owned_environment])
     script = """#!/usr/bin/env bash
 set -euo pipefail
-fail() { echo "direct_executable_smoke: $*" >&2; exit 1; }
-[[ -z "${TESTBRIDGE_TEST_ONLY:-}" ]] || fail 'test filtering is not supported'
-case "${TEST_TOTAL_SHARDS:-0}" in 0|1) ;; *) fail 'test sharding is not supported' ;; esac
-case "${TEST_SHARD_INDEX:-0}" in 0) ;; *) fail 'test sharding is not supported' ;; esac
+fail() { echo "msbuild launcher: $*" >&2; exit 1; }
 runfiles="${RUNFILES_DIR:-${TEST_SRCDIR:-$0.runfiles}}"
 [[ "$runfiles" = /* ]] || runfiles="$PWD/$runfiles"
 host_root="$runfiles/"%s
 host="$host_root/"%s
-app="$runfiles/"%s/%s
-[[ -x "$host" ]] || fail 'declared dotnet runtime host is missing or not executable'
-[[ -f "$app" ]] || fail 'declared entry assembly is missing'
+input="$runfiles/"%s
+temporary=''
+child=''
+private_group=0
+kill_tree() {
+  local descendant
+  for descendant in $(ps -axo pid=,ppid= | awk -v parent="$1" '$2 == parent { print $1 }'); do
+    kill_tree "$descendant"
+  done
+  kill -KILL "$1" 2>/dev/null || true
+}
+cleanup() {
+  if [[ -n "$child" ]]; then
+    if [[ "$private_group" = 1 ]]; then
+      kill -KILL -- "-$child" 2>/dev/null || true
+    else
+      kill_tree "$child"
+    fi
+  fi
+  if [[ -n "$temporary" ]]; then rm -rf -- "$temporary"; fi
+}
+trap cleanup EXIT
+cancel() { trap '' TERM INT; exit "$1"; }
+trap 'cancel 143' TERM
+trap 'cancel 130' INT
+copy_input() {
+  mkdir -p -- "$(dirname -- "$2")"
+  if [[ -e "$2" || -L "$2" ]]; then
+    [[ -f "$2" ]] && cmp -s -- "$1" "$2" || fail "Conflicting runtime/input destination: $2"
+  else
+    cp -pL -- "$1" "$2"
+    chmod u+w "$2"
+  fi
+}
+output_directory() {
+  local link="$temporary/$1" target="$output/files/$1"
+  [[ ! -e "$link" && ! -L "$link" ]] || fail "Test output directory collides with a runtime input: $1"
+  mkdir -p -- "$target" "$(dirname -- "$link")"
+  ln -s -- "$target" "$link"
+}
+is_test=%s
+readonly=%s
+if [[ "$is_test" = 1 ]]; then
+  [[ -z "${TESTBRIDGE_TEST_ONLY:-}" ]] || fail 'Executable test filtering/settings is not supported'
+  case "${TEST_TOTAL_SHARDS:-0}" in 0|1) ;; *) fail 'test sharding is not supported' ;; esac
+  case "${TEST_SHARD_INDEX:-0}" in 0) ;; *) fail 'test sharding is not supported' ;; esac
+fi
+[[ -x "$host" ]] || fail 'declared runtime host is missing or not executable'
+[[ -f "$input/"%s ]] || fail 'declared entry assembly is missing'
+if [[ "$readonly" = 1 ]]; then
+  runtime="$input"
+else
+  temporary=$(mktemp -d "${TEST_TMPDIR:-${TMPDIR:-/tmp}}/msbuild-run-XXXXXXXX")
+  runtime="$temporary/"%s
+  mkdir -p -- "$runtime"
+  cp -pRL "$input/." "$runtime/"
+  chmod -R u+w "$runtime"
+fi
+%s
 unset CORE_ROOT
+%s
 export DOTNET_ROOT="$host_root" DOTNET_HOST_PATH="$host" DOTNET_MULTILEVEL_LOOKUP=0
 export DOTNET_ROOT_X64="$host_root" DOTNET_ROOT_X86="$host_root"
 export DOTNET_ROOT_ARM="$host_root" DOTNET_ROOT_ARM64="$host_root"
-exec "$host" "$app" "$@"
-""" % (_quote(_runfile(ctx, host.directory)), _quote(host.entry_point), _quote(_runfile(ctx, runtime)), _quote(assembly))
+if [[ "$is_test" = 1 && "$readonly" != 1 ]]; then
+  output="${TEST_UNDECLARED_OUTPUTS_DIR:-$temporary/test-results}"
+  [[ "$output" = /* ]] || output="$PWD/$output"
+  mkdir -p -- "$output"
+%s
+fi
+launch=(env %s "$host" "$runtime/"%s "$@")
+if [[ "$readonly" = 1 ]]; then exec "${launch[@]}"; fi
+cd -- "$runtime"
+# Keep terminal readers in the inherited foreground process group. Other
+# launches own a group so cancellation also reaches descendants directly.
+if [[ -t 0 ]]; then set +m; else set -m; private_group=1; fi
+"${launch[@]}" <&0 &
+child=$!
+set +e
+wait "$child"
+status=$?
+child=''
+set -e
+if [[ "$is_test" = 1 ]]; then
+  if [[ "$status" = %s ]]; then exit 0; fi
+  echo "Expected exit code %s, received $status" >&2
+  [[ "$status" != 0 ]] || status=1
+fi
+exit "$status"
+""" % (
+        _quote(_runfile(ctx, host.directory)),
+        _quote(host.entry_point),
+        _quote(_runfile(ctx, runtime)),
+        "1" if test else "0",
+        "1" if readonly else "0",
+        _quote(assembly),
+        _quote(ctx.attr.test_working_directory if test else ""),
+        "\n".join(setup),
+        'export CORE_ROOT="$host_root"' if host.launch_mode == "corerun" else "",
+        "\n".join(outputs),
+        host_environment,
+        _quote(assembly),
+        ctx.attr.expected_exit_code if test else 0,
+        ctx.attr.expected_exit_code if test else 0,
+    )
     ctx.actions.write(launcher, script, is_executable = True)
-    return [
-        RunEnvironmentInfo(environment = ctx.attr.env),
-        DefaultInfo(
-            executable = launcher,
-            files = depset([runtime]),
-            runfiles = ctx.runfiles(files = [launcher, runtime, host.directory], transitive_files = host.files),
-        ),
-    ]
+    return ([RunEnvironmentInfo(environment = ctx.attr.env)] if test else []) + [DefaultInfo(
+        executable = launcher,
+        files = depset([runtime]),
+        runfiles = ctx.runfiles(files = [runtime, host.directory] + [row.file for row in runtime_data.to_list()], transitive_files = host.files),
+    )]
 
 def create_launcher(ctx, tc, name, runtime, runtime_data, test):
     """Return the executable provider and optional test environment.
