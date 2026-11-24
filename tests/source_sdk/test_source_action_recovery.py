@@ -9,7 +9,7 @@ import source_action_recovery as recovery
 
 
 class RecoveryTests(unittest.TestCase):
-    def exercise(self, root, sdk, explicit_stop=False, smoke=False, reported_digest=None, test_executed=True, graph_observed=True, profile=False):
+    def exercise(self, root, sdk, explicit_stop=False, smoke=False, reported_digest=None, test_executed=True, graph_observed=True, profile=False, locked=False):
         seed = root / 'seed'
         seed.mkdir()
         (seed / 'app-contract.json').write_text(json.dumps({'SdkVersion': sdk}))
@@ -56,6 +56,9 @@ class RecoveryTests(unittest.TestCase):
             return type('Completed', (), {'returncode': 0})()
 
         args = ['recovery', str(seed), str(folder), '--cache=https://fixture.invalid']
+        if locked:
+            (seed / 'MODULE.bazel.lock').write_text('{}')
+            args += ['--locked']
         if profile:
             args += ['--profile']
         if smoke:
@@ -154,6 +157,14 @@ class RecoveryTests(unittest.TestCase):
             self.assertIn('--remote_download_outputs=toplevel', calls[0])
             self.assertIn('--remote_max_connections=1', calls[0])
             self.assertEqual(report['downloadOutputs'], 'toplevel')
+
+    def test_locked_smoke_uses_seed_lockfile(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            calls, report = self.exercise(root, '11.0.100', smoke=True, locked=True)
+            self.assertIn('--lockfile_mode=error', calls[0])
+            self.assertEqual(report['lockfileMode'], 'error')
+            self.assertEqual((root / 'recovery/workspace/MODULE.bazel.lock').read_text(), '{}')
 
     def test_smoke_rejects_wrong_sdk_or_cached_test(self):
         for overrides in [{'reported_digest': 'wrong'}, {'test_executed': False}, {'graph_observed': False}]:

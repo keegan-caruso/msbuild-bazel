@@ -56,12 +56,12 @@ python3 "$rules/tests/source_sdk/source_action_prepare.py" \
 (
   cd "$work/workspace"
   bash "$rules/scripts/bazel-launcher.sh" --batch --output_base="$work/base" \
-    --ignore_all_rc_files test //:smoke --jobs=1 --lockfile_mode=off \
+    --ignore_all_rc_files test //:smoke --jobs=1 --lockfile_mode=update \
     --test_output=all --execution_log_json_file="$work/producer.execution.json"
 )
 ```
 
-`//:smoke` consumes the SDK as a Bazel toolchain, builds a `net11.0` executable, and verifies its runtime version. The controller SDK compiles the Bazel driver; the VMR uses its pinned RC SDK to build the product toolchain.
+`//:smoke` consumes the SDK as a Bazel toolchain, builds a `net11.0` executable, and verifies its runtime version. The smoke test uses `//:stripped_console_runtime`. Use `//:console_runtime` for native debugging with the original symbols. The controller SDK compiles the Bazel driver; the VMR uses its pinned RC SDK to build the product toolchain.
 
 ## Run an app with the runtime alone
 
@@ -107,7 +107,7 @@ For a fresh consumer that only runs the app (producer stopped, actions cached), 
 cd "$work/workspace"
 bash "$rules/scripts/bazel-launcher.sh" --batch --output_base="$work/smoke-base" \
   --output_user_root="$work/smoke-user" --ignore_all_rc_files test //:smoke \
-  --lockfile_mode=off --disk_cache= --remote_cache="$cache" \
+  --lockfile_mode=error --disk_cache= --remote_cache="$cache" \
   --remote_upload_local_results=false --remote_download_outputs=toplevel \
   --nocache_test_results --test_output=all
 ```
@@ -116,8 +116,10 @@ Verify this mode with the qualification driver (seed workspace and output symlin
 
 ```bash
 python3 "$rules/tests/source_sdk/source_action_recovery.py" \
-  "$work/workspace" "$work/smoke-recovery" --cache="$cache" --smoke-only
+  "$work/workspace" "$work/smoke-recovery" --cache="$cache" --smoke-only --locked
 ```
+
+`--locked` copies the producer’s `MODULE.bazel.lock` and requires Bazel to accept it. Omit this flag for older seeds created with lockfiles disabled.
 
 `--smoke-only` checks the SDK digest in Bazel's execution log against the seed archive and verifies printed runtime version; use full recovery above to download and hash SDK bytes locally. Full recovery checks a fresh output base, exact SDK archive digest, and smoke execution after body/API edits; `consumer_scenarios.py` packs/consumes a NuGet package, renders Razor, publishes an app, and checks its runtime.
 
