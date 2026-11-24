@@ -8,7 +8,7 @@ All initial release qualification gates passed (latest `main` at `9377a27`; evid
 
 **Open / deferred:**
 - Full Linux cross-host graph and source-runtime recovery remain open (native cross-host tiny-action reuse and same-host Linux whole-action recovery pass).
-- Retained separate-scope pins (require separate decisions to migrate): `.github/workflows/linux.yml` (Ubuntu 22.04), historical SDK 10.0.100 archive (Ubuntu 22.04), and `tests/graph_build/native_aot.py` compiler/catalog (LLVM 14).
+- Historical SDK 10.0.100 archive metadata in `tests/source_sdk/pin.json` (`qualifiedSdkBundle`) remains read-only historical context; the Ubuntu 22.04 manual CI workflow and LLVM 14 NativeAOT catalog were removed.
 
 ## Agreed release scope
 
