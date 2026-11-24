@@ -1,13 +1,8 @@
 # Source SDK native prerequisite overlay
 
-This qualification-only overlay adds the recorded Ubuntu 26.04 ARM64 or AMD64
-source-SDK prerequisites to a locally built runtime native image. It is not a
-published image and does not install an SDK or build one. Build the base from
-`containers/runtime-demo.Dockerfile`, then identify that local image by its
-immutable digest. The base Dockerfile pins the Ubuntu index and LLVM/Clang 18;
-other base APT packages remain resolved at image-build time.
+Qualification-only overlay adding Ubuntu 26.04 ARM64/AMD64 source-SDK prerequisites to a locally built `containers/runtime-demo.Dockerfile` image (not a published image; does not install/build an SDK). Identify the base by immutable digest. Base Dockerfile pins the Ubuntu index and LLVM/Clang 18; other base APT packages resolve at image-build time.
 
-For Apple Container, from the repository root:
+Apple Container (from repo root):
 
 ```sh
 base_context="$(mktemp -d)"
@@ -25,20 +20,9 @@ container build --platform linux/arm64 --cpus 2 --memory 4G \
   tests/source_sdk/native_overlay
 ```
 
-The [ARM64 manifest](packages.json) and [AMD64 manifest](packages-amd64.json) record the exact overlay archives, versions,
-architectures and SHA256 values from the qualified build. The installer obtains
-each exact version using authenticated APT metadata, checks its bytes and Debian
-identity before installation, and rejects an install transaction that requires
-unlisted packages or removes a package. Installation has no downloads and uses
-a private APT cache containing only the verified archives. The immutable base
-reference, manifest and complete installed inventory are saved under
-`/opt/source-sdk-prerequisites/`; the inventory is `installed.tsv`. If a pinned
-archive is no longer available, or a different base needs additional packages,
-the build fails;
-retain an authenticated package snapshot for long-term reproduction.
+[ARM64](packages.json) and [AMD64](packages-amd64.json) manifests pin exact overlay archives, versions, architectures, and SHA256s. The installer fetches each version via authenticated APT metadata, verifies bytes and Debian identity, installs offline from a private APT cache of verified archives only, and rejects unlisted additions or removals. Base ref, manifest, and `installed.tsv` are saved under `/opt/source-sdk-prerequisites/`. Missing pinned archives or extra base dependencies fail the build (retain an authenticated package snapshot for long-term reproduction).
 
-To capture the native tool root and test it inside the same nested boundary as
-the source build, use a fresh host evidence directory with sufficient free space:
+Capture and test the native tool root in the same nested boundary as the source build (fresh evidence dir with free space; never mount a rules checkout under the evidence dir—overlapping mounts can hide it):
 
 ```sh
 mkdir /path/to/fresh-evidence
@@ -48,35 +32,10 @@ container run --rm --arch arm64 --cpus 2 --memory 4G \
   source-sdk-native-overlay python3 /rules/tests/source_sdk/native_overlay/preflight.py
 ```
 
-The outer capability and mount settings permit the nested sandbox; the inner
-Bubblewrap root is read-only with all capabilities dropped, network unshared and
-environment cleared. The probe tests `file`, cpio, Python, LLDB18, dependency
-resolution, and Brotli compilation/link/execution with Clang 18. It emits a
-native archive hash and installed inventory. Do not mount a rules checkout under
-the evidence directory: overlapping host mounts can hide the latter.
+Outer flags allow the nested sandbox; inner Bubblewrap is read-only with dropped capabilities, unshared network, and cleared env. Probes `file`, `cpio`, Python, LLDB 18, dependency resolution, and Brotli compile/link/run with Clang 18; emits native archive hash and installed inventory.
 
-A prior captured root from Ubuntu 26 / LLVM 18 had SHA256
-`1854d067717cba3afe85c01e166e2a2c7d95c4dafea89e172b69da8b536c874a`;
-the current recipe was built against the recorded base and its sealed preflight
-reproduced that same root hash without repeating the SDK build. The declared
-source-SDK producer used the root and produced SDK 10.0.100
-archive SHA256 `e043c131f157a4dfd8f66bfe6016b95ee301d0265b075a69b5c84dd9577c45a2`.
-These identify the recorded run, not a promise that a newly resolved base will
-produce identical bytes. Historical Ubuntu 22 SDK results retain their original
-scope. The preflight checks prerequisites; it does not itself produce an SDK.
+Against the recorded base, sealed preflight reproduced the prior Ubuntu 26 / LLVM 18 root SHA256 `1854d067717cba3afe85c01e166e2a2c7d95c4dafea89e172b69da8b536c874a` (used by the source producer to build SDK 10.0.100 SHA256 `e043c131f157a4dfd8f66bfe6016b95ee301d0265b075a69b5c84dd9577c45a2`) without repeating the SDK build. Newly resolved bases are not guaranteed byte-identical; historical Ubuntu 22 results keep their original scope; preflight does not produce an SDK.
 
-For a native Linux x64 producer, build the same base and overlay with Docker on
-Ubuntu 26.04 x64. Use `docker build --platform linux/amd64` for both builds and
-pass an immutable `NATIVE_BASE` as above. The installer selects the AMD64 catalog
-from the actual Debian architecture and rejects foreign package architectures.
-The AMD64 archive hashes were checked against downloaded Ubuntu archive bytes;
-this prepares a recipe, and does not qualify a completed x64 image or source build.
-The sealed root includes `/lib64` when present so the x64 ELF loader remains
-available. Run `preflight.py` inside the fresh x64 image with Bubblewrap permitted
-before starting the source build. The 17 shared overlay versions match ARM64
-exactly; AMD64 also pins LLDB's Intel Processor Trace dependency `libipt2`.
-The base APT closure still needs its own captured inventory and native-root hash.
+For native Linux x64, build base and overlay on Ubuntu 26.04 x64 via `docker build --platform linux/amd64` with immutable `NATIVE_BASE`. Installer selects the AMD64 catalog from Debian arch and rejects foreign architectures. AMD64 hashes were verified against downloaded Ubuntu bytes (recipe preparation only, not a qualified x64 image/build); the 17 shared overlay versions match ARM64 plus `libipt2` (LLDB Intel PT dep). Sealed root keeps `/lib64` for the x64 ELF loader; run `preflight.py` with Bubblewrap before building. Base APT closure still needs its own captured inventory and root hash.
 
-Native x64 source-SDK acquisition and producer commands are documented in
-[the x64 producer recipe](../LINUX_X64.md). ARM64 component scheduling experiments
-remain a separate scope.
+See [x64 producer recipe](../LINUX_X64.md) for x64 acquisition/producer commands; ARM64 component scheduling remains separate.

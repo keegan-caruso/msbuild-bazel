@@ -1,39 +1,21 @@
 # MSBuild rules for Bazel
 
-Build, test and cache .NET project graphs with Bazel, keeping normal `.csproj`
-files and MSBuild's SDK behavior.
+Build, test, and cache .NET project graphs with Bazel while keeping standard `.csproj` files and MSBuild SDK behavior.
 
 - **Explicit inputs:** sync evaluated projects into committed Bazel declarations.
-- **Reuse at two levels:** Bazel caches whole actions; the MSBuild plugin reuses
-  unchanged projects inside a changed graph.
-- **Precise compiler inputs:** qualify the DLLs the SDK actually selects, reuse
-  compilation when those bytes stay unchanged, and refresh runtime copies.
-- **Declared toolchains:** use a downloaded SDK or one produced by your source
-  build, with an optional execution-runtime override.
-- **Bazel tests and artifacts:** run executable, MTP and VSTest tests; export
-  layouts, packages and published apps.
+- **Two-level reuse:** Bazel caches whole actions; the MSBuild plugin reuses unchanged projects in changed graphs.
+- **Precise compiler inputs:** qualify SDK-selected DLLs, reuse compilation when those bytes match, and refresh runtime copies.
+- **Declared toolchains:** use a downloaded or source-built SDK with an optional execution-runtime override.
+- **Bazel tests and artifacts:** run executable, MTP, and VSTest tests; export layouts, packages, and published apps.
 
 ## Start here
 
-The [quick start](examples/quickstart/README.md) has separate
-[downloaded SDK](examples/quickstart/README.md#downloaded-sdk) and
-[source-built SDK](examples/quickstart/README.md#source-built-sdk) scenarios.
-For a source-built execution runtime, see the [source-to-app workflow](examples/source-runtime-app/README.md).
-Requires Bazelisk and OS .NET prerequisites. Pins: SDK **11.0.100**;
-Bazel **9.3.2**.
+See the [quick start](examples/quickstart/README.md) ([downloaded SDK](examples/quickstart/README.md#downloaded-sdk), [source-built SDK](examples/quickstart/README.md#source-built-sdk)) and [source-to-app workflow](examples/source-runtime-app/README.md) for a source-built execution runtime. Requires Bazelisk and OS .NET prerequisites. Pins: SDK **11.0.100**; Bazel **9.3.2**.
 
-**Experimental:** consume a pinned source checkout. No BCR or runner release;
-the API may change. See [validated scope and limits](docs/support.md).
+**Experimental:** consume a pinned source checkout (no BCR or runner release; API may change). See [validated scope and limits](docs/support.md).
 
 ## Measured progress
 
-On a scoped dotnet/runtime graph with **543 configurations / 481 compilations**,
-an independent Linux ARM64 worker recovered all build actions and nine cached test
-results in **14.15 s** (median of three runs). Separate correctness runs actually
-executed **118,952 tests, with 64 skips**. Tools, packages and native prerequisites
-were prepared; see [performance](docs/performance.md) for raw MSBuild comparisons,
-edit costs and reproduction.
+On a scoped dotnet/runtime graph (**543 configurations / 481 compilations**), an independent Linux ARM64 worker recovered all build actions and nine cached test results in **14.15 s** (median of three runs). Separate correctness runs executed **118,952 tests (64 skips)** with tools, packages, and native prerequisites prepared. See [performance](docs/performance.md) for raw MSBuild comparisons, edit costs, and reproduction.
 
-[Design](docs/design.md) · [API](docs/api.md) · [Support](docs/support.md) ·
-[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) ·
-[MIT license](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md)
+[Design](docs/design.md) · [API](docs/api.md) · [Support](docs/support.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [MIT license](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md)

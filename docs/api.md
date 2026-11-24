@@ -1,14 +1,10 @@
 # API
 
-Start with the [quick start](../examples/quickstart/README.md). Load rules from
-`@rules_msbuild//msbuild:defs.bzl`, sync from `@rules_msbuild//msbuild:sync.bzl`,
-and SDK declarations from `@rules_msbuild//msbuild:sdk.bzl`. [Design](design.md) explains ownership and invalidation.
+Start with the [quick start](../examples/quickstart/README.md). Load rules from `@rules_msbuild//msbuild:defs.bzl`, sync from `@rules_msbuild//msbuild:sync.bzl`, and SDK declarations from `@rules_msbuild//msbuild:sdk.bzl`. See [Design](design.md) for ownership and invalidation.
 
 ## Pin, update and roll back the rules
 
-The supported distribution today is a pinned source revision, not a published
-Bazel module release. In the root `MODULE.bazel`, select a reviewed full Git
-commit and register the SDK toolchains as in the quick start:
+Distribution is a pinned source revision (no published Bazel module release). In root `MODULE.bazel`, pin a reviewed full Git commit and register SDK toolchains as in the quick start:
 
 ```starlark
 bazel_dep(name = "rules_msbuild", version = "0.0.0")
@@ -19,23 +15,9 @@ git_override(
 )
 ```
 
-`0.0.0` is the current module placeholder, not a release or compatibility
-promise; the Git commit selects the source. Keep the commit and
-`MODULE.bazel.lock` under version control. After changing the pin, update and
-review the lockfile, run sync, review any generated graph changes, and validate
-your builds and tests. Roll back by restoring the previous reviewed commit,
-lockfile and matching generated declarations, then rerun the same checks. The
-revision must remain available from its Git remote or a retained mirror.
+`0.0.0` is a placeholder, not a release/compatibility promise; the commit selects the source. Commit both the pin and `MODULE.bazel.lock`. On update: refresh/review the lockfile, run sync, review generated graph changes, and validate builds/tests. On rollback: restore the previous commit, lockfile, and matching generated declarations, then rerun checks. Keep the revision reachable via its Git remote or mirror.
 
-The API, generated contracts, runner and project-cache format may change between
-commits; cross-revision compatibility is not guaranteed. Bazel's action cache
-keys include declared action inputs and commands, while project-cache snapshots
-have their own fingerprints and validation. Neither is a promise that every
-revision change invalidates every entry. Until a compatibility policy is
-published, use separate action and project-cache namespaces or endpoints per
-reviewed rules revision, and retain the old namespace for rollback. This is an
-operational recommendation, not automatic namespace enforcement. Keep SDK,
-Bazel and package pins with each reviewed consumer state.
+API, contracts, runner, and project-cache format may change between commits (no cross-revision compatibility guarantee; Bazel action keys and project-cache fingerprints do not guarantee every revision change invalidates every entry). Until a compatibility policy exists, use separate action and project-cache namespaces/endpoints per reviewed rules revision and keep the old namespace for rollback (operational recommendation, not automatic enforcement). Keep SDK, Bazel, and package pins with each reviewed consumer state.
 
 ## Sync
 
@@ -43,85 +25,46 @@ Bazel and package pins with each reviewed consumer state.
 msbuild_sync(name = "sync", projects = ["App/App.csproj"])
 ```
 
-Run `bazel run //:sync`; commit `graph.generated.json` and `graph.generated.bzl`.
-The generated `app_graph` macro declares the graph. Body edits build normally;
-rerun sync after project/import, package, configuration or explicit source-list changes.
-Use `bazel run //:sync -- --check` to reject stale declarations.
+Run `bazel run //:sync`; commit `graph.generated.json` and `graph.generated.bzl` (exposes `app_graph`). Body edits build normally; resync after project/import, package, configuration, or explicit source-list changes. `bazel run //:sync -- --check` rejects stale declarations.
 
-`projects = ["App.sln"]` (or `.slnx`) also works for update and sync. MSBuild
-expands the solution, retaining configuration mappings, build exclusions and
-solution-only dependencies. The solution is hashed and staged with its projects;
-derived absolute solution globals are regenerated at the current workspace.
-Select one solution per target. Mixed entries, `.slnf`, custom solution build hooks
-and overrides of derived solution globals are unsupported.
+`projects = ["App.sln"]` (or `.slnx`) works for update and sync: MSBuild expands the solution keeping config mappings, build exclusions, and solution-only deps; the solution is hashed/staged and derived absolute solution globals regenerate for the current workspace. One solution per target; mixed entries, `.slnf`, custom solution build hooks, and overrides of derived solution globals are unsupported.
 
-Sync can shorten C# lists with checked, nonrecursive globs when the text shrinks.
-These retain expected filenames: membership changes require sync; body edits build
-normally. To allow additions/removals without sync, pass `mappings = "mappings.json"`
-to sync and review Compile-only patterns for every affected configuration:
+Sync can shorten C# lists with checked, nonrecursive globs when shorter (retaining expected filenames: membership changes require sync, body edits build normally). To allow add/remove without sync, pass `mappings = "mappings.json"` with reviewed Compile-only patterns per affected configuration:
 
 ```json
 {"projects":{"Library/Library.csproj":{"compileGlobs":["Library/Sources/**/*.cs"]}}}
 ```
 
-Patterns are workspace-relative `directory/*.cs` or `directory/**/*.cs` (also
-`*.cs` / `**/*.cs` at the root). Recursive patterns include new subdirectories and
-exclude `bin`, `obj`, `bazel-*` and hidden directories. Bazel declares current
-members; the graph contract records the pattern. Sync and builds verify Compile-only
-selection. Review that membership affects only compilation; Restore, imports and
-project references must stay independent. Hidden files,
-symlinks, generated/bound inputs, nested Bazel packages and custom exclusions
-are unsupported. Files outside these patterns still require sync; arbitrary owned
-output directories cannot fall inside a recursive pattern.
-Root projects need an authored `NuGet.Config`; also exclude `bazel-*/**/*.cs`
-from MSBuild's Compile items.
+Patterns are workspace-relative `directory/*.cs`, `directory/**/*.cs`, `*.cs`, or `**/*.cs`. Recursive patterns include new subdirectories and exclude `bin`, `obj`, `bazel-*`, and hidden dirs. Bazel declares current members; the contract records the pattern; sync/builds verify Compile-only selection. Membership must affect only compilation (Restore, imports, project refs stay independent). Unsupported: hidden files, symlinks, generated/bound inputs, nested Bazel packages, custom exclusions, and arbitrary owned output dirs inside recursive patterns. Files outside patterns still require sync. Root projects need an authored `NuGet.Config` and must exclude `bazel-*/**/*.cs` from MSBuild Compile items.
 
 | Attribute | Use |
 | --- | --- |
-| `projects` | Project paths (`.csproj`, `.ilproj`, Traversal/NoTargets `.proj`) or one `.sln` / `.slnx` |
-| `srcs` | Optional complete authored snapshot; makes sync preparation a cacheable Bazel action |
-| `configuration`, `framework` | Release by default; optional entry framework |
+| `projects` | Project paths (`.csproj`, `.ilproj`, Traversal/NoTargets `.proj`) or one `.sln`/`.slnx` |
+| `srcs` | Optional complete authored snapshot making sync preparation a cacheable Bazel action |
+| `configuration`, `framework` | Default `Release`; optional entry framework |
 | `inputs` | Single-file or directory-tree producer labels mapped to workspace-relative paths |
-| `build_inputs` | Same bindings, with bytes used only by Build; requires `preparedRestore` |
+| `build_inputs` | Same bindings with bytes used only by Build; requires `preparedRestore` |
 | `package_lock`, `package_locks` | Closed package inventories, including package SDKs |
-| `package_build`, `package_inputs` | Offline Restore/package evaluation defaults on with a closed package inventory or complete `srcs`; extra declared task reads remain explicit |
+| `package_build`, `package_inputs` | Offline Restore/package evaluation (defaults on with closed package inventory or complete `srcs`; extra task reads remain explicit) |
 | `resolve_references` | Defaults on with `package_build`; private Build captures compiler/copy selections at supported boundaries |
-| `qualification_cache` | Automatic with complete `srcs`, reference qualification, a qualified execution platform and a configured HTTP project cache |
+| `qualification_cache` | Auto-enabled with complete `srcs`, reference qualification, qualified execution platform, and HTTP project cache |
 | `seed_build_cache` | Defaults on with eligible `qualification_cache`; consumers need matching Linux stable paths |
 | `bindings` | Complete tool layouts bound to MSBuild properties |
-| `mappings` | Reviewed JSON contracts for custom inputs, outputs and dependency roles |
+| `mappings` | Reviewed JSON contracts for custom inputs, outputs, and dependency roles |
 
-Assembly `Reference` items may use a `HintPath` or relative `Include` supplied by
-`inputs`; sync records the producer label and workspace path, and builds hash the
-supplied DLL. Bound trees retain one producer edge and declare all member bytes as
-shared inputs. Membership changes require resync; `inputDirectories` alone declares
-presence. Trees reject internal symlinks and authored-path collisions.
+Assembly `Reference` items may use a `HintPath` or relative `Include` from `inputs` (sync records label/path; builds hash the DLL). Bound trees keep one producer edge and declare all member bytes as shared inputs (membership changes require resync; `inputDirectories` alone declares presence; internal symlinks and authored-path collisions fail).
 
-`build_inputs` explicitly declares that Restore needs names and directory presence,
-but does not read file contents. Restore materializes the committed layout with
-empty files; Build receives and hashes the real producer bytes. This preserves
-`Exists()` and globs without invalidating Restore for API edits. Membership changes
-require resync. Imports, explicit Restore inputs and package-task reads cannot use
-this role; use conservative `inputs` for content or other file-metadata reads.
-Sync does not trace arbitrary task reads.
+`build_inputs` declares Restore needs only names/directory presence, not contents: Restore materializes empty files in the committed layout while Build hashes real producer bytes (preserving `Exists()` and globs without invalidating Restore on API edits). Membership changes require resync. Imports, explicit Restore inputs, and package-task reads cannot use `build_inputs` (use `inputs` for content/metadata reads; sync does not trace arbitrary task reads).
 
-Unbound workspace/host assembly paths fail. Sources from the graph's own repository stage
-relative to that repository; cross-repository producers require `input_paths`.
+Unbound workspace/host assembly paths fail. Same-repo sources stage relative to that repo; cross-repo producers require `input_paths`.
 
-For Traversal/NoTargets/IL/Arcade, lock the SDK and implicit/native packages
-and declare custom tasks/products. Closed inventories enable package evaluation. Unknown SDKs fail.
-[Support](support.md#qualified-sdks) lists SDK-specific requirements and limits.
+Traversal/NoTargets/IL/Arcade require locking the SDK and implicit/native packages plus declaring custom tasks/products. Closed inventories enable package evaluation; unknown SDKs fail. See [qualified SDKs](support.md#qualified-sdks).
 
 ### Compiler selections
 
-Closed sync (a package inventory or complete `srcs`) runs offline
-Restore and Build by default in a disposable workspace, then captures the DLLs and copy sources
-selected by the SDK at supported C# reference boundaries. Multi-target selection
-uses configured producer ownership. Failed qualification, undeclared inputs,
-ambiguous producers or conflicting manual bindings leave existing contracts intact.
-Ordinary builds consume the contract; default `--check` repeats qualification.
+Closed sync (package inventory or complete `srcs`) runs offline Restore and Build by default in a disposable workspace, capturing SDK-selected DLLs and copy sources at supported C# reference boundaries (multi-target uses configured producer ownership). Failures, undeclared inputs, ambiguous producers, or conflicting manual bindings leave existing contracts intact. Builds consume the contract; default `--check` repeats qualification.
 
-To reuse preparation between sync and check, declare the complete workspace:
+To reuse preparation across sync and check, declare the complete workspace:
 
 ```starlark
 msbuild_sync(
@@ -136,25 +79,9 @@ msbuild_sync(
 )
 ```
 
-`srcs` defines what MSBuild can see. Include imports, data, locks and implicit
-configuration files; omitted files are absent during evaluation. Declare cached sync
-and its sources in the main workspace's root Bazel package. Use `inputs`, `build_inputs` and `bindings` for generated
-artifacts/tools; exclude generated declarations and build outputs from `srcs`.
-Empty authored directories cannot be represented by a file list.
-Bazel keys preparation on these sources, SDK/runner, settings, mappings, packages
-and producers. Changes requalify; unchanged sync/check reuses the result. The
-launcher accepts only `--check`; change other settings in the target. Publication
-still protects authored files and checks both declarations before replacing either.
-NuGet update remains an explicit resolving command, outside this cache.
+`srcs` defines everything MSBuild sees (include imports, data, locks, implicit configs; omit generated declarations and build outputs; declare cached sync and its sources in the main workspace root package; use `inputs`, `build_inputs`, and `bindings` for generated artifacts/tools; empty authored dirs cannot be represented). Bazel keys preparation on `srcs`, SDK/runner, settings, mappings, packages, and producers. The launcher accepts only `--check` (change other settings in the target). Publication protects authored files and checks both declarations before replacing either. NuGet update remains a separate resolving command.
 
-Closed sync workflows reuse individual projects after a source change when you
-pass `--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=http://cache:8080` to Bazel.
-An optional bearer token uses `RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN` through
-`--action_env`. This requires Linux with `/usr/bin/bwrap` and user namespaces;
-use the qualified execution image. Declare that capability on the **execution**
-platform (the SDK toolchain must also support it). Add
-`bazel_dep(name = "platforms", version = "1.0.0")` to `MODULE.bazel` if absent,
-then declare in the root `BUILD.bazel`:
+Closed sync reuses individual projects after source edits when `--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=http://cache:8080` is set (optional `RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN` via `--action_env`). Requires Linux with `/usr/bin/bwrap`, user namespaces, and the qualified execution image declared on the **execution** platform (SDK toolchain must also support it). Add `bazel_dep(name = "platforms", version = "1.0.0")` to `MODULE.bazel` if absent, then in root `BUILD.bazel`:
 
 ```starlark
 platform(
@@ -167,90 +94,44 @@ platform(
 )
 ```
 
-Select it with `--extra_execution_platforms=//:qualified_linux`. The capability
-attests the qualified Ubuntu ARM64 image, working Bubblewrap and nested namespaces;
-a target-platform OS constraint alone does not enable it. Rules register the optional
-capability toolchain automatically. Missing capability or endpoint falls back to
-ordinary qualification. Explicit `qualification_cache = True` retains the forced
-Linux/bwrap path and rejects missing inputs or endpoint. `False` disables each
-automatic option. No endpoint is inferred from Bazel's general remote cache.
+Select via `--extra_execution_platforms=//:qualified_linux` (target-platform OS constraint alone does not enable it; optional capability toolchain registers automatically). Missing capability/endpoint falls back to ordinary qualification. Explicit `qualification_cache = True` forces Linux/bwrap and rejects missing inputs/endpoint; `False` disables automatic options. No endpoint is inferred from Bazel's remote cache.
 
-Package/tool runfiles are materialized before
-entering a fixed private namespace; authored sources are read-only. Publication
-still happens after successful qualification.
+Package/tool runfiles materialize before entering a fixed private namespace; authored sources are read-only; publication runs after qualification succeeds. Keys use pre-contract evaluated inputs (SDK/runner bytes, declared inputs, package archives, Restore assets, targets, conservative dep source/product hashes); hits restore verified owned artifacts and SDK compiler/copy metadata. Restore has its own verified snapshot (evaluation stays fresh; by default all source contents invalidate Restore unless exempted via root `restoreReuseInputs`). Misses run normal SDK Build; shared inputs invalidate affected keys; overlapping output owners and consumers skip reuse. Does not infer precise reference boundaries before qualification.
 
-This cache uses evaluated project/configuration inputs before the final contract
-exists. Keys include SDK/runner bytes, declared inputs, package archives, Restore
-assets, requested targets and conservative dependency source/product hashes.
-A hit restores verified owned artifacts and SDK compiler/copy metadata. Restore
-products have their own verified snapshot; evaluation remains fresh. By default,
-all source contents invalidate Restore; root `restoreReuseInputs` explicitly reviews
-compiler-only content exemptions. Project misses run normal SDK Build. Shared inputs
-invalidate every affected key. Overlapping output owners and their consumers skip
-reuse. This does not infer precise reference boundaries before qualification.
+Eligible qualification also publishes ordinary Build snapshots to the same HTTP cache (`seed_build_cache`, defaults on with declared execution capability; disable via `seed_build_cache = False`). Consumers auto-use stable paths on that execution platform (or set `linux_stable_paths = True`) with matching SDK, runner, config, and inputs. Qualification retains intermediate outputs; the ordinary runner verifies SDK/input/output bytes, evaluated properties/items, target results, and compiler selections, reusing verified Restore products with no second compilation (incompatible handoffs fail before declaration publication). Runs only when qualification executes (whole-action hits do not refill evicted project entries). See [qualified scope](support.md#project-qualification-cache).
 
-Eligible qualification also publishes ordinary Build snapshots to the
-same HTTP cache. Consumers automatically use stable paths on that declared execution
-platform, or can set `linux_stable_paths = True`; they must use the same SDK,
-runner, configuration and inputs. Qualification captures intermediate outputs;
-the ordinary runner verifies SDK/input/output bytes, evaluated properties/items,
-target results and compiler selections before writing its usual snapshots. This
-reuses verified Restore products and adds evaluation/verification, with no second compilation. Incompatible
-handoffs fail before declarations are published. Publication runs when qualification
-executes; a whole-action cache hit does not refill evicted project entries. The
-option defaults on only with the declared execution capability and can be disabled
-with `seed_build_cache = False`; see [qualified scope](support.md#project-qualification-cache).
-
-Complete inventories exclude unselected compiler edges from invalidation while
-retaining graph execution and noncompiler dependency roles. New snapshots verify
-`ReferencePathWithRefAssemblies`; SDK and declared package/file inputs keep their
-byte hashes. Custom task reads and Pack/Publish-specific selections still need
-contracts. Unsupported boundaries retain conservative keys.
+Complete inventories exclude unselected compiler edges from invalidation while keeping graph execution and noncompiler dep roles. New snapshots verify `ReferencePathWithRefAssemblies`; SDK and declared package/file inputs keep byte hashes. Custom task reads and Pack/Publish-specific selections still need contracts; unsupported boundaries keep conservative keys.
 
 ### Mappings
 
-Use `projectDefaults`, project-path `projects`, `frameworkOverrides`, and root
-`entryProperties`; graph-wide properties go in `projectDefaults.properties`.
-Unknown/duplicate fields, unsafe paths and changed document attestations fail.
-With qualification caching, root `restoreReuseInputs` may list reviewed workspace-
-relative Compile files whose contents cannot affect Restore. Their names and modes
-remain inputs; definitions, explicit Restore inputs and other files cannot be exempt.
-This is a separate review from `evaluationReuseInputs`.
+Use `projectDefaults`, project-path `projects`, `frameworkOverrides`, and root `entryProperties` (graph-wide properties go in `projectDefaults.properties`). Unknown/duplicate fields, unsafe paths, and changed document attestations fail. With qualification caching, root `restoreReuseInputs` lists reviewed workspace-relative Compile files whose contents cannot affect Restore (names/modes stay keyed; definitions, explicit Restore inputs, and other files cannot be exempt; separate from `evaluationReuseInputs`).
 
 | Contract fields | Purpose |
 | --- | --- |
 | `documents`, `inputItems`, `evaluationItems` | Attested target/task documents and extra reads |
-| `inputDirectories`, `temporaryDirectories`, `outputFiles` | Input trees, private scratch and owned products |
-| `preparedRestore`, `restoreInputs`, `restoreOutputs` | Separate Restore contract; inferred for closed standard SDK projects without package/custom hooks, or reviewed explicitly |
+| `inputDirectories`, `temporaryDirectories`, `outputFiles` | Input trees, private scratch, owned products |
+| `preparedRestore`, `restoreInputs`, `restoreOutputs` | Separate Restore contract (inferred for closed standard SDK projects without package/custom hooks, or reviewed explicitly) |
 | `referenceBoundary`, `implementationDependencies` | Qualified compiler boundary; conservative task/tool edges |
-| `compilerReference`, `compilerReferences`, `compilerReferencesComplete` | Producer artifact, consumer selections and complete-inventory assertion |
+| `compilerReference`, `compilerReferences`, `compilerReferencesComplete` | Producer artifact, consumer selections, complete-inventory assertion |
 | `dependencyCopies` | Consumer DLL/PDB/XML destinations mapped to graph/locked-package sources |
-| `compileGlobs` | Reviewed C# source membership, per configured project |
+| `compileGlobs` | Reviewed C# source membership per configured project |
 | `evaluationReuseInputs`, `replayOmissions` | Reviewed compiler-only inputs and disposable intermediates |
 
-Existing workspace files named by reviewed `evaluationItems` are definition inputs
-for Build and prepared Restore. This preserves glob membership outside the selected
-project graph; scalar values remain metadata.
+Existing workspace files named by reviewed `evaluationItems` are definition inputs for Build and prepared Restore (preserving glob membership outside the graph; scalars stay metadata).
 
-Manual `compilerReferencesComplete: true` requires `referenceBoundary: true` and
-all project DLLs selected by the SDK. Partial maps retain conservative transitive
-keys. Implementation DLLs belong in `compilerReferences` when Csc reads them;
-additional task/tool reads belong in `implementationDependencies`.
+Manual `compilerReferencesComplete: true` requires `referenceBoundary: true` and all SDK-selected project DLLs (partial maps keep conservative transitive keys). Implementation DLLs belong in `compilerReferences` when Csc reads them; extra task/tool reads belong in `implementationDependencies`.
 
-`dependencyCopies` accepts MSBuild expressions; package sources require prepared
-Restore. It describes replay; MSBuild still chooses build copies. Omitted files
-remain stored and verified in snapshots. Required references, outputs, copies and
-target-result paths cannot be omitted; this contract is qualified for Build only.
+`dependencyCopies` accepts MSBuild expressions (package sources require prepared Restore) and describes replay only (MSBuild still chooses build copies). Omitted files remain stored/verified in snapshots; required references, outputs, copies, and target-result paths cannot be omitted (qualified for Build only).
 
 ## Build and artifacts
 
 | Rule | Use |
 | --- | --- |
-| `msbuild_graph_runner`, `msbuild_graph` | Runner bootstrap; Build, Pack or Publish a graph |
-| `msbuild_graph_binary`, `msbuild_graph_test` | Run/test a `project`; choose `framework` if ambiguous |
-| `msbuild_graph_layout`, `msbuild_graph_output` | Export a layout, owned file or directory tree |
+| `msbuild_graph_runner`, `msbuild_graph` | Runner bootstrap; Build, Pack, or Publish a graph |
+| `msbuild_graph_binary`, `msbuild_graph_test` | Run/test a `project` (set `framework` if ambiguous) |
+| `msbuild_graph_layout`, `msbuild_graph_output` | Export a layout, owned file, or directory tree |
 | `msbuild_graph_layouts` | Merge selected configured project outputs in one action |
-| `msbuild_runtime_layout` | Compose a shared framework and its runtime metadata from declared producers |
+| `msbuild_runtime_layout` | Compose a shared framework and runtime metadata from declared producers |
 | `msbuild_graph_restore` | Prepare offline Restore for a matching stable-path graph |
 | `msbuild_tool`, `msbuild_file_binding`, `msbuild_native_tool` | Bind complete task/native-tool layouts |
 | `msbuild_layout`, `msbuild_runtime` | Compose artifacts and describe an execution host |
@@ -258,22 +139,11 @@ target-result paths cannot be omitted; this contract is qualified for Build only
 | `msbuild_nuget_dependencies`, `msbuild_package_lock` | Declare closed package inventories |
 | `msbuild_test_tool`, `msbuild_native_toolchain*` | Select package test tools and native toolchains |
 
-Graph and Restore targets expose their exec-configured tool in the `runner`
-output group. Use `bazel build TARGET --output_groups=+runner` to inspect it
-without downloading every intermediate artifact.
+Graph and Restore targets expose their exec-configured tool in the `runner` output group (`bazel build TARGET --output_groups=+runner`).
 
-`msbuild_native_toolchain_packages` assembles SHA-256-locked `.deb` inputs into a
-tool tree. Supply a sorted `manifest` for an exact file selection, or omit it to
-retain package files under `usr` and `etc`. Complete-package mode accepts explicit
-`exclude_prefixes` while retaining required copyright notices. `symlinks` declares
-post-install aliases without running package scripts. `archive = True` also emits
-a deterministic, link-preserving USTAR tar through the `archive` output group.
-Missing files, dangling/escaping links and conflicting paths fail assembly.
-Extraction currently uses the qualified Ubuntu host's `dpkg-deb`.
+`msbuild_native_toolchain_packages` assembles SHA-256-locked `.deb` inputs into a tool tree (using qualified Ubuntu host `dpkg-deb`). Pass a sorted `manifest` for exact file selection, or omit to retain files under `usr` and `etc` (`exclude_prefixes` supported while keeping copyright notices). `symlinks` declares post-install aliases without running package scripts; `archive = True` also emits a deterministic link-preserving USTAR tar in the `archive` output group. Missing files, dangling/escaping links, and path conflicts fail.
 
-For larger graphs, batch project directories instead of exporting each one and
-then composing them. Keys match generated `project_outputs`; values are layout
-directories. Shared destination files must have identical bytes.
+Batch project dirs for larger graphs (keys match generated `project_outputs`; values are layout dirs; shared destinations must have identical bytes):
 
 ```starlark
 msbuild_graph_layouts(
@@ -286,8 +156,7 @@ msbuild_graph_layouts(
 )
 ```
 
-For a source-built execution runtime, select managed producers by the same keys
-and map individual native files to their destination paths:
+For a source-built runtime, select managed producers by the same keys and map native files to destination paths:
 
 ```starlark
 msbuild_runtime_layout(
@@ -302,45 +171,20 @@ msbuild_runtime_layout(
 )
 ```
 
-The action copies selected output directories, adds `.deps.json`, runtime config,
-version and build provenance, and rejects conflicting destinations. `data` maps
-single-file labels to extra paths; `provenance` accepts JSON build facts. The graph
-contract hash is computed from the actual input. This composes declared producers;
-the example above omits the other assemblies and native files needed to run an app.
-Pass the layout to `msbuild_runtime` or `rules_pkg`'s `pkg_tar`; the
-[complete runtime example](../examples/source-runtime-app/README.md) connects both.
+Copies selected output dirs, writes `.deps.json`, runtime config, version, and provenance (computed contract hash), and rejects destination conflicts. `data` maps single-file labels to extra paths; `provenance` takes JSON build facts. Example omits the other assemblies/native files needed to run an app. Pass to `msbuild_runtime` or `rules_pkg`'s `pkg_tar` (see [source-runtime-app](../examples/source-runtime-app/README.md)).
 
-Handwritten graphs supply `contract`, `srcs`, and optional `input_paths`, `bindings`
-and `packages`/`package_lock`. `source_root` removes a Bazel package prefix.
-Contracts identify project paths plus global properties. Runtime selectors in
-`project_outputs`/`publish_outputs` map `project|framework` to
-`[directory, assembly_filename, output_type]`. See [attributes](../msbuild/graph.bzl).
+Handwritten graphs pass `contract`, `srcs`, and optional `input_paths`, `bindings`, `packages`/`package_lock`; `source_root` strips a Bazel package prefix. Contracts key projects by path + global properties; `project_outputs`/`publish_outputs` map `project|framework` to `[directory, assembly_filename, output_type]`. See [attributes](../msbuild/graph.bzl).
 
 ### NuGet updates
-
-Declare an update target alongside sync:
 
 ```starlark
 load("@rules_msbuild//msbuild:sync.bzl", "msbuild_nuget_update")
 msbuild_nuget_update(name = "update_packages", projects = ["App/App.csproj"])
 ```
 
-Run `bazel run //:update_packages` after package, framework, central-version or SDK
-changes. NuGet resolves in a disposable copy using the declared SDK and root
-`NuGet.Config` hierarchy. The command writes native project locks and
-`nuget.lock.json`; failed resolution leaves existing locks intact. Commit both.
-Shared directories use NuGet's `packages.PROJECT.lock.json` naming (spaces become
-underscores); colliding names fail before publication. Other projects retain
-`packages.lock.json`. Existing project-specific locks take precedence.
-`--check` resolves again and rejects stale locks; it requires network access.
-NuGet HTTP acquisition responses persist by default in the user data directory
-under `rules-msbuild/nuget-http`. Pass `--http-cache /absolute/cache` after `--`
-to choose another location, or `--no-http-cache` for disposable acquisition. Package extraction and lock publication
-remain private; normal graph builds still consume the closed archive inventory.
-Add `--distdir /absolute/archives` to export verified archives for Bazel's
-`--distdir=PATH`, avoiding another download. Existing files must match the resolved hashes.
+Run `bazel run //:update_packages` after package, framework, central-version, or SDK changes. Resolves in a disposable copy using the declared SDK and root `NuGet.Config` hierarchy; writes native project locks (`packages.PROJECT.lock.json` with spaces→underscores in shared dirs, `packages.lock.json` otherwise; existing project-specific locks win; name collisions fail) and `nuget.lock.json` (failures leave existing locks intact). Commit both. `--check` re-resolves online and rejects stale locks. HTTP responses cache in `<user-data>/rules-msbuild/nuget-http` (override via `-- --http-cache /abs/path`, disable via `-- --no-http-cache`). `-- --distdir /abs/archives` exports verified archives for Bazel `--distdir` (existing files must match hashes).
 
-After the first update, add to `MODULE.bazel`:
+After first update, wire the inventory in `MODULE.bazel`:
 
 ```starlark
 nuget = use_extension("@rules_msbuild//msbuild:nuget.bzl", "nuget")
@@ -348,43 +192,15 @@ nuget.lock(name = "nuget", lockfile = "//:nuget.lock.json")
 use_repo(nuget, "nuget")
 ```
 
-Set `msbuild_sync(..., package_lock = "@nuget//:packages")`
-and run `bazel run //:sync`. Bazel downloads the committed archive inventory with
-SHA256 verification. `@nuget//:archives` exposes the original `.nupkg` files.
-Builds and sync restore offline; native NuGet locks preserve
-framework-specific selections and reject stale dependencies. These lockfiles are
-declared build/Restore inputs. The manifest's `archiveSha512` hashes whole archives;
-NuGet's native `contentHash` may differ for signed packages and stays untouched.
+Set `msbuild_sync(..., package_lock = "@nuget//:packages")` and run `bazel run //:sync`. Bazel fetches committed archives with SHA256 verification (`@nuget//:archives` exposes `.nupkg` files). Builds/sync restore offline; native locks preserve per-framework selections and are declared build/Restore inputs. `archiveSha512` hashes whole archives (NuGet's `contentHash` may differ for signed packages and stays untouched).
 
-The updater requires an unambiguous root config and public HTTP(S) V3 feeds.
-NuGet applies nested configs, inheritance, disabled sources and source mappings.
-Used authored configs are hashed in the manifest; `--check` detects config-only changes.
-Config paths outside the copied workspace/private home cannot publish an inventory.
-Custom lock locations, authenticated feeds, workloads and other native package
-flows remain unqualified. Arbitrary task reads still require contracts.
-Source symlinks are rejected. Each update resolves one configuration.
-Pass the same `configuration`, `framework` and `mappings` to update and sync.
-Update uses `projectDefaults.properties` and `entryProperties`; Restore retains all
-authored frameworks, as offline sync does. Conflicting native locks for a shared
-project fail before publication; use separate workspaces for those configurations.
-Traversal, NoTargets, IL and Arcade SDKs resolve through NuGet before Restore, from
-`global.json` `msbuild-sdks` or inline SDK versions. Only used SDK archives enter
-the inventory. IL includes its pinned ILAsm/ILDasm downloads. Commit coordinator
-locks too. Complete graph evaluation and Restore results are required; skipped
-projects or unresolved SDKs leave existing locks intact.
-Other package SDKs remain unqualified through this updater.
-For a new workspace, run the update target before declaring the inventory extension
-or loading a generated graph. No automatic resolution runs during normal builds.
+Requirements/limits: unambiguous root config, public HTTP(S) V3 feeds, no source symlinks. NuGet applies nested configs, inheritance, disabled sources, and source mappings; used configs are hashed (`--check` detects config-only changes); configs outside copied workspace/private home fail. Unqualified: custom lock locations, authenticated feeds, workloads, other native package flows. Arbitrary task reads still need contracts. Each update resolves one config (pass matching `configuration`, `framework`, `mappings` to update and sync; uses `projectDefaults.properties`/`entryProperties`; Restore keeps all authored frameworks; conflicting shared-project locks fail—use separate workspaces). Traversal, NoTargets, IL (including pinned ILAsm/ILDasm), and Arcade SDKs resolve before Restore from `global.json` `msbuild-sdks` or inline SDK versions (only used SDK archives enter the inventory; commit coordinator locks; skipped projects or unresolved SDKs fail atomically; other package SDKs unqualified). For new workspaces, run update before declaring the extension or loading generated graphs.
 
-Handwritten inventories remain available. `allow_multiple_versions = True` permits
-distinct configured versions. For Pack, declare/export the `.nupkg` and consume it
-with `msbuild_generated_nuget_package`.
+Handwritten inventories remain available (`allow_multiple_versions = True` allows distinct versions). For Pack, export `.nupkg` and consume via `msbuild_generated_nuget_package`.
 
-Root and nested `.editorconfig` / `.globalconfig` files discovered by the SDK are
-explicit compiler inputs. Automatic discovery excludes workspace ancestors;
-authored outside reads remain errors. Config-byte edits build without sync.
+Root/nested `.editorconfig` and `.globalconfig` files discovered by the SDK are explicit compiler inputs (auto-discovery stops at workspace root; outside reads fail; byte edits need no sync).
 
-Task/analyzer layouts must include their dependencies/data:
+Task/analyzer layouts must include dependencies/data:
 
 ```starlark
 msbuild_graph_layout(name = "tasks_layout", graph = ":tasks_graph", project = "Tasks/Tasks.csproj")
@@ -392,14 +208,11 @@ msbuild_tool(name = "task", layout = ":tasks_layout", entry_point = "Tasks.dll")
 msbuild_file_binding(name = "binding", tool = ":task", property_name = "TaskLocation")
 ```
 
-Pass bindings to sync and the generated graph. Content edits invalidate consumers;
-property/entry-point changes require sync. Use `msbuild_graph_output(directory = True)`
-plus `input_paths` for produced trees; consumed files still need contract inputs.
-Prepared Restore exports use `Restore.Outputs` ownership. Exports reject links.
+Pass bindings to sync and the generated graph (content edits invalidate consumers; property/entry-point changes require sync). Use `msbuild_graph_output(directory = True)` + `input_paths` for produced trees (consumed files still need contract inputs). Prepared Restore exports use `Restore.Outputs` ownership. Exports reject links.
 
 ## SDKs
 
-`dotnet.sdk` selects an exact `version` or resolves SDK settings from `global_json`:
+`dotnet.sdk` selects an exact `version` or resolves from `global_json`:
 
 ```starlark
 dotnet = use_extension("@rules_msbuild//msbuild:extensions.bzl", "dotnet")
@@ -408,187 +221,64 @@ use_repo(dotnet, "dotnet")
 register_toolchains("@dotnet//:all")
 ```
 
-On first resolution, the extension reads Microsoft release metadata and records
-archive URLs, SHA-512 hashes and the bundled runtime in `MODULE.bazel.lock`.
-Commit that lockfile. Later resolutions reuse its facts, including after extension
-changes; downloads still verify the hashes. A missing SDK/platform selection needs
-metadata access. There is no SDK version allowlist or separate updater.
+First resolution reads Microsoft release metadata and records archive URLs, SHA-512s, and bundled runtime in `MODULE.bazel.lock` (commit it). Later resolutions reuse lockfile facts (even after extension changes) and verify hashes; missing SDK/platform needs metadata access. No SDK allowlist or separate updater.
 
-`global_json` supports `disable`, `patch` (default), `latestPatch` and `latestFeature`,
-with `allowPrerelease`. An explicit preview request permits prereleases, as in
-dotnet; policy names are case-insensitive. `patch` prefers the requested release
-and otherwise selects
-the highest eligible patch in its feature band; `latestPatch` selects that highest
-patch, and `latestFeature` selects the highest eligible feature band/patch in the
-same major/minor. Selection uses published release metadata, rather than installed
-SDKs, and locks the exact result in `sdk-policy-v1` facts. New metadata does not
-advance a committed selection. Other policies and machine-local search paths fail.
+`global_json` supports case-insensitive `disable`, `patch` (default; prefers requested, else highest eligible patch in band), `latestPatch`, and `latestFeature` (highest band/patch in same major/minor), plus `allowPrerelease` (explicit preview implies prerelease). Uses published release metadata (not installed SDKs) locked in `sdk-policy-v1` facts (new metadata does not advance committed selections). Other policies and machine-local search paths fail.
 
-After changing the pin, run `bazel run //:update_packages` for package-backed graphs,
-then `bazel run //:sync`. Review/commit `global.json`, package locks,
-`MODULE.bazel.lock` and the generated graph. Use `--lockfile_mode=error` on build
-servers to reject stale/missing lock entries. After switching Bazel versions,
-run once in update mode to record any additional registry entries; SDK facts survive
-the switch. `--lockfile_mode=off` discards this reuse; `refresh` retains existing
-SDK facts. To refresh a roll-forward selection deliberately, run
-`bazel run @dotnet//:update -- --sync //:sync`. This updates the named root-module
-SDK policy through Bazel and runs the chosen sync target. Existing archive hashes
-and unrelated pins remain unchanged; declarations sharing the same policy share
-its updated selection. Review and commit the lockfile and generated graph.
-For package-backed graphs, resolve locks before sync:
+After changing a pin: run `bazel run //:update_packages` (if package-backed), then `bazel run //:sync`, and commit `global.json`, package locks, `MODULE.bazel.lock`, and generated graph. Enforce locks in CI with `--lockfile_mode=error`. After switching Bazel versions, run once in update mode for registry entries (SDK facts survive; `--lockfile_mode=off` discards reuse; `refresh` keeps SDK facts). To refresh a roll-forward selection:
 
 ```sh
 bazel run @dotnet//:update -- --nuget-update //:update_packages --sync //:sync
 ```
 
-The sequence stops on failure; package failure leaves native locks and the graph
-unchanged, though the SDK selection may already have advanced.
-Omit `--nuget-update` for graphs without packages. Omit `--sync` to skip graph
-regeneration, or use `--bazel /path/to/bazel` to select the CLI (otherwise `RULES_MSBUILD_BAZEL` or `bazel`). Exact/disabled pins require
-editing their authored version; the updater does not override their policy.
+Updates the named root-module policy, keeping existing hashes and unrelated pins intact (declarations sharing a policy update together). Stops on failure (package failure leaves native locks/graph intact, though SDK selection may have advanced). Omit `--nuget-update` without packages, omit `--sync` to skip graph regen, or pass `--bazel /path/to/bazel` (else `RULES_MSBUILD_BAZEL` or `bazel`). Exact/disabled pins require editing their authored version.
 
-`platforms` defaults to Linux/macOS ARM64/x64. Optional `metadata_urls` supplies
-mirror URLs for releases.json; changing them creates a separate resolution.
-Archive availability and adapter/MSBuild compatibility are separate;
-see [qualified SDKs](support.md#qualified-sdks).
+`platforms` defaults to Linux/macOS ARM64/x64; optional `metadata_urls` sets `releases.json` mirrors (changing creates a separate resolution). See [qualified SDKs](support.md#qualified-sdks).
 
-For private archives, use `dotnet.sdk_archive(name, version, runtime_version,
-platform, urls, integrity)`, then register `@name//:all`. Integrity is mandatory;
-the archive must contain `dotnet`, the selected SDK and bundled CoreCLR runtime.
-Supported acquisition platforms are Linux/macOS ARM64/x64. The adapter tools
-compile for the selected SDK's bundled framework and reference its MSBuild engine;
-there is no SDK-family allowlist. Their current source/API requirements are C# 12,
-.NET 10 and MSBuild 18 or newer with the stable `Microsoft.Build.ProjectCache` API.
-SDK 8 and SDK 9 engines are unsupported. Acquisition alone does not qualify old
-SDKs or additional workloads.
+Private archives: `dotnet.sdk_archive(name, version, runtime_version, platform, urls, integrity)` + `register_toolchains("@name//:all")` (`integrity` mandatory; archive must contain `dotnet`, SDK, and CoreCLR; platforms: Linux/macOS ARM64/x64). Adapters compile for the SDK's bundled framework and require C# 12, .NET 10, and MSBuild 18+ with stable `Microsoft.Build.ProjectCache` (SDK 8/9 engines unsupported; acquisition alone does not qualify old SDKs/workloads).
 
-Hash-verified SDK repositories are reproducible. Bazel's `--repo_contents_cache`
-can reuse expanded layouts across workspaces/output bases; `--repository_cache`
-stores downloaded archives. Bazel 9.3 additionally supports the opt-in startup flag
-`--experimental_remote_repo_contents_cache` with a configured remote cache.
-Archive/repository reuse does not enable remote execution. See [qualification](support.md#declared-native-preparation).
+Hash-verified SDK repos are reproducible: `--repo_contents_cache` reuses expanded layouts across workspaces/bases, `--repository_cache` caches archives, and Bazel 9.3 adds `--experimental_remote_repo_contents_cache` (does not enable RBE; see [qualification](support.md#declared-native-preparation)).
 
-`msbuild_sdk` describes a complete downloaded or produced layout rooted beside
-`dotnet`; register `<name>_registered` and `<name>_runtime_registered`. The producer
-needs a separate bootstrap toolchain. Host-path SDK repositories are unsupported.
-`runtime_host` selects a declared `msbuild_runtime` (`dotnet` or `corerun`) independently
-of compilation. Newer hosts run older targets only when runtimeconfig allows it.
+`msbuild_sdk` wraps a downloaded or produced layout rooted beside `dotnet` (register `<name>_registered` and `<name>_runtime_registered`; producer needs a separate bootstrap toolchain; host-path SDK repos unsupported). `runtime_host` selects a declared `msbuild_runtime` (`dotnet` or `corerun`) independently of compilation (newer hosts run older targets only when `runtimeconfig` allows).
 
 ## Runtimes
 
-App/test execution uses the SDK's bundled shared frameworks by default, including
-ASP.NET; no separate runtime declaration is needed. To select a separate execution
-host, declare an exact CoreCLR runtime version:
+App/test execution uses the SDK's bundled shared frameworks (including ASP.NET) by default. To override the execution host with an exact CoreCLR (or ASP.NET via `kind = "aspnetcore"`, default `"coreclr"`, kept separate even for same version/metadata URL):
 
 ```starlark
 dotnet.runtime(name = "app_runtime", version = "10.0.12")
 use_repo(dotnet, "app_runtime")
 ```
 
-For a separate web-app host, add `kind = "aspnetcore"` to select the ASP.NET distribution,
-including CoreCLR and `Microsoft.AspNetCore.App`. The default kind is `coreclr`;
-their archive selections stay separate even for the same version and metadata URL.
+Set `runtime_host = "@app_runtime//:runtime"` on the app/test target (compilation SDK unchanged; app `runtimeconfig` controls compatibility/roll-forward). Uses the same metadata, hash verification, `MODULE.bazel.lock` facts, `platforms`, `metadata_urls`, and `--lockfile_mode=error` flow as `dotnet.sdk` (recoverable without metadata when archives are in repository cache or locked URLs).
 
-Set `runtime_host = "@app_runtime//:runtime"` on the app/test target. This does not
-change its compilation SDK. The app's runtimeconfig controls framework compatibility
-and roll-forward; the rules do not force a newer major host.
+Private layouts: `dotnet.runtime_archive(name, version, platform, urls, integrity)`. Source-built `msbuild_runtime` targets use the same `runtime_host` handoff; other shared frameworks need a complete declared layout.
 
-Runtime acquisition uses release metadata, verified archive hashes and native
-`MODULE.bazel.lock` facts, with no version catalog. `platforms` and `metadata_urls`
-work as for `dotnet.sdk`; commit the lockfile and use `--lockfile_mode=error` on build
-servers. Existing selections can be recovered without metadata access when archives
-are available from Bazel's repository cache or their locked URLs.
-
-For private layouts, use `dotnet.runtime_archive(name, version, platform, urls,
-integrity)`. Source-built `msbuild_runtime` targets retain the same `runtime_host`
-handoff. Other shared frameworks require a complete declared runtime layout.
-Download availability does not qualify additional platforms or workloads.
-
-For source-runtime builds, export a reference tree with `msbuild_graph_output`
-and bind its label through `msbuild_sync.inputs` at the path the authored project
-expects. Compose shared-framework producers with `msbuild_runtime_layout`
-(or an existing host layout with `msbuild_layout`), then
-pass the resulting `msbuild_runtime` target as `runtime_host`. These are separate
-compilation/execution edges; no manual products archive or hash report is needed.
-The [JIT qualification](support.md#unchanged-jit-tests) exercises this handoff.
+For source-runtime builds: export a reference tree via `msbuild_graph_output`, bind it via `msbuild_sync.inputs`, compose shared-framework producers with `msbuild_runtime_layout` (or existing host layout with `msbuild_layout`), and pass the resulting `msbuild_runtime` as `runtime_host` (no manual products archive/hash report; exercised by [JIT qualification](support.md#unchanged-jit-tests)).
 
 ## Tests
 
-`test_protocol` is `executable` (default), `mtp` (direct execution), or `vstest`
-(declared `test_runner`/`test_adapters` from locked packages; requires a dotnet host).
-Executable tests use `expected_exit_code` (0–255, default 0); CoreCLR often uses 100.
-MTP needs no separate runner. Dependency implementation changes invalidate tests
-through their complete runtime layout, even if the test DLL is unchanged.
+`test_protocol`: `executable` (default; `expected_exit_code` 0–255, default 0, CoreCLR often 100), `mtp` (direct execution, no separate runner), or `vstest` (declared `test_runner`/`test_adapters` from locked packages; requires dotnet host). Implementation dep changes invalidate tests via their complete runtime layout even when the test DLL is unchanged.
 
-Use `data_paths`, `env`, `test_working_directory`, `test_output_dirs`, and
-`test_settings` or `test_settings_output`. `--test_filter` uses the selected protocol;
-MTP can set `test_filter_argument`. Empty selections fail unless `allow_empty_tests`
-is explicit. MTP/VSTest collect TRX and normalize Bazel XML. Failures, crashes,
-timeouts and missing/malformed results fail. Sharding is unsupported.
-See [test attributes](../msbuild/private/test_options.bzl).
+Supports `data_paths`, `env`, `test_working_directory`, `test_output_dirs`, `test_settings`/`test_settings_output`, and `--test_filter` (MTP supports `test_filter_argument`). Empty selections fail unless `allow_empty_tests` is set. MTP/VSTest collect TRX and emit Bazel XML; failures, crashes, timeouts, and missing/malformed results fail. Sharding unsupported. See [test attributes](../msbuild/private/test_options.bzl).
 
-Binaries and executable tests use their selected runtime directly. By default
-the launcher stages the application and declared data in a private writable
-directory and starts the application there. MTP and VSTest use a managed adapter
-for runner configuration, results and Bazel XML.
-
-For a read-only executable smoke test, `direct_executable_smoke = True` on
-`msbuild_graph_test` launches the DLL in place with the selected runtime.
-Arguments and exit status pass through. The app must run from Bazel's test
-working directory without a writable copy beside the DLL. This mode requires
-the executable protocol, expected exit zero and a dotnet host with no custom
-host environment. Settings, adapters, data paths, custom test directories,
-filtering and sharding require other test behavior and are rejected.
+Binaries and executable tests run their selected runtime directly (staging app + data in a private writable dir by default); MTP/VSTest use a managed adapter. For read-only executable smoke tests, `direct_executable_smoke = True` on `msbuild_graph_test` runs the DLL in place (args/exit pass through; must run from Bazel test working dir without a writable copy beside the DLL; requires `executable`, exit 0, dotnet host, and no custom host env, settings, adapters, data paths, custom test dirs, filtering, or sharding).
 
 ## Caching and workers
 
-Bazel caches unchanged graph actions. Changed graphs need a Linux persistent worker
-or HTTP project cache to reuse snapshots; a fresh local action starts empty.
-Stable paths default on only for the declared qualified execution platform above;
-portable platforms use ordinary actions. Closed bundled `Microsoft.NET.Sdk` graphs
-without package tasks, custom documents or dynamic Compile globs infer a conservative
-Restore contract including all declared source bytes. `preparedRestore: false`
-disables inference globally or per project. Custom Restore hooks/outputs retain
-explicit reviewed contracts. Generated Restore actions fall back to ordinary Restore
-on portable platforms or with `linux_stable_paths = False`.
+Bazel caches unchanged graph actions; changed graphs need a Linux persistent worker or HTTP project cache (fresh local actions start empty). Stable paths default on only on the declared qualified execution platform above (portable platforms use ordinary actions). Closed bundled `Microsoft.NET.Sdk` graphs without package tasks, custom documents, or dynamic Compile globs infer a conservative Restore contract keying all declared source bytes (`preparedRestore: false` disables globally or per project; custom Restore hooks/outputs need explicit contracts). Generated Restore actions fall back to ordinary Restore on portable platforms or with `linux_stable_paths = False`.
 
-Snapshot replay defaults to filesystem clones with a verified private-copy
-fallback. `RULES_MSBUILD_GRAPH_COPY_MODE=copy` forces copies for diagnosis; the
-runner consumes this setting before MSBuild evaluation.
+Snapshot replay defaults to filesystem clones with verified private-copy fallback (`RULES_MSBUILD_GRAPH_COPY_MODE=copy` forces copies for diagnosis; read before MSBuild evaluation).
 
-`linux_worker = None` is the default on `msbuild_graph` and newly generated
-`app_graph` wrappers. It selects workers only for `target = "Build"` with stable
-paths on the declared qualified Ubuntu ARM64 execution platform. A target-platform
-marker alone does not enable workers. Restore, Pack, Publish and portable execution
-keep ordinary actions. `linux_worker = False` opts out; `linux_stable_paths = False`
-also disables automatic selection. Explicit `linux_worker = True` remains available
-with stable paths, including reviewed Publish workflows. Bazel can select the worker
-strategy without extra flags; `--worker_sandboxing` enables its outer worker sandbox.
+`linux_worker = None` (default on `msbuild_graph` and newly generated `app_graph`) enables workers only for `target = "Build"` with stable paths on the declared qualified Ubuntu ARM64 execution platform (target-platform marker alone does not enable it; Restore, Pack, Publish, and portable runs stay ordinary). `linux_worker = False` or `linux_stable_paths = False` opts out; explicit `linux_worker = True` works with stable paths including reviewed Publish. Bazel selects worker strategy automatically; `--worker_sandboxing` enables the outer worker sandbox. Older wrappers with explicit `linux_worker = False` keep that opt-out until resynced. See [worker qualification](support.md#linux-worker-qualification) and [limits](support.md#limits).
 
-Existing generated wrappers that declare `linux_worker = False` keep that explicit
-opt-out. Rerun the public sync target to regenerate them and adopt the automatic
-default. [Worker qualification](support.md#linux-worker-qualification) records the
-SDK and platform scope; [platform limits](support.md#limits) still apply.
-
-`worker_cache_mb` defaults to 4096 logical MiB; `evaluation_cache_mb` defaults to
-512 MiB and zero disables retention. These are retention limits, not peak RSS caps.
-Profiling is off by default. Reviewed `evaluationReuseInputs` (paths or `@(Compile)`)
-can retain evaluation with prepared Restore and stable workers. With Compile globs,
-`@(Compile)` also reviews future members for body-edit reuse. Other input,
-configuration or membership changes and failures reset it. Byte verification remains
-fresh; arbitrary evaluation-time external/process reads cannot be retained safely.
-
-Review compiler-only files per project before opting in through sync mappings:
+Retention budgets (not peak RSS caps): `worker_cache_mb` defaults to 4096 logical MiB; `evaluation_cache_mb` defaults to 512 MiB (`0` disables). Profiling is off by default. Reviewed `evaluationReuseInputs` (paths or `@(Compile)`, which with Compile globs also reviews future members) retain evaluation with prepared Restore and stable workers; other input/config/membership changes and failures reset it. Byte verification stays fresh; arbitrary evaluation-time external/process reads cannot be safely retained. Opt in per project via sync mappings after verifying contents cannot affect evaluation (property functions, custom evaluation-time reads):
 
 ```json
 {"projects":{"App/App.csproj":{"preparedRestore":true,"evaluationReuseInputs":["Program.cs"]}}}
 ```
 
-These contents must not affect evaluation (including property functions or custom
-evaluation-time reads). The exemption applies to evaluation identity; build keys
-and per-request byte verification still include the files.
-
-Enable both cache levels against a trusted HTTP AC/CAS service:
+Enable both cache layers against a trusted HTTP AC/CAS service (optional `RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN`):
 
 ```sh
 bazel build //:graph --remote_cache=http://cache:9090 \
@@ -596,11 +286,7 @@ bazel build //:graph --remote_cache=http://cache:9090 \
   --remote_download_outputs=all
 ```
 
-Use the worker flags above for local retention. The two caches have separate keys;
-Restore action hits skip preparation. SDK/package acquisition is separate.
-If needed, pass `RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN` from the environment.
-Missing blobs rebuild; corruption fails; transfers are checked/retried.
-For an independent consumer, disable uploads at both cache levels:
+Both caches have separate keys; Restore hits skip preparation; SDK/package acquisition is separate. Missing blobs rebuild; corruption fails; transfers retry/verify. Read-only independent consumer:
 
 ```sh
 bazel build //:graph --remote_cache=http://cache:9090 \
@@ -609,24 +295,8 @@ bazel build //:graph --remote_cache=http://cache:9090 \
   --action_env=RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1
 ```
 
-`RULES_MSBUILD_PROJECT_CACHE_READ_ONLY` accepts `0` (default) or `1`. Read-only
-consumers still fetch snapshots and build misses locally, but send no project-cache
-PUT requests and do not repair missing remote entries. It also applies to prepared
-sync qualification and graph-cache seeding; direct ProjectSync callers may use
-`--qualification-cache-read-only` with `--qualification-cache`.
-Source-runtime setup records this mode; generated commands retain it when the
-host variable is absent, and an explicit mode change requires a fresh output.
+`RULES_MSBUILD_PROJECT_CACHE_READ_ONLY` (`0` default, `1` read-only) fetches snapshots and builds misses locally without sending project-cache PUTs or repairing missing entries; applies to prepared sync qualification and cache seeding too (direct `ProjectSync` uses `--qualification-cache-read-only` with `--qualification-cache`). Source-runtime setup persists this mode (changing requires a fresh output).
 
-The supported publication policy requires serialized publishing processes for each
-shared endpoint/key namespace, across all hosts and containers. Selecting one host
-alone does not serialize its processes. Use separate read-only credentials for
-consumers where the service supports them; the client switch is not access control.
-Concurrent identical publications preserve complete content-addressed snapshots;
-serialized divergent outputs fail before replacing the existing pointer. Ordinary
-Bazel HTTP AC has no conditional-write guarantee: divergent writers that both see a
-miss can race, so this configuration is unsupported. A local lock or a successful
-post-upload check would not establish cross-machine atomicity. Failed uploads can
-leave unreferenced CAS blobs for service eviction; the action pointer is published
-only after all payloads and the manifest have completed.
+Publication policy requires serialized publishing processes per shared endpoint/key namespace across all hosts/containers (a single host alone does not serialize processes; use separate read-only credentials where supported—the client flag is not access control). Concurrent identical writes keep complete content-addressed snapshots; serialized divergent outputs fail before replacing pointers. Ordinary Bazel HTTP AC lacks conditional-write atomicity, so racing divergent writers are unsupported (local locks or post-upload checks do not establish cross-machine atomicity). Failed uploads may leave unreferenced CAS blobs; action pointers publish only after all payloads and manifests complete.
 
-Cache recovery is not remote execution or proof of filesystem hermeticity.
+Cache recovery is neither remote execution nor proof of filesystem hermeticity.

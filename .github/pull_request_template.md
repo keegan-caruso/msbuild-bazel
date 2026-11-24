@@ -1,11 +1,11 @@
 ## Change
 
-Describe the problem and resulting behavior.
+Problem and resulting behavior.
 
 ## Validation
 
-List the checks actually run, their platform and results. Note checks not run.
+Checks run, platform, and results; note unrun checks.
 
 ## Limits
 
-Describe material compatibility, cache-invalidation or sandbox implications.
+Material compatibility, cache-invalidation, or sandbox implications.

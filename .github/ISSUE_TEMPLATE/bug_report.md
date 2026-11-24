@@ -8,16 +8,15 @@ assignees: ''
 
 ## Environment
 
-- Repository revision:
-- OS and architecture:
-- .NET SDK version:
-- Bazel version:
-- Worker/cache/remote-execution configuration:
+- Revision:
+- OS / arch:
+- .NET SDK:
+- Bazel:
+- Worker / cache / remote-execution config:
 
 ## Reproduction
 
-Include a minimal project and the exact command. Remove credentials and private
-source; do not attach unreviewed binlogs. Use SECURITY.md for vulnerabilities.
+Provide a minimal project and exact command. Scrub credentials/private source; do not attach unreviewed binlogs. Report vulnerabilities via SECURITY.md.
 
 ## Expected and actual behavior
 
