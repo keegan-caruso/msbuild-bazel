@@ -4,30 +4,20 @@ using System.Runtime.InteropServices;
 using System.Xml;
 using System.Xml.Linq;
 
-internal sealed record TestOptions(string Protocol = "executable", string? Settings = null, string FilterArgument = "", bool AllowEmpty = false, string? Runner = null, string[]? Adapters = null, bool Diagnostics = false, string[]? OutputDirectories = null, string? SettingsOutput = null, string? WorkingDirectory = null, int ExpectedExitCode = 0);
+internal sealed record TestOptions(string Protocol, string? Settings = null, string FilterArgument = "", bool AllowEmpty = false, string? Runner = null, string[]? Adapters = null, bool Diagnostics = false, string[]? OutputDirectories = null, string? SettingsOutput = null, string? WorkingDirectory = null);
 
 internal static class TestExecution
 {
     internal static void Validate(TestOptions options)
     {
-        if (options.Protocol is not ("executable" or "mtp" or "vstest"))
+        if (options.Protocol is not ("mtp" or "vstest"))
         {
             throw new InvalidDataException("Unknown test protocol: " + options.Protocol);
-        }
-
-        if (options.ExpectedExitCode is < 0 or > 255 || (options.ExpectedExitCode != 0 && options.Protocol != "executable"))
-        {
-            throw new InvalidDataException("Expected exit code must be between 0 and 255 and requires the executable protocol");
         }
 
         if (int.TryParse(Environment.GetEnvironmentVariable("TEST_TOTAL_SHARDS"), out var count) && count > 1)
         {
             throw new InvalidDataException("Test sharding is not supported");
-        }
-
-        if (options.Protocol == "executable" && (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("TESTBRIDGE_TEST_ONLY")) || (options.Settings is not null || options.SettingsOutput is not null)))
-        {
-            throw new InvalidDataException("Executable test filtering/settings is not supported");
         }
 
         if (options.Settings is not null && options.SettingsOutput is not null)
@@ -194,16 +184,6 @@ internal static class TestExecution
             if (cancelled != 0)
             {
                 throw new InvalidDataException("Test run cancelled");
-            }
-
-            if (protocol == "executable")
-            {
-                if (process.ExitCode == options.ExpectedExitCode)
-                {
-                    return 0;
-                }
-                Console.Error.WriteLine($"Expected exit code {options.ExpectedExitCode}, received {process.ExitCode}");
-                return process.ExitCode == 0 ? 1 : process.ExitCode;
             }
 
             return Report(report, xml, process.ExitCode, options.AllowEmpty, protocol == "mtp", watch.Elapsed);
