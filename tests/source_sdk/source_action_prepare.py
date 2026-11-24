@@ -123,7 +123,7 @@ def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False, pin=No
            ',direct_executable_smoke=True' if direct_smoke else ''))
 
 
-def build_script(architecture="arm64", pin=None):
+def build_script(architecture="arm64", pin=None, full_diagnostics=False):
     platform_configuration(architecture)
     if pin is None:
         pin = json.loads(Path(__file__).with_name('pin.json').read_text())
@@ -142,8 +142,13 @@ def build_script(architecture="arm64", pin=None):
     mkdir result
     cp "${archives[0]}" result/sdk.tar.gz
     artifacts/obj/extracted-dotnet-sdk/dotnet --info > sdk-info.txt
-    tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf result.tar preparation.log build.log build.time sdk-info.txt artifacts/log
-    '''
+''' + ('''    tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf result.tar preparation.log build.log build.time sdk-info.txt artifacts/log
+''' if full_diagnostics else '''    mkdir evidence
+    tail -c 65536 preparation.log > evidence/preparation.log
+    tail -c 65536 build.log > evidence/build.log
+    cp build.time sdk-info.txt evidence/
+    tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf result.tar -C evidence preparation.log build.log build.time sdk-info.txt
+''')
 
     return script
 
@@ -159,6 +164,8 @@ def main():
     p.add_argument('--sandbox', type=Path)
     p.add_argument('--sandbox-sha256')
     p.add_argument('--system-bwrap', action='store_true')
+    p.add_argument('--full-diagnostics', action='store_true',
+                   help='retain complete successful build logs and artifacts/log in result.tar')
     p.add_argument('--architecture', choices=['arm64', 'x64'], default='arm64')
     a = p.parse_args()
     configuration = platform_configuration(a.architecture)
@@ -210,7 +217,7 @@ def main():
         archive.add(baseline / '.dotnet', arcname='.dotnet', filter=normalize)
         archive.add(bootstrap_archive, arcname='prereqs/packages/archive/Private.SourceBuilt.Artifacts.Bootstrap.tar.gz', filter=normalize)
 
-    script = build_script(a.architecture, pin)
+    script = build_script(a.architecture, pin, a.full_diagnostics)
     with tarfile.open(a.source_archive, 'r|gz') as original, tarfile.open(w / 'sources.tar', 'w') as archive:
         for entry in original:
             parts = entry.name.split('/', 1)
@@ -239,6 +246,7 @@ def main():
     (w / 'App.cs').write_text('System.Console.WriteLine("SDK_FROM_SOURCE="+System.Environment.Version); return System.Environment.Version.ToString()=="' + runtime_version + '" ? 0 : 1;')
     (w / 'app-contract.json').write_text(json.dumps(dict(Version=1,Entry='App.csproj',SdkVersion=sdk_version,Properties={'Configuration':'Release'},SharedInputs=[],Projects={'App.csproj':dict(Inputs=['App.csproj','App.cs'],OutputDirectories=['bin/Release/' + framework,'obj/Release/' + framework])})))
     report = {'platform': configuration['rid'], 'systemBwrap': a.system_bwrap,
+              'fullDiagnostics': a.full_diagnostics,
               'nativeToolsSource': 'declared-archive' if a.native_tools else 'captured-environment',
               'nativeEnvironmentSha256': digest(rules / 'tests/runtime/native_environment.py'),
               'sourceRevision': pin['sourceRevision'], 'sourceArchiveSha256': pin['sourceArchive']['sha256'],

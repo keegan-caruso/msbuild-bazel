@@ -443,6 +443,13 @@ Use the [producer](../tests/source_sdk/source_action_prepare.py) with verified
 VMR/bootstrap inputs, then the [recovery driver](../tests/source_sdk/source_action_recovery.py)
 and [consumer scenarios](../tests/source_sdk/consumer_scenarios.py).
 
+The compact evidence policy was measured by reconstructing an archive from the
+retained SDK 11.0.100 ARM64 producer evidence: 289,986,560 bytes full versus
+81,920 bytes compact. This is an archive-size comparison using the original log
+bytes, not a new producer run or a transfer-time measurement. The compact archive
+keeps bounded log tails, timing and SDK info; opt in to full successful diagnostics
+with `--full-diagnostics` during source action preparation.
+
 ## Fresh .NET 11 VMR smoke-test recovery
 
 The [Linux ARM64 VMR recipe](../tests/source_sdk/LINUX_ARM64_11.md#recover-the-sdk-and-exercise-consumers)

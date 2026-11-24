@@ -831,7 +831,11 @@ separate production, recovery and that SDK 11-rules handoff.
 The [producer](../tests/source_sdk/source_action_prepare.py),
 [recovery driver](../tests/source_sdk/source_action_recovery.py) and
 [consumer controls](../tests/source_sdk/consumer_scenarios.py) require their declared
-bootstrap inputs. The [quick start](../examples/quickstart/README.md#source-built-sdk)
+bootstrap inputs. By default, successful `result.tar` evidence contains the last
+65,536 bytes each of preparation and build logs, plus build timing and SDK info.
+Pass `--full-diagnostics` to preparation to retain the complete logs and upstream
+`artifacts/log` tree; this changes the declared source input and action identity.
+Failure diagnostics still appear in the action output. The [quick start](../examples/quickstart/README.md#source-built-sdk)
 shows the public toolchain handoff, not a standalone upstream bootstrap recipe.
 This ARM64 evidence qualifies local production and same-host recovery; native x64
 production is covered separately below. Older-glibc deployment, signing and full

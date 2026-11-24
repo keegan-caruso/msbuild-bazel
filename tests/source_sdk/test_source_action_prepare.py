@@ -151,6 +151,30 @@ class SourceActionTemplatesTests(unittest.TestCase):
                 self.assertTrue(script.startswith('# native boundary\n'))
                 self.assertIn('--arch ' + architecture + ' --official-build-id', script)
 
+    def test_evidence_modes_and_failure_diagnostics(self):
+        compact = source_action_prepare.build_script()
+        full = source_action_prepare.build_script(full_diagnostics=True)
+        self.assertEqual(compact.split("    mkdir evidence")[0],
+                         full.split("    tar --sort=name")[0])
+        self.assertIn("tail -120 build.log", compact)
+        self.assertIn('grep -R -m2 "error NU"', compact)
+        self.assertIn("tail -100 preparation.log", compact)
+        self.assertIn("sdk-info.txt artifacts/log", full)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / 'preparation.log').write_bytes(b'p' * 100000)
+            (root / 'build.log').write_bytes(b'b' * 200000)
+            (root / 'build.time').write_text('time')
+            (root / 'sdk-info.txt').write_text('sdk')
+            # Execute the generated compact collection commands before GNU tar.
+            commands = compact.split('    mkdir evidence\n', 1)[1].split('    tar --sort=name', 1)[0]
+            subprocess.run(['bash', '-c', 'mkdir evidence\n' + commands], cwd=root, check=True)
+            self.assertEqual((root / 'evidence/preparation.log').read_bytes(), b'p' * 65536)
+            self.assertEqual((root / 'evidence/build.log').read_bytes(), b'b' * 65536)
+            self.assertEqual((root / 'evidence/build.time').read_text(), 'time')
+            self.assertEqual((root / 'evidence/sdk-info.txt').read_text(), 'sdk')
+        subprocess.run(['bash', '-n'], input=full, text=True, check=True)
+
     def test_arm64_default_template_bytes_are_unchanged(self):
         with tempfile.TemporaryDirectory() as temporary:
             workspace = Path(temporary)
