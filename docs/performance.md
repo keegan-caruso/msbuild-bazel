@@ -252,6 +252,19 @@ With empty install, repository, workspace and Bazel output roots for every trial
 
 Median wall time fell **16.67 → 13.96 s** and median staging **8.32 → 5.31 s**. With empty repository caches, median module mapping was **2.16 → 1.92 s**. Reproduce the optimized smoke with the [ARM64 recovery recipe](../tests/source_sdk/LINUX_ARM64_11.md#recover-the-sdk-and-exercise-consumers), adding `--remote-connections=8 --profile` to the locked recovery command.
 
+### Packed runtime recovery
+
+Three alternating pairs compared loose stripped files with the same runtime packed into one zstd archive. Each run used fresh workspace, install, repository and output roots in one Ubuntu 26.04 ARM64 guest (4 CPUs, 6 GiB), Bazel 9.3.2 in batch mode, a producer module lockfile, top-level downloads, eight HTTP cache connections, and a forced local test. This control held the previously seeded compiler layout and retained SDK archive constant to isolate packing. Every non-test action hit the cache, and every test ran on runtime 11.0.0.
+
+| Median across three pairs | Loose | Packed |
+| --- | ---: | ---: |
+| Bazel invocation | 14.31 s | 12.50 s |
+| Remote test input staging | 5.63 s | 3.73 s |
+| Test process, including unpack when selected | 0.030 s | 0.162 s |
+| Logical runfiles | 206 files / 89,688,684 bytes | 8 files / 29,976,752 bytes |
+
+The integrated pack action produced a 29,955,852-byte archive. Its 200 member files matched the stripped runtime in SHA-256 and mode. The one-time packed seed in the transfer control took 77.23 s with one upload connection. Use `--smoke-runtime=packed` when preparing a repeated remote-cache consumer, or `stripped` for direct local execution. [Reproduction](../tests/source_sdk/LINUX_ARM64_11.md#smaller-transfers)
+
 ### Retained-archive launcher and connection control
 
 Ubuntu 26.04 ARM64, Bazel 9.3.2, 4 CPUs / 6 GiB, retained SDK 11.0.100 / runtime 11.0.0 archive (`993765849ca1f97d64ca1a157b34158b37dc75facff43d41707365dc8724ec85`), archive-copy action replacing `SourceSdkBuild`, rules at `6608ac6` (independent of source production/historical producer key). Three paired trials per launcher/connection cap (fresh workspace/output base/output user root, top-level downloads, no disk cache/uploads, forced test, all non-test actions hit HTTPS cache via UNIX-socket relay; order reversed for pair 2; profiles enabled in all trials):

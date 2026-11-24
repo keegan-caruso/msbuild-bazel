@@ -99,12 +99,13 @@ def _sdk_layout(ctx):
     if bool(sdk_version) != bool(sdk_files or sdk_directories):
         fail("sdk_version and exact sdk_files/sdk_directories inventory must be supplied together")
     sdk_names = sdk_files + sdk_directories
-    for name in [sdk_version] + sdk_names if sdk_version else []:
+    pack_names = ctx.attr.pack_names
+    for name in pack_names + sdk_names + ([sdk_version] if sdk_version else []):
         if not name or name in [".", ".."]:
-            fail("SDK inventory names must be single path components: " + name)
+            fail("Expected a single SDK layout path component: " + name)
         for index in range(len(name)):
             if name[index] not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-":
-                fail("Invalid SDK inventory name: " + name)
+                fail("Invalid SDK layout path component: " + name)
     if len(sdk_names) != len({name: True for name in sdk_names}):
         fail("SDK inventory names must be unique")
     if sdk_version:
@@ -112,22 +113,21 @@ def _sdk_layout(ctx):
             if name not in sdk_directories:
                 fail("Split SDK inventory must include directory " + name)
         files += [ctx.actions.declare_file(ctx.label.name + "/sdk/" + sdk_version + "/" + name) for name in sdk_files]
-    pack_names = ctx.attr.pack_names
-    for name in pack_names:
-        if not name or name in [".", ".."]:
-            fail("Pack names must be single path components: " + name)
-        for index in range(len(name)):
-            if name[index] not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-":
-                fail("Pack names must contain only letters, digits, dot, underscore or hyphen: " + name)
     if len(pack_names) != len({name: True for name in pack_names}):
         fail("Pack names must be unique")
     for name in ctx.attr.native_aot_packs:
         if name not in pack_names:
             fail("NativeAOT packs must be declared in pack_names: " + name)
     shared = ["shared/Microsoft.NETCore.App", "shared/Microsoft.AspNetCore.App"] if ctx.attr.split_frameworks else ["shared"]
-    directory_names = ["host"] + shared + (["sdk/" + sdk_version + "/" + name for name in sdk_directories] if sdk_version else ["sdk"]) + ["sdk-manifests", "templates", "library-packs", "metadata"] + (["packs/" + name for name in pack_names] if pack_names else ["packs"])
+    sdk_root = "sdk/" + sdk_version + "/"
+    sdk_paths = [sdk_root + name for name in sdk_directories] if sdk_version else ["sdk"]
+    pack_paths = ["packs/" + name for name in pack_names] if pack_names else ["packs"]
+    directory_names = ["host"] + shared + sdk_paths + ["sdk-manifests", "templates", "library-packs", "metadata"] + pack_paths
     directories = [ctx.actions.declare_directory(ctx.label.name + "/" + name) for name in directory_names]
-    managed_directories = [directory for name, directory in zip(directory_names, directories) if name not in ["packs/" + pack for pack in ctx.attr.native_aot_packs] + (["sdk/" + sdk_version + "/DotnetTools", "sdk/" + sdk_version + "/FSharp"] if sdk_version else [])]
+    omitted = ["packs/" + name for name in ctx.attr.native_aot_packs]
+    if sdk_version:
+        omitted += [sdk_root + "DotnetTools", sdk_root + "FSharp"]
+    managed_directories = [directory for name, directory in zip(directory_names, directories) if name not in omitted]
     host = directories[0]
     frameworks = directories[1:1 + len(shared)]
     ctx.actions.run_shell(
@@ -182,4 +182,16 @@ fi
         groups["core_runtime"] = depset([dotnet, host, frameworks[0]])
     return [DefaultInfo(files = depset(files + directories)), OutputGroupInfo(**groups)]
 
-sdk_layout = rule(implementation = _sdk_layout, attrs = {"sdk_version": attr.string(doc = "Version directory for an exact SDK inventory split."), "sdk_files": attr.string_list(doc = "Exact immediate regular file inventory in sdk_version."), "sdk_directories": attr.string_list(doc = "Exact immediate directory inventory in sdk_version; DotnetTools and FSharp are omitted only from managed."), "split_frameworks": attr.bool(), "archive": attr.label(allow_single_file = [".tar.gz", ".tar.zst"], mandatory = True, cfg = "exec"), "packages": attr.label_keyed_string_dict(allow_files = [".nupkg"]), "pack_names": attr.string_list(doc = "Exact pack directory inventory; empty preserves the complete packs tree."), "native_aot_packs": attr.string_list(doc = "Declared pack directories omitted only from the managed output group.")})
+sdk_layout = rule(
+    implementation = _sdk_layout,
+    attrs = {
+        "archive": attr.label(allow_single_file = [".tar.gz", ".tar.zst"], mandatory = True, cfg = "exec"),
+        "packages": attr.label_keyed_string_dict(allow_files = [".nupkg"]),
+        "split_frameworks": attr.bool(),
+        "pack_names": attr.string_list(doc = "Exact pack directory inventory. Empty preserves the complete packs tree."),
+        "native_aot_packs": attr.string_list(doc = "Pack directories omitted from the managed output group."),
+        "sdk_version": attr.string(doc = "Version directory for the pinned SDK inventory."),
+        "sdk_files": attr.string_list(doc = "Regular files directly under the SDK version directory."),
+        "sdk_directories": attr.string_list(doc = "Directories directly under the SDK version directory."),
+    },
+)

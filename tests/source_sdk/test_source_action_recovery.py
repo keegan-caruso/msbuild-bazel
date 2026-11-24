@@ -124,6 +124,13 @@ class RecoveryTests(unittest.TestCase):
             self.assertEqual(result['fileCount'], 2)
             self.assertEqual(len(result['frameworkLayouts']), 2)
             self.assertFalse(recovery.runfiles_inventory([], root / 'empty.json')['available'])
+            packed = recovery.runfiles_inventory([{'mnemonic': 'TestRunner',
+                'commandArgs': ['/fixture/test-setup.sh'], 'runfilesInputs': [{
+                    'path': '/tmp/smoke.runfiles/_main/packed_console_runtime.runtime/runtime.tar.zst',
+                    'digest': {'sizeBytes': '42', 'hash': 'packed'}}]}], root / 'packed.json')
+            self.assertEqual(len(packed['packedRuntimeArchives']), 1)
+            self.assertEqual(packed['packedRuntimeArchives'][0]['logicalBytes'], 42)
+            self.assertEqual(packed['frameworkLayouts'], {})
 
     def test_action_reader_preserves_default_summary_and_limits_details_to_test_setup(self):
         with tempfile.TemporaryDirectory() as temporary:

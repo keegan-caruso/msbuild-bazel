@@ -82,22 +82,26 @@ def bootstrap_inventory_digest(path):
     return hashlib.sha256(encoded).hexdigest()
 
 
-def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False, pin=None, zstd=False):
+def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False, pin=None, *, zstd=False, smoke_runtime="stripped"):
     configuration = platform_configuration(architecture)
     sdk_version = pin["releaseManifest"]["sdkVersion"] if pin else "10.0.100"
     runtime_version = pin["releaseManifest"]["runtimeVersion"] if pin else "10.0.0"
     framework = "net" + sdk_version.split(".")[0] + ".0"
     direct_smoke = architecture == "arm64" and sdk_version == "11.0.100" and runtime_version == "11.0.0"
-    runtime_load = '\nload(":runtime_strip.bzl","stripped_runtime")\nload("@rules_msbuild//msbuild/private:sdk_bootstrap.bzl","sdk_runtime")' if direct_smoke else ''
+    if smoke_runtime not in {"stripped", "packed"} or (smoke_runtime == "packed" and not direct_smoke):
+        raise ValueError("Packed smoke requires the qualified ARM64 SDK 11 pin")
+    runtime_load = '\nload(":runtime_strip.bzl","stripped_runtime")\nload(":runtime_pack.bzl","packed_runtime")\nload("@rules_msbuild//msbuild/private:sdk_bootstrap.bzl","sdk_runtime")' if direct_smoke else ''
     core_runtime = ('\nfilegroup(name="core_files",srcs=[":layout"],output_group="core_runtime")\n'
                     'sdk_runtime(name="console_runtime",dotnet=":dotnet",files=":core_files",'
                     f'runtime_identifier="{configuration["rid"]}",version="{runtime_version}")\n'
-                    'stripped_runtime(name="stripped_console_runtime",runtime=":console_runtime")') if direct_smoke else ''
+                    'stripped_runtime(name="stripped_console_runtime",runtime=":console_runtime")\n'
+                    'packed_runtime(name="packed_console_runtime",runtime=":stripped_console_runtime")') if direct_smoke else ''
     pack_layout = ""
     managed_sdk = ""
     compiler_toolchain = "produced_registered"
     if direct_smoke:
         shutil.copyfile(Path(__file__).with_name("runtime_strip.bzl"), w / "runtime_strip.bzl")
+        shutil.copyfile(Path(__file__).with_name("runtime_pack.bzl"), w / "runtime_pack.bzl")
         # Exact inventory of the pinned Ubuntu 26.04 ARM64 VMR SDK. The full
         # layout remains available for NativeAOT and complete SDK consumers.
         packs = ["Microsoft.AspNetCore.App.Ref", "Microsoft.AspNetCore.App.Runtime.ubuntu.26.04-arm64",
@@ -154,7 +158,7 @@ def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False, pin=No
     ''') % (runtime_load, 'system_bwrap=True,' if system_bwrap else '', configuration['cpu'],
            ',split_frameworks=True' if direct_smoke else '', pack_layout, core_runtime, sdk_version, runtime_version,
            configuration['rid'], managed_sdk, framework, framework,
-           ',runtime_host=":stripped_console_runtime",direct_executable_smoke=True' if direct_smoke else ''))
+           f',runtime_host=":{smoke_runtime}_console_runtime",direct_executable_smoke=True' if direct_smoke else ''))
 
     if zstd:
         shutil.copyfile(Path(__file__).with_name("sdk_zstd.py"), w / "sdk_zstd.py")
@@ -210,6 +214,7 @@ def main():
     p.add_argument('--system-bwrap', action='store_true')
     p.add_argument('--full-diagnostics', action='store_true',
                    help='retain complete successful build logs and artifacts/log in result.tar')
+    p.add_argument('--smoke-runtime', choices=['stripped', 'packed'], default='stripped')
     p.add_argument('--architecture', choices=['arm64', 'x64'], default='arm64')
     a = p.parse_args()
     configuration = platform_configuration(a.architecture)
@@ -282,7 +287,7 @@ def main():
     shutil.copyfile(here / 'source_action.bzl', w / 'source_action.bzl')
     shutil.copyfile(rules / 'tests/runtime/NativeBuild.cs.txt', w / 'Driver.cs')
     (w / 'Driver.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><Nullable>enable</Nullable></PropertyGroup></Project>')
-    write_bazel_files(w, rules, a.architecture, a.system_bwrap, pin, zstd=a.sdk_zstd)
+    write_bazel_files(w, rules, a.architecture, a.system_bwrap, pin, zstd=a.sdk_zstd, smoke_runtime=a.smoke_runtime)
     sdk_version = pin['releaseManifest']['sdkVersion']
     runtime_version = pin['releaseManifest']['runtimeVersion']
     framework = 'net' + sdk_version.split('.')[0] + '.0'
@@ -291,7 +296,7 @@ def main():
     (w / 'app-contract.json').write_text(json.dumps(dict(Version=1,Entry='App.csproj',SdkVersion=sdk_version,Properties={'Configuration':'Release'},SharedInputs=[],Projects={'App.csproj':dict(Inputs=['App.csproj','App.cs'],OutputDirectories=['bin/Release/' + framework,'obj/Release/' + framework])})))
     report = {'platform': configuration['rid'], 'systemBwrap': a.system_bwrap,
               'fullDiagnostics': a.full_diagnostics,
-              'sdkZstd': a.sdk_zstd,
+              'sdkZstd': a.sdk_zstd, 'smokeRuntime': a.smoke_runtime,
               'nativeToolsSource': 'declared-archive' if a.native_tools else 'captured-environment',
               'nativeEnvironmentSha256': digest(rules / 'tests/runtime/native_environment.py'),
               'sourceRevision': pin['sourceRevision'], 'sourceArchiveSha256': pin['sourceArchive']['sha256'],
