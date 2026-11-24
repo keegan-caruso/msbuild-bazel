@@ -70,6 +70,26 @@ source_sdk = rule(
     },
 )
 
+def _sdk_zstd(ctx):
+    archive = ctx.actions.declare_file(ctx.label.name + ".tar.zst")
+    provenance = ctx.actions.declare_file(ctx.label.name + ".provenance.json")
+    ctx.actions.run_shell(
+        inputs = [ctx.file.archive, ctx.file.compressor],
+        outputs = [archive, provenance],
+        arguments = [ctx.file.compressor.path, ctx.file.archive.path, archive.path, provenance.path],
+        command = 'set -eu; python3 "$1" "$2" "$3" "$4"',
+        mnemonic = "SourceSdkZstd",
+    )
+    return [DefaultInfo(files = depset([archive])), OutputGroupInfo(provenance = depset([provenance]))]
+
+sdk_zstd = rule(
+    implementation = _sdk_zstd,
+    attrs = {
+        "archive": attr.label(allow_single_file = [".tar.gz"], mandatory = True),
+        "compressor": attr.label(allow_single_file = [".py"], mandatory = True),
+    },
+)
+
 def _sdk_layout(ctx):
     dotnet = ctx.actions.declare_file(ctx.label.name + "/dotnet")
     files = [dotnet] + [ctx.actions.declare_file(ctx.label.name + "/" + name) for name in ["dnx", "LICENSE.txt", "ThirdPartyNotices.txt"]]
@@ -114,10 +134,13 @@ def _sdk_layout(ctx):
         inputs = [ctx.file.archive] + ctx.files.packages,
         outputs = files + directories,
         arguments = [ctx.file.archive.path, dotnet.dirname, "split" if ctx.attr.split_frameworks else "full", " ".join(pack_names), sdk_version, " ".join(sdk_files), " ".join(sdk_directories)] + [value for package, destination in ctx.attr.packages.items() for value in [package.files.to_list()[0].path, destination]],
-        command = """set -eu
+        command = """set -euo pipefail
 archive="$1"; root="$2"; framework_mode="$3"; declared_packs="$4"; sdk_version="$5"; sdk_files="$6"; sdk_directories="$7"; shift 7
 mkdir -p "$root"
-tar --no-same-owner -xzf "$archive" -C "$root"
+case "$archive" in
+    *.tar.zst) python3 -c 'from compression import zstd; import shutil, sys; shutil.copyfileobj(zstd.open(sys.argv[1], "rb"), sys.stdout.buffer)' "$archive" | tar --no-same-owner -xf - -C "$root" ;;
+    *) tar --no-same-owner -xzf "$archive" -C "$root" ;;
+esac
 for directory in host shared sdk packs sdk-manifests templates library-packs metadata; do mkdir -p "$root/$directory"; done
 while test "$#" -gt 0; do
     package="$1"; destination="$2"; shift 2
@@ -159,4 +182,4 @@ fi
         groups["core_runtime"] = depset([dotnet, host, frameworks[0]])
     return [DefaultInfo(files = depset(files + directories)), OutputGroupInfo(**groups)]
 
-sdk_layout = rule(implementation = _sdk_layout, attrs = {"sdk_version": attr.string(doc = "Version directory for an exact SDK inventory split."), "sdk_files": attr.string_list(doc = "Exact immediate regular file inventory in sdk_version."), "sdk_directories": attr.string_list(doc = "Exact immediate directory inventory in sdk_version; DotnetTools and FSharp are omitted only from managed."), "split_frameworks": attr.bool(), "archive": attr.label(allow_single_file = [".tar.gz"], mandatory = True, cfg = "exec"), "packages": attr.label_keyed_string_dict(allow_files = [".nupkg"]), "pack_names": attr.string_list(doc = "Exact pack directory inventory; empty preserves the complete packs tree."), "native_aot_packs": attr.string_list(doc = "Declared pack directories omitted only from the managed output group.")})
+sdk_layout = rule(implementation = _sdk_layout, attrs = {"sdk_version": attr.string(doc = "Version directory for an exact SDK inventory split."), "sdk_files": attr.string_list(doc = "Exact immediate regular file inventory in sdk_version."), "sdk_directories": attr.string_list(doc = "Exact immediate directory inventory in sdk_version; DotnetTools and FSharp are omitted only from managed."), "split_frameworks": attr.bool(), "archive": attr.label(allow_single_file = [".tar.gz", ".tar.zst"], mandatory = True, cfg = "exec"), "packages": attr.label_keyed_string_dict(allow_files = [".nupkg"]), "pack_names": attr.string_list(doc = "Exact pack directory inventory; empty preserves the complete packs tree."), "native_aot_packs": attr.string_list(doc = "Declared pack directories omitted only from the managed output group.")})
