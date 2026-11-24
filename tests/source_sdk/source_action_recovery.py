@@ -47,15 +47,16 @@ def configure_launcher(workspace, mode):
     """Change only the copied fixture, breaking the hard link to its seed."""
     build = workspace / 'BUILD.bazel'
     text = build.read_text()
-    pattern = r'(?m)^[ \t]*msbuild_graph_test\(name="smoke",graph=":graph",project="App\.csproj"(?:,direct_executable_smoke=(True|False))?\)[ \t]*$'
+    pattern = r'(?m)^[ \t]*msbuild_graph_test\(name="smoke",graph=":graph",project="App\.csproj"(?P<runtime>,runtime_host=":console_runtime")?(?:,direct_executable_smoke=(True|False))?\)[ \t]*$'
     matches = list(re.finditer(pattern, text))
     if len(matches) != 1:
         raise ValueError('Expected exactly one generated //:smoke declaration')
     match = matches[0]
-    current = 'direct' if match.group(1) == 'True' else 'classic'
+    current = 'direct' if match.group(2) == 'True' else 'classic'
     if mode is None or mode == current:
         return current
     replacement = 'msbuild_graph_test(name="smoke",graph=":graph",project="App.csproj"'
+    replacement += match.group('runtime') or ''
     if mode == 'direct':
         replacement += ',direct_executable_smoke=True'
     replacement += ')'
