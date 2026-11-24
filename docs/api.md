@@ -235,7 +235,7 @@ Updates the named root-module policy, keeping existing hashes and unrelated pins
 
 `platforms` defaults to Linux/macOS ARM64/x64; optional `metadata_urls` sets `releases.json` mirrors (changing creates a separate resolution). See [qualified SDKs](support.md#qualified-sdks).
 
-Private archives: `dotnet.sdk_archive(name, version, runtime_version, platform, urls, integrity)` + `register_toolchains("@name//:all")` (`integrity` mandatory; archive must contain `dotnet`, SDK, and CoreCLR; platforms: Linux/macOS ARM64/x64). Adapters compile for the SDK's bundled framework and require C# 12, .NET 10, and MSBuild 18+ with stable `Microsoft.Build.ProjectCache` (SDK 8/9 engines unsupported; acquisition alone does not qualify old SDKs/workloads).
+Private archives: `dotnet.sdk_archive(name, version, runtime_version, platform, urls, integrity, type = "")` + `register_toolchains("@name//:all")` (`integrity` mandatory; optional `type = "tar.zst"` supports zstd and suffixless URLs; archive must contain `dotnet`, SDK, and CoreCLR; platforms: Linux/macOS ARM64/x64). Adapters compile for the SDK's bundled framework and require C# 12, .NET 10, and MSBuild 18+ with stable `Microsoft.Build.ProjectCache` (SDK 8/9 engines unsupported; acquisition alone does not qualify old SDKs/workloads).
 
 Hash-verified SDK repos are reproducible: `--repo_contents_cache` reuses expanded layouts across workspaces/bases, `--repository_cache` caches archives, and Bazel 9.3 adds `--experimental_remote_repo_contents_cache` (does not enable RBE; see [qualification](support.md#declared-native-preparation)).
 

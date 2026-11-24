@@ -82,7 +82,7 @@ def bootstrap_inventory_digest(path):
     return hashlib.sha256(encoded).hexdigest()
 
 
-def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False, pin=None):
+def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False, pin=None, zstd=False):
     configuration = platform_configuration(architecture)
     sdk_version = pin["releaseManifest"]["sdkVersion"] if pin else "10.0.100"
     runtime_version = pin["releaseManifest"]["runtimeVersion"] if pin else "10.0.0"
@@ -156,6 +156,15 @@ def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False, pin=No
            configuration['rid'], managed_sdk, framework, framework,
            ',runtime_host=":stripped_console_runtime",direct_executable_smoke=True' if direct_smoke else ''))
 
+    if zstd:
+        shutil.copyfile(Path(__file__).with_name("sdk_zstd.py"), w / "sdk_zstd.py")
+        with (w / 'BUILD.bazel').open('a') as stream:
+            stream.write('load(":source_action.bzl","sdk_zstd")\n'
+                         'sdk_zstd(name="sdk_zstd",archive=":sdk",compressor="sdk_zstd.py")\n'
+                         'filegroup(name="sdk_zstd_provenance",srcs=[":sdk_zstd"],output_group="provenance")\n'
+                         'sdk_layout(name="layout_zstd",archive=":sdk_zstd"' +
+                         (',split_frameworks=True' if direct_smoke else '') + pack_layout + ')\n')
+
 
 def build_script(architecture="arm64", pin=None, full_diagnostics=False):
     platform_configuration(architecture)
@@ -193,6 +202,7 @@ def main():
     p.add_argument('prepared_baseline', type=Path)
     p.add_argument('directory', type=Path)
     p.add_argument('--pin', type=Path, default=Path(__file__).with_name('pin.json'))
+    p.add_argument('--sdk-zstd', action='store_true', help='emit optional full SDK zstd archive and extraction targets (Python 3.14 / libzstd 1.5.7)')
     p.add_argument('--native-tools', type=Path)
     p.add_argument('--native-tools-sha256')
     p.add_argument('--sandbox', type=Path)
@@ -272,7 +282,7 @@ def main():
     shutil.copyfile(here / 'source_action.bzl', w / 'source_action.bzl')
     shutil.copyfile(rules / 'tests/runtime/NativeBuild.cs.txt', w / 'Driver.cs')
     (w / 'Driver.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><Nullable>enable</Nullable></PropertyGroup></Project>')
-    write_bazel_files(w, rules, a.architecture, a.system_bwrap, pin)
+    write_bazel_files(w, rules, a.architecture, a.system_bwrap, pin, zstd=a.sdk_zstd)
     sdk_version = pin['releaseManifest']['sdkVersion']
     runtime_version = pin['releaseManifest']['runtimeVersion']
     framework = 'net' + sdk_version.split('.')[0] + '.0'
@@ -281,6 +291,7 @@ def main():
     (w / 'app-contract.json').write_text(json.dumps(dict(Version=1,Entry='App.csproj',SdkVersion=sdk_version,Properties={'Configuration':'Release'},SharedInputs=[],Projects={'App.csproj':dict(Inputs=['App.csproj','App.cs'],OutputDirectories=['bin/Release/' + framework,'obj/Release/' + framework])})))
     report = {'platform': configuration['rid'], 'systemBwrap': a.system_bwrap,
               'fullDiagnostics': a.full_diagnostics,
+              'sdkZstd': a.sdk_zstd,
               'nativeToolsSource': 'declared-archive' if a.native_tools else 'captured-environment',
               'nativeEnvironmentSha256': digest(rules / 'tests/runtime/native_environment.py'),
               'sourceRevision': pin['sourceRevision'], 'sourceArchiveSha256': pin['sourceArchive']['sha256'],

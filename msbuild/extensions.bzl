@@ -153,7 +153,7 @@ def _runtimes(ctx):
             sdk_version(archive.runtime_version)
             sdk_download({"urls": archive.urls, "integrity": archive.integrity})
             name = archive.name + "_" + archive.platform.replace("-", "_")
-            sdk_archive(name = name, version = archive.version, runtime_version = archive.runtime_version, platform = archive.platform, urls = archive.urls, integrity = archive.integrity)
+            sdk_archive(name = name, version = archive.version, runtime_version = archive.runtime_version, platform = archive.platform, urls = archive.urls, integrity = archive.integrity, type = archive.type)
             sdk_toolchains(name = archive.name, repositories = {archive.platform: name})
         for runtime in mod.tags.runtime:
             if runtime.name in names:
@@ -213,6 +213,7 @@ _custom_sdk = tag_class(attrs = {
     "runtime_version": attr.string(mandatory = True),
     "platform": attr.string(mandatory = True),
     "urls": attr.string_list(mandatory = True),
+    "type": attr.string(doc = "Archive type override, for example tar.zst."),
     "integrity": attr.string(mandatory = True),
 })
 

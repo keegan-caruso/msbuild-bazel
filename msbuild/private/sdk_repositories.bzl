@@ -12,7 +12,7 @@ SDK_PLATFORMS = {
 def _sdk_archive(ctx):
     if not ctx.attr.integrity:
         fail("SDK archives require integrity")
-    ctx.download_and_extract(url = ctx.attr.urls, integrity = ctx.attr.integrity, output = "sdk", canonical_id = ctx.attr.integrity)
+    ctx.download_and_extract(url = ctx.attr.urls, integrity = ctx.attr.integrity, output = "sdk", type = ctx.attr.type, canonical_id = ctx.attr.integrity)
     for path in ["dotnet", "sdk/" + ctx.attr.version, "shared/Microsoft.NETCore.App/" + ctx.attr.runtime_version]:
         if not ctx.path("sdk/" + path).exists:
             fail("SDK archive is missing declared layout component: " + path)
@@ -27,6 +27,7 @@ sdk_archive = repository_rule(
     implementation = _sdk_archive,
     attrs = {
         "urls": attr.string_list(mandatory = True),
+        "type": attr.string(doc = "Archive type override, for example tar.zst for suffixless URLs."),
         "integrity": attr.string(mandatory = True),
         "version": attr.string(mandatory = True),
         "runtime_version": attr.string(mandatory = True),
