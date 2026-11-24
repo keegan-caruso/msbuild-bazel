@@ -88,14 +88,16 @@ def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False, pin=No
     runtime_version = pin["releaseManifest"]["runtimeVersion"] if pin else "10.0.0"
     framework = "net" + sdk_version.split(".")[0] + ".0"
     direct_smoke = architecture == "arm64" and sdk_version == "11.0.100" and runtime_version == "11.0.0"
-    runtime_load = '\nload("@rules_msbuild//msbuild/private:sdk_bootstrap.bzl","sdk_runtime")' if direct_smoke else ''
+    runtime_load = '\nload(":runtime_strip.bzl","stripped_runtime")\nload("@rules_msbuild//msbuild/private:sdk_bootstrap.bzl","sdk_runtime")' if direct_smoke else ''
     core_runtime = ('\nfilegroup(name="core_files",srcs=[":layout"],output_group="core_runtime")\n'
                     'sdk_runtime(name="console_runtime",dotnet=":dotnet",files=":core_files",'
-                    f'runtime_identifier="{configuration["rid"]}",version="{runtime_version}")') if direct_smoke else ''
+                    f'runtime_identifier="{configuration["rid"]}",version="{runtime_version}")\n'
+                    'stripped_runtime(name="stripped_console_runtime",runtime=":console_runtime")') if direct_smoke else ''
     pack_layout = ""
     managed_sdk = ""
     compiler_toolchain = "produced_registered"
     if direct_smoke:
+        shutil.copyfile(Path(__file__).with_name("runtime_strip.bzl"), w / "runtime_strip.bzl")
         # Exact inventory of the pinned Ubuntu 26.04 ARM64 VMR SDK. The full
         # layout remains available for NativeAOT and complete SDK consumers.
         packs = ["Microsoft.AspNetCore.App.Ref", "Microsoft.AspNetCore.App.Runtime.ubuntu.26.04-arm64",
@@ -119,16 +121,17 @@ def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False, pin=No
         controller = ('dotnet.sdk_archive(name="controller",version="10.0.400",runtime_version=' +
                       json.dumps(driver['runtimeVersion']) + ',platform="linux-x64",urls=[' +
                       json.dumps(driver['url']) + '],integrity=' + json.dumps(integrity) + ')')
+    cc_dependency = 'bazel_dep(name="rules_cc",version="0.2.17")\n' if direct_smoke else ''
     (w / 'MODULE.bazel').write_text(textwrap.dedent('''\
     module(name="source_sdk_action")
     bazel_dep(name="platforms",version="1.0.0")
     bazel_dep(name="rules_msbuild",version="0.0.0")
-    local_path_override(module_name="rules_msbuild",path=%s)
+    %slocal_path_override(module_name="rules_msbuild",path=%s)
     dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
     %s
     use_repo(dotnet,"controller")
     register_toolchains("//:%s","//:produced_runtime_registered")
-    ''') % (json.dumps(str(rules)), controller, compiler_toolchain))
+    ''') % (cc_dependency, json.dumps(str(rules)), controller, compiler_toolchain))
     (w / 'BUILD.bazel').write_text(textwrap.dedent('''\
     load(":source_action.bzl","source_sdk","sdk_layout")
     load("@rules_msbuild//msbuild:sdk.bzl","msbuild_sdk")%s
@@ -145,7 +148,7 @@ def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False, pin=No
     ''') % (runtime_load, 'system_bwrap=True,' if system_bwrap else '', configuration['cpu'],
            ',split_frameworks=True' if direct_smoke else '', pack_layout, core_runtime, sdk_version, runtime_version,
            configuration['rid'], managed_sdk, framework, framework,
-           ',runtime_host=":console_runtime",direct_executable_smoke=True' if direct_smoke else ''))
+           ',runtime_host=":stripped_console_runtime",direct_executable_smoke=True' if direct_smoke else ''))
 
 
 def build_script(architecture="arm64", pin=None, full_diagnostics=False):
