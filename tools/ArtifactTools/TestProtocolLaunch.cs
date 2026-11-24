@@ -1,18 +1,15 @@
 using System.Diagnostics;
 using static Program;
 
-internal static class ApplicationLaunch
+internal static class TestProtocolLaunch
 {
-    internal static int Run(Launch request, string[] args)
+    internal static int Run(TestProtocolRequest request, string[] args)
     {
-        if (request.Test)
-        {
-            TestExecution.Validate(request.TestOptions ?? new());
-        }
+        TestExecution.Validate(request.TestOptions);
 
         var root = Environment.GetEnvironmentVariable("RULES_MSBUILD_RUNFILES") ?? throw new InvalidDataException("Missing runfiles root");
         var temporary = Path.Combine(Environment.GetEnvironmentVariable("TEST_TMPDIR") ?? Path.GetTempPath(), "msbuild-run-" + Guid.NewGuid().ToString("N"));
-        var runtimeDirectory = request.Test && request.TestOptions?.WorkingDirectory is { } workingDirectory
+        var runtimeDirectory = request.TestOptions.WorkingDirectory is { } workingDirectory
             ? Path.Combine(temporary, Safe(workingDirectory)) : temporary;
         Directory.CreateDirectory(runtimeDirectory);
         try
@@ -42,7 +39,7 @@ internal static class ApplicationLaunch
             {
                 throw new InvalidDataException("Unsupported runtime launch mode: " + mode);
             }
-            if (mode == "corerun" && request.TestOptions?.Protocol == "vstest")
+            if (mode == "corerun" && request.TestOptions.Protocol == "vstest")
             {
                 throw new InvalidDataException("VSTest requires a dotnet runtime host");
             }
@@ -71,15 +68,7 @@ internal static class ApplicationLaunch
                 start.ArgumentList.Add(arg);
             }
 
-            if (request.Test)
-            {
-                return TestExecution.Run(start, request.TestOptions ?? new(), root, temporary);
-            }
-
-            using var process = Process.Start(start)!;
-            using var interrupt = System.Runtime.InteropServices.PosixSignalRegistration.Create(System.Runtime.InteropServices.PosixSignal.SIGTERM, context => { context.Cancel = true; if (!process.HasExited) { process.Kill(true); } });
-            process.WaitForExit();
-            return process.ExitCode;
+            return TestExecution.Run(start, request.TestOptions, root, temporary);
         }
         finally { Directory.Delete(temporary, true); }
     }

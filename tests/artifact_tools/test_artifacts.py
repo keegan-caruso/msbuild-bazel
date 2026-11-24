@@ -10,6 +10,7 @@ import shutil
 import tarfile
 import tempfile
 import unittest
+import unittest.mock
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -29,6 +30,41 @@ class ArtifactToolsTests(unittest.TestCase):
         result = subprocess.run([str(SDK/'dotnet'), str(RUNNER), operation, str(path), *map(str,args)], capture_output=True, text=True, env=dict(os.environ,DOTNET_ROOT=str(SDK)))
         self.assertEqual(result.returncode == 0, success, result.stdout+result.stderr)
         return result.stdout+result.stderr
+
+    def test_protocol_rejects_executable_and_missing_protocol(self):
+        for options in ({'protocol': 'executable'}, {}):
+            request = dict(entry='app', assembly='App', data=[], testOptions=options)
+            self.assertIn('Unknown test protocol', self.invoke('test-protocol', request, success=False))
+
+    def test_legacy_run_command_is_rejected(self):
+        self.assertIn('Expected layout/', self.invoke('run', {}, success=False))
+
+    def test_protocol_uses_declared_host_and_stages_inputs(self):
+        app = self.root/'app'
+        app.mkdir()
+        (app/'App.dll').write_text('assembly')
+        (self.root/'data.txt').write_text('input')
+        host = self.root/'host'
+        host.mkdir()
+        executable = host/'dotnet'
+        executable.write_text('#!/bin/sh\n'
+            'test "$DOTNET_ROOT" = "' + str(host) + '" || exit 21\n'
+            'test "$DOTNET_HOST_PATH" = "$DOTNET_ROOT/dotnet" || exit 22\n'
+            'test "$DOTNET_MULTILEVEL_LOOKUP" = 0 || exit 23\n'
+            'test -z "${CORE_ROOT:-}" || exit 24\n'
+            'test -f App.dll && test "$(cat input.txt)" = input || exit 25\n'
+            'while [ "$#" -gt 0 ]; do\n'
+            '  if [ "$1" = --results-directory ]; then shift; output="$1"; fi\n'
+            '  shift\n'
+            'done\n'
+            'cat > "$output/results.trx" <<EOF\n'
+            '<TestRun xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010"><ResultSummary outcome="Completed"><Counters total="0"/></ResultSummary></TestRun>\nEOF\n')
+        executable.chmod(0o755)
+        request = dict(entry='app', assembly='App', data=[dict(source='data.txt', path='input.txt')],
+                       testOptions=dict(protocol='mtp', allowEmpty=True),
+                       runtimeHost=dict(directory='host', entryPoint='dotnet'))
+        with unittest.mock.patch.dict(os.environ, RULES_MSBUILD_RUNFILES=str(self.root), CORE_ROOT='ambient'):
+            self.invoke('test-protocol', request)
 
     def package(self, extra=None):
         path = self.root/'example.nupkg'

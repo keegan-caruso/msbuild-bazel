@@ -62,12 +62,12 @@ internal static class Program
                 NativeToolchainPackages.Assemble(Read<NativeToolchainPackagesRequest>(nativePackages));
                 return 0;
             }
-            if (args.Length >= 2 && args[0] == "run")
+            if (args.Length >= 2 && args[0] == "test-protocol")
             {
-                return ApplicationLaunch.Run(Read<Launch>(args[1]), args[2..]);
+                return TestProtocolLaunch.Run(Read<TestProtocolRequest>(args[1]), args[2..]);
             }
 
-            throw new ArgumentException("Expected layout/extract/native-toolchain/native-toolchain-packages/run request.json");
+            throw new ArgumentException("Expected layout/extract/native-toolchain/native-toolchain-packages/test-protocol request.json");
         }
         catch (Exception error) { Console.Error.WriteLine(error); return 1; }
     }

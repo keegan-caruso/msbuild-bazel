@@ -2,7 +2,7 @@
 
 load("//msbuild/private:defaults.bzl", "STABLE_PATHS_TOOLCHAIN", "stable_paths")
 load("//msbuild/private:paths.bzl", _RUNTIME_TOOLCHAIN = "RUNTIME_TOOLCHAIN", _TOOLCHAIN = "TOOLCHAIN")
-load("//msbuild/private:project_launch.bzl", _create_executable_launcher = "create_executable_launcher", _create_launcher = "create_launcher")
+load("//msbuild/private:project_launch.bzl", _create_executable_launcher = "create_executable_launcher", _create_test_protocol_launcher = "create_test_protocol_launcher")
 load("//msbuild/private:providers.bzl", "MSBuildBindingInfo", "MSBuildLayoutInfo", "MSBuildPackageLockInfo", "MSBuildRuntimeInfo")
 load("//msbuild/private:sdk_bootstrap.bzl", "bootstrap_project")
 load("//msbuild/private:test_options.bzl", _TEST_OPTIONS_ATTRS = "TEST_OPTIONS_ATTRS", _validate_test = "validate_test")
@@ -275,7 +275,7 @@ def _runtime(ctx, test = False):
     data = depset([struct(file = target[DefaultInfo].files.to_list()[0], destination = path) for target, path in ctx.attr.data_paths.items()])
     if not test or ctx.attr.test_protocol == "executable":
         return _create_executable_launcher(ctx, assembly.removesuffix(".dll") + ".dll", output, data, test)
-    return _create_launcher(ctx, ctx.toolchains[_TOOLCHAIN], assembly.removesuffix(".dll"), output, data, test)
+    return _create_test_protocol_launcher(ctx, ctx.toolchains[_TOOLCHAIN], assembly.removesuffix(".dll"), output, data)
 
 def _test(ctx):
     _validate_test(ctx)
