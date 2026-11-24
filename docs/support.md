@@ -802,6 +802,20 @@ consumption, Razor rendering, Publish, and explicit execution of the published
 net11.0 app passed. The published app reported runtime 11.0.0 and loaded CoreLib
 from the produced runtime. The .NET 11 qualification covers native Linux ARM64.
 
+The pinned VMR11 layout declares each of its seven pack directories separately.
+Its managed compiler toolchain omits only the NativeAOT runtime and ILCompiler
+packs; `:layout` and `:produced_files` retain the complete SDK. Select the full compiler
+for NativeAOT with `--extra_toolchains=//:produced_registered`. Other SDK versions
+keep the complete pack tree. Unknown or missing pack directories fail extraction.
+Bazel **9.3.2** built both input selections from the retained SDK archive. On
+Ubuntu **26.04 ARM64**, the combined generated layout passed the actual smoke,
+NuGet Pack/consumption, Razor rendering and Publish/run controls. Execution logs
+confirmed these managed graph actions omitted both AOT packs. A separate net11.0
+Build/run succeeded with both AOT directories absent; restoring them allowed
+offline NativeAOT Publish/run using Clang **18**. These controls establish selected
+inputs and compilation correctness, without a new source build or download-speed
+measurement.
+
 The direct launcher passed the Linux x64 downloaded-SDK control
 (`python3 tests/graph_build/direct_executable_smoke.py`, Bazel 9.3.2, runtime
 11.0.0), including selected CoreLib location, argument forwarding, nonzero exit

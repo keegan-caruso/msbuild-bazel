@@ -163,3 +163,20 @@ Recovery checks a fresh output base, the exact SDK archive digest, and actual
 smoke-test execution after body and API edits. The scenario driver packs and
 consumes a NuGet package, renders a Razor view, publishes an app, and checks
 which runtime executed it.
+
+### Managed and NativeAOT compiler inputs
+
+The generated `produced_managed_registered` compiler toolchain uses `:managed_layout`,
+which excludes the NativeAOT runtime and ILCompiler packs. All reference, managed
+runtime and apphost packs remain available. `:layout` and `:produced_files` retain all
+seven pack directories. Use the full compiler toolchain for NativeAOT Publish:
+
+```bash
+bash "$rules/scripts/bazel-launcher.sh" build //:YOUR_NATIVE_AOT_GRAPH \
+  --extra_toolchains=//:produced_registered
+```
+
+`YOUR_NATIVE_AOT_GRAPH` is an authored graph/contract with `PublishAot=true` and
+the declared native compiler inputs; the smoke fixture does not declare one.
+This toolchain selection changes the compiler's inputs without rebuilding the
+SDK source archive. The exact pinned pack inventory is checked during extraction.
