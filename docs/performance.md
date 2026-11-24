@@ -232,6 +232,26 @@ Pinned ARM64 .NET 11 console fixture now splits Core and ASP.NET directories: co
 
 Historical download/launcher A/B requires the classic launcher ([pinned commands](https://github.com/keegan-caruso/msbuild-bazel/blob/7a6d573/docs/performance.md#compare-smoke-launchers)). Current recovery profile: `source_action_recovery.py --smoke-only --download-outputs=toplevel --remote-connections=8 --profile`.
 
+### Native debug sections and the module lockfile
+
+The pinned VMR11 ARM64 smoke uses a stripped Core runtime. Both runtime trees contain 200 files. The original occupies 197,231,823 bytes and the stripped tree 89,668,975 bytes. CoreCLR alone falls from 46.88 to 6.71 MiB and the JIT from 19.88 to 3.20 MiB. All non-ELF files, file modes, loaded ELF section bytes and GNU build IDs matched. GNU strip normalized the initializer/finalizer array entry size in some ELF section headers. Use `//:console_runtime` for the original native debug sections.
+
+On the retained SDK archive, the first successful strip-and-upload seed took 162.51 s, including 141.81 s in the HTTP cache upload span. Two earlier seeds at eight connections timed out uploading blobs. Seeding at one connection with `--remote_timeout=180s` completed. The read-only recovery trials used eight connections, Bazel 9.3.2, four CPUs and 6 GiB in one Ubuntu 26.04 ARM64 guest. A declared copy of the retained SDK archive replaced source production. Each trial verified the archive digest, every non-test action hit and forced execution on runtime 11.0.0.
+
+With the same prepared install and repository caches and lockfiles disabled on both sides, the smaller runtime alone reduced median `TestRunner` remote input staging from 8.84 to 5.33 s and median invocation wall time from 14.11 to 11.42 s over three alternating pairs. Logical runfiles fell from 197,251,523 to 89,688,684 bytes (206 files in both).
+
+For the module-lock control, three alternating `build //:smoke --nobuild` pairs used fresh analysis roots and the same prepared Bazel install and repository caches. Reading the producer lockfile with `--lockfile_mode=error` reduced median main-repository mapping from 2.28 to 0.21 s and analysis-only invocation wall time from 3.93 to 2.09 s. Reusing the install and repository caches alone with lockfiles disabled gave no consistent end-to-end gain in a separate three-pair control.
+
+With empty install, repository, workspace and Bazel output roots for every trial, the previous smoke fixture and the new stripped, locked fixture gave these wall times. The producer was stopped and uploads and the disk action cache were disabled.
+
+| Pair | Previous smoke | Stripped, locked smoke |
+| ---: | ---: | ---: |
+| 1 | 17.17 s | 13.90 s |
+| 2 (reversed) | 16.44 s | 13.96 s |
+| 3 | 16.67 s | 13.99 s |
+
+Median wall time fell **16.67 → 13.96 s** and median staging **8.32 → 5.31 s**. With empty repository caches, median module mapping was **2.16 → 1.92 s**. Reproduce the optimized smoke with the [ARM64 recovery recipe](../tests/source_sdk/LINUX_ARM64_11.md#recover-the-sdk-and-exercise-consumers), adding `--remote-connections=8 --profile` to the locked recovery command.
+
 ### Retained-archive launcher and connection control
 
 Ubuntu 26.04 ARM64, Bazel 9.3.2, 4 CPUs / 6 GiB, retained SDK 11.0.100 / runtime 11.0.0 archive (`993765849ca1f97d64ca1a157b34158b37dc75facff43d41707365dc8724ec85`), archive-copy action replacing `SourceSdkBuild`, rules at `6608ac6` (independent of source production/historical producer key). Three paired trials per launcher/connection cap (fresh workspace/output base/output user root, top-level downloads, no disk cache/uploads, forced test, all non-test actions hit HTTPS cache via UNIX-socket relay; order reversed for pair 2; profiles enabled in all trials):
