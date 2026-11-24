@@ -73,15 +73,28 @@ source_sdk = rule(
 def _sdk_layout(ctx):
     dotnet = ctx.actions.declare_file(ctx.label.name + "/dotnet")
     files = [dotnet] + [ctx.actions.declare_file(ctx.label.name + "/" + name) for name in ["dnx", "LICENSE.txt", "ThirdPartyNotices.txt"]]
-    directories = [ctx.actions.declare_directory(ctx.label.name + "/" + name) for name in ["host", "shared", "sdk", "packs", "sdk-manifests", "templates", "library-packs", "metadata"]]
+    host = ctx.actions.declare_directory(ctx.label.name + "/host")
+    shared = ["shared/Microsoft.NETCore.App", "shared/Microsoft.AspNetCore.App"] if ctx.attr.split_frameworks else ["shared"]
+    frameworks = [ctx.actions.declare_directory(ctx.label.name + "/" + name) for name in shared]
+    directories = [host] + frameworks + [ctx.actions.declare_directory(ctx.label.name + "/" + name) for name in ["sdk", "packs", "sdk-manifests", "templates", "library-packs", "metadata"]]
     ctx.actions.run_shell(
         inputs = [ctx.file.archive] + ctx.files.packages,
         outputs = files + directories,
-        arguments = [ctx.file.archive.path, dotnet.dirname] + [value for package, destination in ctx.attr.packages.items() for value in [package.files.to_list()[0].path, destination]],
+        arguments = [ctx.file.archive.path, dotnet.dirname, "split" if ctx.attr.split_frameworks else "full"] + [value for package, destination in ctx.attr.packages.items() for value in [package.files.to_list()[0].path, destination]],
         command = """set -eu
-archive="$1"; root="$2"; shift 2
+archive="$1"; root="$2"; framework_mode="$3"; shift 3
 mkdir -p "$root"
 tar --no-same-owner -xzf "$archive" -C "$root"
+if test "$framework_mode" = split; then
+    for framework in "$root"/shared/*; do
+        case "${framework##*/}" in
+            Microsoft.NETCore.App|Microsoft.AspNetCore.App) ;;
+            *) echo "Unexpected shared framework: $framework" >&2; exit 1 ;;
+        esac
+    done
+    test -d "$root/shared/Microsoft.NETCore.App"
+    test -d "$root/shared/Microsoft.AspNetCore.App"
+fi
 for directory in host shared sdk packs sdk-manifests templates library-packs metadata; do mkdir -p "$root/$directory"; done
 while test "$#" -gt 0; do
     package="$1"; destination="$2"; shift 2
@@ -90,6 +103,9 @@ done
 """,
         mnemonic = "SourceSdkLayout",
     )
-    return [DefaultInfo(files = depset(files + directories)), OutputGroupInfo(dotnet = depset([dotnet]))]
+    groups = {"dotnet": depset([dotnet])}
+    if ctx.attr.split_frameworks:
+        groups["core_runtime"] = depset([dotnet, host, frameworks[0]])
+    return [DefaultInfo(files = depset(files + directories)), OutputGroupInfo(**groups)]
 
-sdk_layout = rule(implementation = _sdk_layout, attrs = {"archive": attr.label(allow_single_file = [".tar.gz"], mandatory = True, cfg = "exec"), "packages": attr.label_keyed_string_dict(allow_files = [".nupkg"])})
+sdk_layout = rule(implementation = _sdk_layout, attrs = {"split_frameworks": attr.bool(), "archive": attr.label(allow_single_file = [".tar.gz"], mandatory = True, cfg = "exec"), "packages": attr.label_keyed_string_dict(allow_files = [".nupkg"])})

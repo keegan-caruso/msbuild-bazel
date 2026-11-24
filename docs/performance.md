@@ -480,6 +480,15 @@ profiles for the second and third top-level runs attributed 48.93 and 48.32
 seconds to staging remote inputs for the test, starting about 21 seconds
 into each Bazel invocation. The profiles do not measure wire bytes per layout.
 
+The pinned ARM64 .NET 11 console fixture now declares separate Core and ASP.NET
+shared-framework directories and selects Core for its application runtime. With
+the retained VMR SDK, Bazel 9.3.2 produced a 200-file console runtime totaling
+197,231,823 bytes. The full runtime contained 335 files totaling 224,128,104
+bytes. All 200 common files matched in SHA-256 and mode. In an Ubuntu 26.04
+ARM64 guest, the console app loaded CoreLib from the smaller layout and a web
+probe loaded ASP.NET Core from the full layout. The smaller layout rejected
+the web probe for its missing framework. These are uncompressed layout sizes.
+
 To reproduce a pair, set `seed` and `cache` to the prepared seed workspace and
 its populated HTTP cache. Set `RULES_MSBUILD_BAZEL` to the repository's Bazel
 launcher. Use a new `trial` directory for each pair:

@@ -75,6 +75,17 @@ class RecoveryTests(unittest.TestCase):
         self.assertTrue(all('--nocache_test_results' in command for command in calls[-2:]))
         return calls, json.loads((folder / 'report.json').read_text())
 
+    def test_launcher_override_preserves_console_runtime_for_both_modes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            build = root / 'BUILD.bazel'
+            classic = 'msbuild_graph_test(name="smoke",graph=":graph",project="App.csproj",runtime_host=":console_runtime")'
+            build.write_text(classic)
+            self.assertEqual(recovery.configure_launcher(root, 'direct'), 'direct')
+            self.assertIn('runtime_host=":console_runtime",direct_executable_smoke=True', build.read_text())
+            self.assertEqual(recovery.configure_launcher(root, 'classic'), 'classic')
+            self.assertEqual(build.read_text(), classic)
+
     def test_launcher_override_requires_smoke_only(self):
         for mode in ['classic', 'direct']:
             with self.subTest(mode=mode), patch('sys.argv', ['recovery', 'seed', 'trial', '--cache=https://fixture.invalid',

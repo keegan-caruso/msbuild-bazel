@@ -88,6 +88,10 @@ def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False, pin=No
     runtime_version = pin["releaseManifest"]["runtimeVersion"] if pin else "10.0.0"
     framework = "net" + sdk_version.split(".")[0] + ".0"
     direct_smoke = architecture == "arm64" and sdk_version == "11.0.100" and runtime_version == "11.0.0"
+    runtime_load = '\nload("@rules_msbuild//msbuild/private:sdk_bootstrap.bzl","sdk_runtime")' if direct_smoke else ''
+    core_runtime = ('\nfilegroup(name="core_files",srcs=[":layout"],output_group="core_runtime")\n'
+                    'sdk_runtime(name="console_runtime",dotnet=":dotnet",files=":core_files",'
+                    f'runtime_identifier="{configuration["rid"]}",version="{runtime_version}")') if direct_smoke else ''
     controller = 'dotnet.sdk(name="controller",version="10.0.400",platforms=["linux-arm64"])'
     if architecture == "x64":
         controller_pin = json.loads(Path(__file__).with_name('pin-linux-x64.json').read_text())
@@ -108,19 +112,21 @@ def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False, pin=No
     ''') % (json.dumps(str(rules)), controller))
     (w / 'BUILD.bazel').write_text(textwrap.dedent('''\
     load(":source_action.bzl","source_sdk","sdk_layout")
-    load("@rules_msbuild//msbuild:sdk.bzl","msbuild_sdk")
+    load("@rules_msbuild//msbuild:sdk.bzl","msbuild_sdk")%s
     load("@rules_msbuild//msbuild:defs.bzl","msbuild_graph", "msbuild_graph_runner", "msbuild_graph_test")
     source_sdk(name="sdk",%sdriver_sdk="@controller//:sdk_host",driver_project="Driver.csproj",driver_source="Driver.cs",sandbox="bwrap",native_tools="native.tar",sources="sources.tar",bootstrap="bootstrap.tar",exec_compatible_with=["@platforms//os:linux","@platforms//cpu:%s"])
     filegroup(name="evidence",srcs=[":sdk"],output_group="evidence")
     filegroup(name="driver",srcs=[":sdk"],output_group="driver")
-    sdk_layout(name="layout",archive=":sdk")
+    sdk_layout(name="layout",archive=":sdk"%s)%s
     filegroup(name="dotnet",srcs=[":layout"],output_group="dotnet")
     msbuild_sdk(name="produced",dotnet=":dotnet",files=[":layout"],sdk_version="%s",runtime_version="%s",runtime_identifier="%s")
     msbuild_graph_runner(name="runner")
     msbuild_graph(name="graph",runner=":runner",contract="app-contract.json",srcs=["App.csproj","App.cs"],project_outputs={"App.csproj|%s":["bin/Release/%s","App.dll","Exe"]})
     msbuild_graph_test(name="smoke",graph=":graph",project="App.csproj"%s)
-    ''') % ('system_bwrap=True,' if system_bwrap else '', configuration['cpu'], sdk_version, runtime_version, configuration['rid'], framework, framework,
-           ',direct_executable_smoke=True' if direct_smoke else ''))
+    ''') % (runtime_load, 'system_bwrap=True,' if system_bwrap else '', configuration['cpu'],
+           ',split_frameworks=True' if direct_smoke else '', core_runtime, sdk_version, runtime_version,
+           configuration['rid'], framework, framework,
+           ',runtime_host=":console_runtime",direct_executable_smoke=True' if direct_smoke else ''))
 
 
 def build_script(architecture="arm64", pin=None):
