@@ -1,37 +1,10 @@
 # Source-runtime body-edit trial
 
-`runtime_source_trials.py` is a qualification harness for five Pipelines body
-edits in an independently qualified, complete Linux ARM64 source-runtime
-product. It requires a fresh input-only closure created by
-`runtime_product_recovery.py` and uses `runtime_recovered_tests.py` to
-construct reviewed edits and inspect execution logs. The baseline is reported separately from the five cycles. This
-is not an API/native rebuild benchmark, a raw MSBuild comparison, or evidence of
-performance until the trial is actually run.
+`runtime_source_trials.py` qualifies five Pipelines body edits in an independently qualified Linux ARM64 source-runtime product. It needs a fresh input-only closure (`runtime_product_recovery.py`) and uses `runtime_recovered_tests.py` for reviewed edits and log inspection. Baseline is reported separately from the five cycles. Not an API/native rebuild benchmark, raw MSBuild comparison, or performance evidence until run.
 
-The production rules and the harness are separate inputs. For the current trial,
-freeze the planned public production revision
-`78d23538474b500c616af3c2e9b3778dbd19ee9a`; its complete product
-qualification must pass before these trials; use the reviewed harness commit
-containing this file, and record both its commit and this file's SHA256. Do not
-substitute an unreviewed checkout as the product oracle. The product workspace,
-its SDK 11.0.100 graph, the exact qualification mappings and their independently
-verified SHA256, and a strict `runtime_test` JSON from the independent qualified
-product must already exist. A healthy shared AC/CAS endpoint containing the
-product’s seeded Bazel actions and the Ubuntu 26 ARM64 worker environment are
-also required. Project-cache
-read-only mode does not publish project snapshots; the separately reported,
-timing-excluded baseline must populate the local project cache before scored
-cycles. The harness does not upload Bazel actions or project snapshots. Use a
-fresh workspace and empty output base on guest-local storage, with enough disk
-and memory for the complete product.
+Production rules and harness are separate inputs: freeze production revision `78d23538474b500c616af3c2e9b3778dbd19ee9a` (complete product qualification must pass first), use the reviewed harness commit containing this file, and record its commit and SHA256. Never substitute an unreviewed checkout as the oracle. Prerequisites: qualified product workspace, SDK 11.0.100 graph, exact qualification mappings + verified SHA256, strict `runtime_test` JSON oracle, healthy shared AC/CAS with seeded Bazel actions, Ubuntu 26 ARM64 worker, and fresh workspace + empty output base on guest-local storage with sufficient disk/memory. Because project-cache read-only mode does not publish snapshots, the timing-excluded baseline must populate the local project cache before scored cycles; the harness never uploads Bazel actions or project snapshots.
 
-For example, place the frozen production checkout at `$TRIAL_ROOT/rules`, with a
-separate checkout containing this harness in `$HARNESS`, and set the remaining
-variables to the independently verified inputs before running. The harness uses
-its process environment rather than a source-runtime `setup.json`; set
-`RULES_MSBUILD_DOTNET_ROOT`, `RULES_MSBUILD_BAZELISK` and `BAZELISK_HOME` to the
-qualified guest tools and Bazel cache, and set `RULES_MSBUILD_PROJECT_CACHE_URL`
-to the verified endpoint. Do not rely on an ambient host SDK or Bazel default:
+Place frozen production rules at `$TRIAL_ROOT/rules` and harness checkout at `$HARNESS`. Set `RULES_MSBUILD_DOTNET_ROOT`, `RULES_MSBUILD_BAZELISK`, `BAZELISK_HOME` (guest tools/cache), and `RULES_MSBUILD_PROJECT_CACHE_URL` (do not rely on `setup.json` or ambient defaults):
 
 ```sh
 git -C "$TRIAL_ROOT/rules" rev-parse HEAD
@@ -47,16 +20,4 @@ python3 "$HARNESS/tests/graph_build/upstream/runtime_source_trials.py" \
   --revision 78d23538474b500c616af3c2e9b3778dbd19ee9a
 ```
 
-Verify the first command equals the stated production revision and compare the
-harness digest with the reviewed harness artifact before running; `--revision`
-is recorded in results and does not perform that check. The closure helper
-rewrites its rules override to `../rules`, so the workspace and frozen rules
-checkout must be siblings as shown, or that override must be independently
-validated against the supplied rules checkout. Results and output base must be
-fresh and outside the workspace. The harness reads runtime test evidence from Bazel local-file output entries or an
-undeclared-outputs ZIP. The harness checks reviewed edit inputs against the closure manifest, the existing
-qualification exemption, independent baseline binary hashes, forced tests,
-source implementation/reference hashes and stable worker identities. It restores
-edited files and their original modes/timestamps after the run. Its summary and
-raw logs belong outside Git; a failed assertion is a failed qualification, not a
-measurement.
+Verify `rev-parse HEAD` matches the frozen revision (`--revision` only records it) and verify the harness SHA256. `close` rewrites the rules override to `../rules`, so workspace and rules must be siblings (or validate the override). `$RESULTS` and output base must be fresh and outside the workspace. The harness reads test evidence from local Bazel outputs or undeclared-outputs ZIP, verifies edit inputs against the closure manifest, qualification exemption, baseline binary hashes, forced tests, implementation/reference hashes, and stable worker IDs, and restores edited files (modes/timestamps) afterward. Keep summaries/logs out of Git; any failed assertion fails qualification.

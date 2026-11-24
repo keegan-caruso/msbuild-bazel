@@ -1,17 +1,10 @@
 # Build the .NET 11 VMR on Linux ARM64
 
-The release targets SDK 11.0.100 with Microsoft.NETCore.App and Microsoft.AspNetCore.App
-11.0.0. The upstream release manifest identifies VMR commit
-`297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f` and official build ID `20261029.18`.
-Use the build-produced source archive linked from the
-[upstream release](https://github.com/dotnet/dotnet/releases/tag/v11.0.100).
-The release signature covers that archive's ownership metadata.
+Targets SDK **11.0.100** with `Microsoft.NETCore.App` and `Microsoft.AspNetCore.App` **11.0.0** (VMR commit `297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f`, build ID `20261029.18`). Use the build-produced source archive from the [upstream release](https://github.com/dotnet/dotnet/releases/tag/v11.0.100) (release signature covers its ownership metadata).
 
 ## Prepare the bootstrap on Linux ARM64
 
-Start in an empty directory with Bash, curl, GnuPG, GNU tar and sha256sum.
-The bootstrap project replaces its working copy of the raw package archive. Keep the original downloads for subsequent runs. NuGet needs network
-access during this preparation.
+In an empty directory with Bash, `curl`, GnuPG, GNU `tar`, `sha256sum`, and network access (keep original downloads; bootstrap replaces its working copy of the raw package archive):
 
 ```bash
 set -euo pipefail
@@ -47,20 +40,11 @@ tar -xzf "$raw" -C vmr/artifacts/prep-bootstrap PackageVersions.props
 sha256sum vmr/prereqs/packages/archive/Private.SourceBuilt.Artifacts.Bootstrap.tar.gz
 ```
 
-The source signature verifies with key `A30E1CAFB4BBD279FEC7E47CFDBF53C24DB4872E`.
-The VMR bootstrap project consumes the CentOS x64 package collection and replaces
-target-specific packages using its Linux ARM64 restore. Record the generated
-archive digest alongside the binary log for each run. The RC SDK runs the bootstrap
-and the source build. Product tests use the resulting 11.0.100 SDK.
+Signature verifies with key `A30E1CAFB4BBD279FEC7E47CFDBF53C24DB4872E`. Bootstrap consumes the CentOS x64 package collection and replaces target-specific packages via Linux ARM64 restore. Record the generated archive digest with the binlog. The RC SDK runs bootstrap and source build; product tests use the resulting 11.0.100 SDK.
 
 ## Run the Bazel producer
 
-In the Linux ARM64 guest, set `rules` to the absolute checkout path and
-`native` to the qualified Ubuntu 26.04 / LLVM 18.1.8 native input archive.
-The preparation step checks the source digest, bootstrap host architecture and
-version, portable package inventory, and native archive digest. Use a fresh
-workspace directory on a filesystem with room for the extracted VMR and its
-intermediate products.
+In the Linux ARM64 guest, set `rules` to the absolute checkout path and `native` to the qualified Ubuntu 26.04 / LLVM 18.1.8 native archive. Preparation verifies source digest, bootstrap host arch/version, portable package inventory, and native archive digest. Use a fresh workspace with room for extracted VMR and intermediates:
 
 ```bash
 work=$(mktemp -d)
@@ -77,15 +61,11 @@ python3 "$rules/tests/source_sdk/source_action_prepare.py" \
 )
 ```
 
-The smoke target requests the SDK as a Bazel toolchain, builds a net11.0
-executable and checks its runtime version. The controller SDK compiles the Bazel
-action driver. The VMR uses its pinned RC SDK to build the product toolchain.
+`//:smoke` consumes the SDK as a Bazel toolchain, builds a `net11.0` executable, and verifies its runtime version. The controller SDK compiles the Bazel driver; the VMR uses its pinned RC SDK to build the product toolchain.
 
 ## Run an app with the runtime alone
 
-Copy the produced SDK archive to a second Linux ARM64 guest and compare its SHA-256
-with the producer's. Set `sdk_archive` to that verified copy. Extract it on a native Linux filesystem that supports symbolic
-links. From a fresh directory, run the following check.
+Copy the produced SDK archive to a second Linux ARM64 guest, verify its SHA-256 against the producer (`sdk_archive`), extract on a symlink-capable native Linux filesystem, and run from a fresh directory:
 
 ```bash
 mkdir sdk
@@ -94,16 +74,9 @@ python3 "$rules/tests/source_sdk/vmr_runtime.py" --sdk="$PWD/sdk" \
   --vmr-revision=297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f "$PWD/runtime-check"
 ```
 
-The check compares the SDK and shared-framework version stamps with the VMR
-revision, packages the host and both shared frameworks, then extracts the runtime
-archive again. It builds a net11.0 app with the source-built SDK, launches it
-with the extracted host, and records the loaded CoreLib path, architecture and
-runtime version in `runtime-check/report.json`.
+Verifies SDK/shared-framework version stamps against the VMR revision, packages and re-extracts the host and both shared frameworks, builds a `net11.0` app with the source SDK, runs it with the extracted host, and writes CoreLib path, arch, and runtime version to `runtime-check/report.json`.
 
-To check the separate Core runtime tarball emitted under
-`artifacts/assets/Release/Runtime/`, set `runtime_archive` to its path and
-`runtime_sha256` to the digest recorded by the producer. Run the same compiled
-app on that runtime:
+To test the standalone Core runtime tarball (`artifacts/assets/Release/Runtime/`), set `runtime_archive` and producer `runtime_sha256`:
 
 ```bash
 python3 "$rules/tests/source_sdk/vmr_runtime.py" --sdk="$PWD/sdk" \
@@ -114,11 +87,7 @@ python3 "$rules/tests/source_sdk/vmr_runtime.py" --sdk="$PWD/sdk" \
 
 ## Recover the SDK and exercise consumers
 
-For a cache recovery run, add `--remote_cache="$cache"`,
-`--remote_upload_local_results=true`, `--remote_cache_async=false` and
-`--remote_download_outputs=all` to the producer's Bazel test. Set `cache` to
-the HTTP cache shared by producer and consumer. With the original workspace
-and its output symlinks available, run:
+For cache recovery, add `--remote_cache="$cache" --remote_upload_local_results=true --remote_cache_async=false --remote_download_outputs=all` to the producer test (`cache` = shared HTTP cache). With original workspace and output symlinks available:
 
 ```bash
 export RULES_MSBUILD_BAZEL="$rules/scripts/bazel-launcher.sh"
@@ -132,9 +101,7 @@ python3 "$rules/tests/source_sdk/consumer_scenarios.py" "$work/scenarios" \
   --bazel-option=--remote_download_outputs=all
 ```
 
-For a fresh consumer that only needs to **run the app**, select top-level output
-downloads and force test execution. In a prepared consumer workspace with the
-producer stopped and its actions already in the cache, run:
+For a fresh consumer that only runs the app (producer stopped, actions cached), download only top-level outputs and force test execution (SDK archive and expanded layouts stay remote):
 
 ```bash
 cd "$work/workspace"
@@ -145,38 +112,22 @@ bash "$rules/scripts/bazel-launcher.sh" --batch --output_base="$work/smoke-base"
   --nocache_test_results --test_output=all
 ```
 
-Bazel retrieves the files required by the local test. The SDK archive and the
-expanded SDK layouts can stay in the remote cache. To verify this mode using
-the qualification driver, run the following from the guest with the seed
-workspace and its output symlinks available:
+Verify this mode with the qualification driver (seed workspace and output symlinks available):
 
 ```bash
 python3 "$rules/tests/source_sdk/source_action_recovery.py" \
   "$work/workspace" "$work/smoke-recovery" --cache="$cache" --smoke-only
 ```
 
-The driver compares the SDK digest in Bazel's execution log with the seed archive
-and checks the runtime version printed by the local test. Use the full recovery
-command above when you need to download the SDK and hash its bytes locally.
-
-Recovery checks a fresh output base, the exact SDK archive digest, and actual
-smoke-test execution after body and API edits. The scenario driver packs and
-consumes a NuGet package, renders a Razor view, publishes an app, and checks
-which runtime executed it.
+`--smoke-only` checks the SDK digest in Bazel's execution log against the seed archive and verifies printed runtime version; use full recovery above to download and hash SDK bytes locally. Full recovery checks a fresh output base, exact SDK archive digest, and smoke execution after body/API edits; `consumer_scenarios.py` packs/consumes a NuGet package, renders Razor, publishes an app, and checks its runtime.
 
 ### Managed and NativeAOT compiler inputs
 
-The generated `produced_managed_registered` compiler toolchain uses `:managed_layout`,
-which excludes the NativeAOT runtime and ILCompiler packs. All reference, managed
-runtime and apphost packs remain available. `:layout` and `:produced_files` retain all
-seven pack directories. Use the full compiler toolchain for NativeAOT Publish:
+`produced_managed_registered` uses `:managed_layout` (omits NativeAOT runtime and ILCompiler packs; keeps all reference, managed runtime, and apphost packs). `:layout` and `:produced_files` keep all seven pack directories. Select the full toolchain for NativeAOT Publish:
 
 ```bash
 bash "$rules/scripts/bazel-launcher.sh" build //:YOUR_NATIVE_AOT_GRAPH \
   --extra_toolchains=//:produced_registered
 ```
 
-`YOUR_NATIVE_AOT_GRAPH` is an authored graph/contract with `PublishAot=true` and
-the declared native compiler inputs; the smoke fixture does not declare one.
-This toolchain selection changes the compiler's inputs without rebuilding the
-SDK source archive. The exact pinned pack inventory is checked during extraction.
+`YOUR_NATIVE_AOT_GRAPH` is an authored graph with `PublishAot=true` and declared native compiler inputs (not in the smoke fixture). Switching toolchains changes compiler inputs without rebuilding the SDK archive; extraction verifies the exact pinned pack inventory.

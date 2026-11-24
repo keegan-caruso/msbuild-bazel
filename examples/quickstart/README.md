@@ -1,14 +1,10 @@
 # Quick start
 
-Two SDK choices, one app graph: download a pinned SDK, or consume a complete SDK
-produced by a Bazel source build. Requires Bazelisk and OS .NET prerequisites.
-The example contains an app, library and executable test; no NuGet packages.
-For Razor, HTTP, published assets and declared NuGet packages, see the
-[five-project catalog app](../catalog-web/README.md).
+Two SDK options for one app graph (app, library, executable test; no NuGet packages): download a pinned SDK, or consume a complete Bazel source-built SDK. Requires Bazelisk and OS .NET prerequisites. For Razor, HTTP, published assets, and declared NuGet packages, see [catalog-web](../catalog-web/README.md).
 
 ## Downloaded SDK
 
-Copy beside a pinned rules checkout; adjust `local_path_override` if needed:
+Copy beside a pinned rules checkout (adjust `local_path_override` if needed):
 
 ```sh
 cp -R msbuild-bazel/examples/quickstart my-app
@@ -18,9 +14,7 @@ bazel test //:tests
 bazel run //:sync -- --check
 ```
 
-The app prints `Hello from MSBuild and Bazel`. Bazel supplies the SDK; a host SDK
-installation is unnecessary. [global.json](global.json) pins 11.0.100 with roll-forward
-disabled. [MODULE.bazel](MODULE.bazel) selects it:
+Prints `Hello from MSBuild and Bazel` using a Bazel-supplied SDK (no host SDK required). [global.json](global.json) pins 11.0.100 with roll-forward disabled; [MODULE.bazel](MODULE.bazel) selects it:
 
 ```starlark
 dotnet = use_extension("@rules_msbuild//msbuild:extensions.bzl", "dotnet")
@@ -29,29 +23,18 @@ use_repo(dotnet, "dotnet")
 register_toolchains("@dotnet//:all")
 ```
 
-The first build resolves release metadata and writes SDK URLs/hashes to
-`MODULE.bazel.lock`; commit it. Later builds reuse that selection and verify the
-archive hashes. To change SDK versions, edit `global.json`, rerun project sync,
-and commit the updated lockfile and graph. The adapters follow the selected SDK's
-bundled framework/MSBuild; no SDK-version registration is needed. Build servers can use
-`--lockfile_mode=error` to reject stale locks. See [SDK configuration](../../docs/api.md#sdks).
-For a roll-forward policy, `bazel run @dotnet//:update -- --sync //:sync` deliberately
-refreshes the SDK selection and generated graph; review and commit their diff.
-An optional [declared runtime](../../docs/api.md#runtimes) selects the app/test host
-independently of the compilation SDK.
+First build resolves release metadata and writes SDK URLs/hashes to `MODULE.bazel.lock` (commit it); later builds reuse and hash-verify those archives. To change SDK versions: edit `global.json`, rerun sync, and commit the updated lockfile and graph. Adapters follow the selected SDK's bundled framework/MSBuild (no SDK-version registration needed). Build servers can enforce locks with `--lockfile_mode=error`. See [SDK configuration](../../docs/api.md#sdks). With a roll-forward policy, `bazel run @dotnet//:update -- --sync //:sync` refreshes SDK selection and graph (review/commit diff). Optional [declared runtimes](../../docs/api.md#runtimes) select the app/test host independently.
 
-Web/Razor apps use the same SDK declaration; its bundled ASP.NET framework supplies
-the default execution host. To run framework-dependent published outputs:
+Web/Razor apps use the same SDK declaration (bundled ASP.NET provides the default host). To run framework-dependent published outputs:
 
 ```starlark
 app_graph(name = "published", target = "Publish")
 msbuild_graph_binary(name = "published_app", graph = ":published", project = "App/App.csproj")
 ```
 
-Run `bazel run //:published_app`. The generated macro supplies the publish directory
-and declared assets; sync after changing the project or adding inputs.
+Run `bazel run //:published_app`; the macro supplies the publish directory and declared assets (resync after project/input changes).
 
-[BUILD.bazel](BUILD.bazel) declares sync, then uses the committed generated macro:
+[BUILD.bazel](BUILD.bazel) declares sync and uses the committed generated macro:
 
 ```starlark
 load("@rules_msbuild//msbuild:sync.bzl", "msbuild_sync")
@@ -64,27 +47,15 @@ msbuild_graph_binary(name = "app", graph = ":graph", project = "App/App.csproj")
 msbuild_graph_test(name = "tests", graph = ":graph", project = "Tests/Tests.csproj")
 ```
 
-For a new app, start with only `msbuild_sync`, run it, then add the generated load
-and build/run/test declarations. Commit both generated files. Change library method
-bodies and build normally; rerun sync after project/import, source-list, package or
-configuration changes. `--check` verifies declarations on build servers.
+New apps: declare only `msbuild_sync`, run it, add the generated load and build/run/test targets, and commit both generated files. Method-body edits build normally; resync after project/import, source-list, package, or configuration changes. `--check` verifies declarations on build servers.
 
 ## Source-built SDK
 
-To build SDK 11.0.100 and its runtime from the signed VMR release on Linux ARM64,
-use the [VMR producer recipe](../../tests/source_sdk/LINUX_ARM64_11.md).
+For building SDK 11.0.100 and its runtime from the signed VMR release on Linux ARM64, see the [VMR producer recipe](../../tests/source_sdk/LINUX_ARM64_11.md).
 
-Use this scenario when your workspace has an SDK source producer. The public
-`msbuild_sdk` API consumes its declared outputs. The upstream
-[component producer](../../tests/source_sdk/component_graph_prepare.py) is
-qualification tooling, with pinned source/bootstrap/native inputs; there is no
-general SDK source-build macro. This section shows the handoff, not a standalone
-SDK build recipe. Run this qualified scenario on Linux ARM64; the values below
-match the source-built SDK 10.0.100. For the separately qualified native Ubuntu
-26.04 x64 coarse producer and consumers, use the [x64 recipe](../../tests/source_sdk/LINUX_X64.md).
+Use `msbuild_sdk` when your workspace has an SDK source producer. The upstream [component producer](../../tests/source_sdk/component_graph_prepare.py) is qualification tooling with pinned source/bootstrap/native inputs—not a general SDK source-build macro. This section shows the handoff, not a standalone SDK build recipe. Run on Linux ARM64 (values below match source-built SDK 10.0.100); for native Ubuntu 26.04 x64, see the [x64 recipe](../../tests/source_sdk/LINUX_X64.md).
 
-**1. Select bootstrap and application SDKs separately.** Keep the rules dependency
-and override from the downloaded scenario; replace its SDK registration with:
+**1. Separate bootstrap and application SDKs.** Keep the rules dep/override from above; replace SDK registration with:
 
 ```starlark
 dotnet = use_extension("@rules_msbuild//msbuild:extensions.bzl", "dotnet")
@@ -93,14 +64,9 @@ use_repo(dotnet, "bootstrap")
 register_toolchains("//sdk:source_registered", "//sdk:source_runtime_registered")
 ```
 
-The producer uses `@bootstrap//:sdk_host` directly (or an explicit independent
-bootstrap toolchain). Application compilation and default execution use the
-registered source SDK. This keeps the SDK producer independent of its own outputs.
-The upstream build may also require separately pinned bootstrap artifacts.
+The producer uses `@bootstrap//:sdk_host` directly (or an independent bootstrap toolchain), keeping it independent of its own outputs; upstream builds may also need separately pinned bootstrap artifacts. App compilation and default execution use the registered source SDK.
 
-**2. Describe the produced layout.** In `sdk/BUILD.bazel`, wrap your existing
-`:build` producer. It must export `sdk_layout` (the complete layout) and `dotnet`
-(the real executable) output groups, as the qualified component producer does:
+**2. Describe the produced layout.** In `sdk/BUILD.bazel`, wrap `:build`, which must export `sdk_layout` (complete layout) and `dotnet` (real executable) output groups:
 
 ```starlark
 load("@rules_msbuild//msbuild:sdk.bzl", "msbuild_sdk")
@@ -118,16 +84,9 @@ msbuild_sdk(
 )
 ```
 
-All SDK files/trees must retain their layout beside `dotnet`: `host/`, `shared/`,
-`sdk/`, packs and any required SDK components. An archive needs a declared extraction
-step. A host SDK directory is not an input. Match versions/platform to your actual
-producer; source-built Razor consumers also need the produced StaticWebAssets SDK.
+Retain the full layout beside `dotnet` (`host/`, `shared/`, `sdk/`, packs, and required SDK components; Razor consumers need the produced StaticWebAssets SDK). Archives need a declared extraction step; host SDK directories are unsupported. Match versions/platform to your producer.
 
-**3. Sync and run the same app.** Set `sdk.version` in `global.json` to `10.0.100`
-to match the produced SDK, and set `TargetFramework` to `net10.0` in the
-App, Library and Tests project files. The downloaded-SDK example targets
-`net11.0`; the pinned source-built SDK 10.0.100 cannot compile that framework.
-Keep the app BUILD targets above, then run:
+**3. Sync and run.** Set `sdk.version` in `global.json` to `10.0.100` and `TargetFramework` to `net10.0` in App, Library, and Tests (pinned SDK 10.0.100 cannot compile `net11.0`). Keep the `BUILD` targets above and run:
 
 ```sh
 bazel run //:sync
@@ -136,18 +95,8 @@ bazel test //:tests
 bazel run //:sync -- --check
 ```
 
-SDK production is a dependency of sync/build; a first source build is substantial.
-Bazel can cache its declared outputs. To run on a separately source-built runtime
-while compiling with either SDK, see [source runtime app](../source-runtime-app/README.md).
-The repository's component experiment uses `--through sdk --sdk-consumer` on the
-producer preparation driver, then runs its generated `//:smoke` test. The driver's
-`--help` lists the prepared source, evaluated graph and native archive inputs.
+First source build is substantial; Bazel caches its declared outputs. For a separately source-built execution runtime with either SDK, see [source runtime app](../source-runtime-app/README.md). The repo's component experiment runs the preparation driver with `--through sdk --sdk-consumer`, then tests `//:smoke` (`--help` lists prepared source, evaluated graph, and native archive inputs).
 
 ## Incremental reuse
 
-The basic example demonstrates action caching. Project reuse within changed graphs
-needs a qualified Linux worker or HTTP project cache. [Cache setup](../../docs/api.md#caching-and-workers)
-shows both levels. Closed package inventories or complete sync `srcs` automatically capture
-complete SDK compiler/copy selections during a private sync Build; custom task reads
-still need contracts. [API](../../docs/api.md) covers packages, tools and tests;
-[support](../../docs/support.md) lists validated scope and limits.
+This example shows action caching; project reuse in changed graphs needs a qualified Linux worker or HTTP project cache ([cache setup](../../docs/api.md#caching-and-workers)). Closed package inventories or complete sync `srcs` automatically capture SDK compiler/copy selections during a private sync Build; custom task reads still require contracts. See [API](../../docs/api.md) and [support](../../docs/support.md).
