@@ -123,9 +123,9 @@ python3 "$rules/tests/source_sdk/source_action_recovery.py" \
 
 `--smoke-only` checks the SDK digest in Bazel's execution log against the seed archive and verifies printed runtime version; use full recovery above to download and hash SDK bytes locally. Full recovery checks a fresh output base, exact SDK archive digest, and smoke execution after body/API edits; `consumer_scenarios.py` packs/consumes a NuGet package, renders Razor, publishes an app, and checks its runtime.
 
-### Managed and NativeAOT compiler inputs
+### C# compiler inputs and the full SDK
 
-`produced_managed_registered` uses `:managed_layout` (omits NativeAOT runtime and ILCompiler packs; keeps all reference, managed runtime, and apphost packs). `:layout` and `:produced_files` keep all seven pack directories. Select the full toolchain for NativeAOT Publish:
+The default C# compiler toolchain (`produced_managed_registered`) omits the SDK’s `DotnetTools` and `FSharp` directories and the NativeAOT runtime and ILCompiler packs. The full toolchain preserves all four at their original paths. Select it for F#, bundled CLI tools, or NativeAOT Publish:
 
 ```bash
 bash "$rules/scripts/bazel-launcher.sh" build //:YOUR_NATIVE_AOT_GRAPH \
@@ -133,3 +133,15 @@ bash "$rules/scripts/bazel-launcher.sh" build //:YOUR_NATIVE_AOT_GRAPH \
 ```
 
 `YOUR_NATIVE_AOT_GRAPH` is an authored graph with `PublishAot=true` and declared native compiler inputs (not in the smoke fixture). Switching toolchains changes compiler inputs without rebuilding the SDK archive; extraction verifies the exact pinned pack inventory.
+
+### Smaller transfers
+
+For remote-cache smoke recovery, pass `--smoke-runtime=packed` when preparing the producer workspace. Bazel stages a zstd archive and launcher. Each test invocation unpacks the Core runtime under `TEST_TMPDIR` and launches its own host. The default `stripped` mode uses the expanded tree directly. Packing and launching require Python 3.14 with zstd support in the qualified guest. See the [paired staging measurements](../../docs/performance.md#packed-runtime-recovery).
+
+For a complete SDK handoff, pass `--sdk-zstd` during preparation, then run this command in the generated workspace:
+
+```bash
+bash "$rules/scripts/bazel-launcher.sh" build //:sdk_zstd //:sdk_zstd_provenance
+```
+
+Distribute `bazel-bin/sdk_zstd.tar.zst`. Its sibling `sdk_zstd.provenance.json` records SHA-256 for the original gzip archive, the tar stream, and the zstd archive. Configure `dotnet.sdk_archive` with `type = "tar.zst"` and the zstd digest in Bazel SRI form. `//:layout_zstd` extracts the archive as a Bazel output. [SDK archive configuration](../../docs/api.md)

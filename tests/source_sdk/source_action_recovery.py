@@ -84,7 +84,8 @@ def runfiles_inventory(rows, destination):
     destination.write_text(json.dumps({'files': entries}, indent=2) + '\n')
     return {'path': str(destination), 'source': 'execution-log', 'available': bool(entries),
             'fileCount': len(entries), 'logicalBytes': sum(entry['logicalBytes'] for entry in entries),
-            'frameworkLayouts': frameworks}
+            'frameworkLayouts': frameworks,
+            'packedRuntimeArchives': [entry for entry in entries if entry['path'].endswith('/packed_console_runtime.runtime/runtime.tar.zst')]}
 
 
 def test_execution_seconds(rows):
@@ -197,8 +198,12 @@ def main():
             inventory = reports[-1]['runfiles']
             layouts = inventory['frameworkLayouts']
             assert inventory['available'], 'Smoke profile requires a runfiles inventory'
-            assert len({path.split('/shared/', 1)[0] for path in layouts}) == 1, layouts
-            assert any(path.endswith('/shared/Microsoft.NETCore.App/' + runtime_version) for path in layouts), layouts
+            if inventory['packedRuntimeArchives']:
+                assert len(inventory['packedRuntimeArchives']) == 1, inventory
+                assert not layouts, 'Packed smoke unexpectedly stages an unpacked framework'
+            else:
+                assert len({path.split('/shared/', 1)[0] for path in layouts}) == 1, layouts
+                assert any(path.endswith('/shared/Microsoft.NETCore.App/' + runtime_version) for path in layouts), layouts
         for row in rows:
             row.pop('runfilesInputs', None)
         if args.profile:
