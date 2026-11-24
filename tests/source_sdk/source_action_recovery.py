@@ -107,6 +107,7 @@ def main():
     parser.add_argument('--download-outputs', choices=['all', 'toplevel', 'minimal'],
                         help='Bazel output download mode for a smoke-only run (default: toplevel)')
     parser.add_argument('--remote-connections', type=int, help='Maximum concurrent connections to the Bazel cache')
+    parser.add_argument('--locked', action='store_true', help='Use the producer MODULE.bazel.lock in Bazel error mode')
     parser.add_argument('--profile', action='store_true', help='Retain JSON Bazel traces and summarize staging spans')
     args = parser.parse_args()
     if args.download_outputs and not args.smoke_only:
@@ -115,6 +116,9 @@ def main():
         parser.error('--remote-connections must be positive')
     download = args.download_outputs or ('toplevel' if args.smoke_only else 'all')
     seed, folder = args.seed.resolve(), args.directory.resolve()
+    if args.locked and not (seed / 'MODULE.bazel.lock').is_file():
+        parser.error('--locked requires a seed MODULE.bazel.lock produced with --lockfile_mode=update')
+    lockfile_mode = 'error' if args.locked else 'off'
     contract = json.loads((seed / 'app-contract.json').read_text())
     runtime_version = args.runtime_version or '.'.join(contract['SdkVersion'].split('.')[:2]) + '.0'
     seed_base = None
@@ -131,6 +135,8 @@ def main():
     workspace = folder / 'workspace'
     shutil.copytree(seed, workspace, copy_function=os.link,
                     ignore=shutil.ignore_patterns('bazel-*', 'MODULE.bazel.lock'))
+    if args.locked:
+        shutil.copyfile(seed / 'MODULE.bazel.lock', workspace / 'MODULE.bazel.lock')
     reports = []
     cases = [
         ('recover', None),
@@ -146,7 +152,7 @@ def main():
         log = folder / (name + '.execution.json')
         command = [os.environ['RULES_MSBUILD_BAZEL'], '--batch', '--host_jvm_args=-Xmx1024m',
                    '--output_base=' + str(folder / 'base'), '--output_user_root=' + str(folder / 'user'),
-                   '--ignore_all_rc_files', 'test', '//:smoke', '--jobs=1', '--lockfile_mode=off',
+                   '--ignore_all_rc_files', 'test', '//:smoke', '--jobs=1', '--lockfile_mode=' + lockfile_mode,
                    '--disk_cache=', '--remote_cache=' + args.cache, '--remote_upload_local_results=false',
                    '--remote_cache_async=false', '--remote_download_outputs=' + download, '--test_output=all',
                    '--execution_log_json_file=' + str(log)]
@@ -198,7 +204,7 @@ def main():
         if args.profile:
             reports[-1]['profile'] = profile_summary(profile)
         (folder / 'report.json').write_text(json.dumps({'sdkArchiveSha256': expected, 'sdkVersion': contract['SdkVersion'],
-                                                        'downloadOutputs': download, 'remoteConnections': args.remote_connections,
+                                                        'lockfileMode': lockfile_mode, 'downloadOutputs': download, 'remoteConnections': args.remote_connections,
                                                         'smokeOnly': args.smoke_only, 'profile': args.profile,
                                                         'runtimeVersion': runtime_version, 'stoppedProducerOutputBase': str(seed_base) if seed_base else None, 'runs': reports}, indent=2) + '\n')
         print(name, round(reports[-1]['wallSeconds'], 2), flush=True)
