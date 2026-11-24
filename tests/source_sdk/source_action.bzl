@@ -73,6 +73,25 @@ source_sdk = rule(
 def _sdk_layout(ctx):
     dotnet = ctx.actions.declare_file(ctx.label.name + "/dotnet")
     files = [dotnet] + [ctx.actions.declare_file(ctx.label.name + "/" + name) for name in ["dnx", "LICENSE.txt", "ThirdPartyNotices.txt"]]
+    sdk_version = ctx.attr.sdk_version
+    sdk_files = ctx.attr.sdk_files
+    sdk_directories = ctx.attr.sdk_directories
+    if bool(sdk_version) != bool(sdk_files or sdk_directories):
+        fail("sdk_version and exact sdk_files/sdk_directories inventory must be supplied together")
+    sdk_names = sdk_files + sdk_directories
+    for name in [sdk_version] + sdk_names if sdk_version else []:
+        if not name or name in [".", ".."]:
+            fail("SDK inventory names must be single path components: " + name)
+        for index in range(len(name)):
+            if name[index] not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-":
+                fail("Invalid SDK inventory name: " + name)
+    if len(sdk_names) != len({name: True for name in sdk_names}):
+        fail("SDK inventory names must be unique")
+    if sdk_version:
+        for name in ["DotnetTools", "FSharp"]:
+            if name not in sdk_directories:
+                fail("Split SDK inventory must include directory " + name)
+        files += [ctx.actions.declare_file(ctx.label.name + "/sdk/" + sdk_version + "/" + name) for name in sdk_files]
     pack_names = ctx.attr.pack_names
     for name in pack_names:
         if not name or name in [".", ".."]:
@@ -86,17 +105,17 @@ def _sdk_layout(ctx):
         if name not in pack_names:
             fail("NativeAOT packs must be declared in pack_names: " + name)
     shared = ["shared/Microsoft.NETCore.App", "shared/Microsoft.AspNetCore.App"] if ctx.attr.split_frameworks else ["shared"]
-    directory_names = ["host"] + shared + ["sdk", "sdk-manifests", "templates", "library-packs", "metadata"] + (["packs/" + name for name in pack_names] if pack_names else ["packs"])
+    directory_names = ["host"] + shared + (["sdk/" + sdk_version + "/" + name for name in sdk_directories] if sdk_version else ["sdk"]) + ["sdk-manifests", "templates", "library-packs", "metadata"] + (["packs/" + name for name in pack_names] if pack_names else ["packs"])
     directories = [ctx.actions.declare_directory(ctx.label.name + "/" + name) for name in directory_names]
-    managed_directories = [directory for name, directory in zip(directory_names, directories) if name not in ["packs/" + pack for pack in ctx.attr.native_aot_packs]]
+    managed_directories = [directory for name, directory in zip(directory_names, directories) if name not in ["packs/" + pack for pack in ctx.attr.native_aot_packs] + (["sdk/" + sdk_version + "/DotnetTools", "sdk/" + sdk_version + "/FSharp"] if sdk_version else [])]
     host = directories[0]
     frameworks = directories[1:1 + len(shared)]
     ctx.actions.run_shell(
         inputs = [ctx.file.archive] + ctx.files.packages,
         outputs = files + directories,
-        arguments = [ctx.file.archive.path, dotnet.dirname, "split" if ctx.attr.split_frameworks else "full", " ".join(pack_names)] + [value for package, destination in ctx.attr.packages.items() for value in [package.files.to_list()[0].path, destination]],
+        arguments = [ctx.file.archive.path, dotnet.dirname, "split" if ctx.attr.split_frameworks else "full", " ".join(pack_names), sdk_version, " ".join(sdk_files), " ".join(sdk_directories)] + [value for package, destination in ctx.attr.packages.items() for value in [package.files.to_list()[0].path, destination]],
         command = """set -eu
-archive="$1"; root="$2"; framework_mode="$3"; declared_packs="$4"; shift 4
+archive="$1"; root="$2"; framework_mode="$3"; declared_packs="$4"; sdk_version="$5"; sdk_files="$6"; sdk_directories="$7"; shift 7
 mkdir -p "$root"
 tar --no-same-owner -xzf "$archive" -C "$root"
 for directory in host shared sdk packs sdk-manifests templates library-packs metadata; do mkdir -p "$root/$directory"; done
@@ -104,8 +123,8 @@ while test "$#" -gt 0; do
     package="$1"; destination="$2"; shift 2
     python3 -m zipfile -e "$package" "$root/$destination"
 done
-if test "$framework_mode" = split || test -n "$declared_packs"; then
-python3 - "$root" "$framework_mode" "$declared_packs" <<'PYTHON'
+if test "$framework_mode" = split || test -n "$declared_packs" || test -n "$sdk_version"; then
+python3 - "$root" "$framework_mode" "$declared_packs" "$sdk_version" "$sdk_files" "$sdk_directories" <<'PYTHON'
 from pathlib import Path
 import sys
 root = Path(sys.argv[1])
@@ -119,6 +138,17 @@ if sys.argv[2] == "split":
     check("shared", ["Microsoft.NETCore.App", "Microsoft.AspNetCore.App"])
 if sys.argv[3]:
     check("packs", sys.argv[3].split())
+if sys.argv[4]:
+    version = sys.argv[4]
+    check("sdk", [version])
+    sdk = root / "sdk" / version
+    files, directories = sys.argv[5].split(), sys.argv[6].split()
+    children = {entry.name: entry for entry in sdk.iterdir()}
+    if set(children) != set(files + directories):
+        raise ValueError("Unexpected SDK inventory: " + repr(sorted(children)))
+    for name, entry in children.items():
+        if entry.is_symlink() or (not entry.is_file() if name in files else not entry.is_dir()):
+            raise ValueError("Unexpected SDK entry type: " + name)
 PYTHON
 fi
 """,
@@ -129,4 +159,4 @@ fi
         groups["core_runtime"] = depset([dotnet, host, frameworks[0]])
     return [DefaultInfo(files = depset(files + directories)), OutputGroupInfo(**groups)]
 
-sdk_layout = rule(implementation = _sdk_layout, attrs = {"split_frameworks": attr.bool(), "archive": attr.label(allow_single_file = [".tar.gz"], mandatory = True, cfg = "exec"), "packages": attr.label_keyed_string_dict(allow_files = [".nupkg"]), "pack_names": attr.string_list(doc = "Exact pack directory inventory; empty preserves the complete packs tree."), "native_aot_packs": attr.string_list(doc = "Declared pack directories omitted only from the managed output group.")})
+sdk_layout = rule(implementation = _sdk_layout, attrs = {"sdk_version": attr.string(doc = "Version directory for an exact SDK inventory split."), "sdk_files": attr.string_list(doc = "Exact immediate regular file inventory in sdk_version."), "sdk_directories": attr.string_list(doc = "Exact immediate directory inventory in sdk_version; DotnetTools and FSharp are omitted only from managed."), "split_frameworks": attr.bool(), "archive": attr.label(allow_single_file = [".tar.gz"], mandatory = True, cfg = "exec"), "packages": attr.label_keyed_string_dict(allow_files = [".nupkg"]), "pack_names": attr.string_list(doc = "Exact pack directory inventory; empty preserves the complete packs tree."), "native_aot_packs": attr.string_list(doc = "Declared pack directories omitted only from the managed output group.")})
