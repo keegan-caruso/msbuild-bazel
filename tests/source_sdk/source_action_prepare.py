@@ -107,7 +107,13 @@ def write_bazel_files(w, rules, architecture="arm64", system_bwrap=False, pin=No
                  "runtime.ubuntu.26.04-arm64.Microsoft.DotNet.ILCompiler"]
         native_aot = ["Microsoft.NETCore.App.Runtime.NativeAOT.ubuntu.26.04-arm64",
                       "runtime.ubuntu.26.04-arm64.Microsoft.DotNet.ILCompiler"]
-        pack_layout = ",pack_names=" + json.dumps(packs) + ",native_aot_packs=" + json.dumps(native_aot)
+        sdk_inventory = json.loads(Path(__file__).with_name("sdk-layout-linux-arm64-11.json").read_text())
+        if sdk_inventory["sdkVersion"] != sdk_version:
+            raise ValueError("Pinned SDK layout version mismatch")
+        pack_layout = (",pack_names=" + json.dumps(packs) + ",native_aot_packs=" + json.dumps(native_aot) +
+                       ",sdk_version=" + json.dumps(sdk_version) +
+                       ",sdk_files=" + json.dumps(sdk_inventory["files"]) +
+                       ",sdk_directories=" + json.dumps(sdk_inventory["directories"]))
         managed_sdk = ('filegroup(name="managed_layout",srcs=[":layout"],output_group="managed")\n'
                        'msbuild_sdk(name="produced_managed",dotnet=":dotnet",files=[":managed_layout"],'
                        f'sdk_version="{sdk_version}",runtime_version="{runtime_version}",'
