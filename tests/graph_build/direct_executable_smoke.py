@@ -51,7 +51,8 @@ def main():
             'msbuild_graph_runner(name="runner")\n'
             'msbuild_graph(name="graph",runner=":runner",contract="contract.json",'
             'srcs=["P0/P0.csproj","P0/Code.cs","Directory.Build.props","global.json"])\n'
-            'msbuild_graph_test(name="smoke",graph=":graph",assembly="P0/bin/Release/net11.0/P0.dll",direct_executable_smoke=True)\n')
+            'msbuild_graph_test(name="smoke",graph=":graph",assembly="P0/bin/Release/net11.0/P0.dll",direct_executable_smoke=True)\n'
+            'msbuild_graph_test(name="writable",graph=":graph",assembly="P0/bin/Release/net11.0/P0.dll",expected_exit_code=7,args=["exit-seven"],test_working_directory="work",test_output_dirs=["results"])\n')
         startup = [str(ROOT / 'scripts/bazel-launcher.sh'), f'--output_base={root / "bazel"}']
 
         def bazel(*args, success=True):
@@ -60,7 +61,7 @@ def main():
             return result.stdout + result.stderr
 
         try:
-            bazel('test', '//:smoke', '--nocache_test_results', '--test_output=errors')
+            bazel('test', '//:smoke', '//:writable', '--nocache_test_results', '--test_output=errors')
             launcher = workspace / 'bazel-bin/smoke'
             runfiles = Path(str(launcher) + '.runfiles')
             hostile = root / 'ambient SDK'
@@ -110,7 +111,7 @@ def main():
             invoke(extra={'TEST_TOTAL_SHARDS': '1', 'TEST_SHARD_INDEX': '0'})
             empty = root / 'missing declared runtime'
             empty.mkdir()
-            invoke(extra={'RUNFILES_DIR': str(empty)}, code=1, error='declared dotnet runtime host')
+            invoke(extra={'RUNFILES_DIR': str(empty)}, code=1, error='declared runtime host')
             failed = bazel('test', '//:smoke', '--nocache_test_results', '--test_output=errors',
                            '--test_arg=exit-seven', success=False)
             assert 'FAILED' in failed and 'SMOKE_PROBE=' in failed, failed
