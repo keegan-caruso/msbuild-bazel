@@ -43,29 +43,6 @@ def actions(path, include_test_details=False):
     return result
 
 
-def configure_launcher(workspace, mode):
-    """Change only the copied fixture, breaking the hard link to its seed."""
-    build = workspace / 'BUILD.bazel'
-    text = build.read_text()
-    pattern = r'(?m)^[ \t]*msbuild_graph_test\(name="smoke",graph=":graph",project="App\.csproj"(?P<runtime>,runtime_host=":console_runtime")?(?:,direct_executable_smoke=(True|False))?\)[ \t]*$'
-    matches = list(re.finditer(pattern, text))
-    if len(matches) != 1:
-        raise ValueError('Expected exactly one generated //:smoke declaration')
-    match = matches[0]
-    current = 'direct' if match.group(2) == 'True' else 'classic'
-    if mode is None or mode == current:
-        return current
-    replacement = 'msbuild_graph_test(name="smoke",graph=":graph",project="App.csproj"'
-    replacement += match.group('runtime') or ''
-    if mode == 'direct':
-        replacement += ',direct_executable_smoke=True'
-    replacement += ')'
-    temporary = workspace / 'BUILD.bazel.tmp'
-    temporary.write_text(text[:match.start()] + replacement + text[match.end():])
-    temporary.replace(build)
-    return mode
-
-
 def profile_summary(path):
     """Use Bazel 9.3.2 SpawnRunner's stage span and enclosing test action."""
     data = json.loads(path.read_text())
@@ -130,12 +107,8 @@ def main():
     parser.add_argument('--download-outputs', choices=['all', 'toplevel', 'minimal'],
                         help='Bazel output download mode for a smoke-only run (default: toplevel)')
     parser.add_argument('--remote-connections', type=int, help='Maximum concurrent connections to the Bazel cache')
-    parser.add_argument('--smoke-launcher', choices=['classic', 'direct'],
-                        help='Override only the copied generated smoke target (default: preserve seed)')
     parser.add_argument('--profile', action='store_true', help='Retain JSON Bazel traces and summarize staging spans')
     args = parser.parse_args()
-    if args.smoke_launcher and not args.smoke_only:
-        parser.error('--smoke-launcher requires --smoke-only')
     if args.download_outputs and not args.smoke_only:
         parser.error('--download-outputs requires --smoke-only')
     if args.remote_connections is not None and args.remote_connections < 1:
@@ -158,7 +131,6 @@ def main():
     workspace = folder / 'workspace'
     shutil.copytree(seed, workspace, copy_function=os.link,
                     ignore=shutil.ignore_patterns('bazel-*', 'MODULE.bazel.lock'))
-    launcher = configure_launcher(workspace, args.smoke_launcher)
     reports = []
     cases = [
         ('recover', None),
@@ -219,16 +191,15 @@ def main():
             inventory = reports[-1]['runfiles']
             layouts = inventory['frameworkLayouts']
             assert inventory['available'], 'Smoke profile requires a runfiles inventory'
-            if launcher == 'direct':
-                assert len({path.split('/shared/', 1)[0] for path in layouts}) == 1, layouts
-                assert any(path.endswith('/shared/Microsoft.NETCore.App/' + runtime_version) for path in layouts), layouts
+            assert len({path.split('/shared/', 1)[0] for path in layouts}) == 1, layouts
+            assert any(path.endswith('/shared/Microsoft.NETCore.App/' + runtime_version) for path in layouts), layouts
         for row in rows:
             row.pop('runfilesInputs', None)
         if args.profile:
             reports[-1]['profile'] = profile_summary(profile)
         (folder / 'report.json').write_text(json.dumps({'sdkArchiveSha256': expected, 'sdkVersion': contract['SdkVersion'],
                                                         'downloadOutputs': download, 'remoteConnections': args.remote_connections,
-                                                        'smokeOnly': args.smoke_only, 'smokeLauncher': launcher, 'profile': args.profile,
+                                                        'smokeOnly': args.smoke_only, 'profile': args.profile,
                                                         'runtimeVersion': runtime_version, 'stoppedProducerOutputBase': str(seed_base) if seed_base else None, 'runs': reports}, indent=2) + '\n')
         print(name, round(reports[-1]['wallSeconds'], 2), flush=True)
 

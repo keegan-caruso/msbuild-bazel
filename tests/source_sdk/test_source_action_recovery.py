@@ -9,13 +9,12 @@ import source_action_recovery as recovery
 
 
 class RecoveryTests(unittest.TestCase):
-    def exercise(self, root, sdk, explicit_stop=False, smoke=False, reported_digest=None, test_executed=True, graph_observed=True, profile=False, launcher=None, seed_direct=False):
+    def exercise(self, root, sdk, explicit_stop=False, smoke=False, reported_digest=None, test_executed=True, graph_observed=True, profile=False):
         seed = root / 'seed'
         seed.mkdir()
         (seed / 'app-contract.json').write_text(json.dumps({'SdkVersion': sdk}))
         (seed / 'App.cs').write_text('original')
-        declaration = 'msbuild_graph_test(name="smoke",graph=":graph",project="App.csproj"'
-        declaration += ',direct_executable_smoke=True)' if seed_direct else ')'
+        declaration = 'msbuild_graph_test(name="smoke",graph=":graph",project="App.csproj")'
         (seed / 'BUILD.bazel').write_text(declaration)
         base = root / 'producer-base'
         output = base / 'execroot/main/bazel-out' if explicit_stop else seed / 'bazel-out'
@@ -59,8 +58,6 @@ class RecoveryTests(unittest.TestCase):
         args = ['recovery', str(seed), str(folder), '--cache=https://fixture.invalid']
         if profile:
             args += ['--profile']
-        if launcher:
-            args += ['--smoke-launcher=' + launcher]
         if smoke:
             args += ['--smoke-only', '--remote-connections=1']
         if explicit_stop:
@@ -75,26 +72,6 @@ class RecoveryTests(unittest.TestCase):
         self.assertTrue(all('--nocache_test_results' in command for command in calls[-2:]))
         return calls, json.loads((folder / 'report.json').read_text())
 
-    def test_launcher_override_preserves_console_runtime_for_both_modes(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            build = root / 'BUILD.bazel'
-            classic = 'msbuild_graph_test(name="smoke",graph=":graph",project="App.csproj",runtime_host=":console_runtime")'
-            build.write_text(classic)
-            self.assertEqual(recovery.configure_launcher(root, 'direct'), 'direct')
-            self.assertIn('runtime_host=":console_runtime",direct_executable_smoke=True', build.read_text())
-            self.assertEqual(recovery.configure_launcher(root, 'classic'), 'classic')
-            self.assertEqual(build.read_text(), classic)
-
-    def test_launcher_override_requires_smoke_only(self):
-        for mode in ['classic', 'direct']:
-            with self.subTest(mode=mode), patch('sys.argv', ['recovery', 'seed', 'trial', '--cache=https://fixture.invalid',
-                                                          '--smoke-launcher=' + mode]), \
-                    patch('sys.stderr'):
-                with self.assertRaises(SystemExit) as error:
-                    recovery.main()
-                self.assertEqual(error.exception.code, 2)
-
     def test_full_profile_keeps_cached_test_oracle(self):
         with tempfile.TemporaryDirectory() as temporary:
             _, report = self.exercise(Path(temporary), '11.0.100', profile=True)
@@ -102,26 +79,9 @@ class RecoveryTests(unittest.TestCase):
             self.assertFalse(report['runs'][0]['runfiles']['available'])
             self.assertIsNone(report['runs'][0]['testExecutionSeconds'])
 
-    def test_launcher_overrides_only_trial_and_preserves_seed_default(self):
-        for seed_direct, launcher in [(True, None), (True, 'classic'), (False, 'direct')]:
-            with self.subTest(seed_direct=seed_direct, launcher=launcher), tempfile.TemporaryDirectory() as temporary:
-                _, report = self.exercise(Path(temporary), '11.0.100', smoke=True,
-                                          seed_direct=seed_direct, launcher=launcher)
-                self.assertEqual(report['smokeLauncher'], launcher or 'direct')
-
-    def test_launcher_rejects_unknown_or_duplicate_declaration(self):
-        declaration = 'msbuild_graph_test(name="smoke",graph=":graph",project="App.csproj")'
-        for text in ['unknown', declaration + '\n' + declaration, 'wrapper(' + declaration + ')',
-                     declaration.replace('App.csproj', 'AppXcsproj')]:
-            with tempfile.TemporaryDirectory() as temporary:
-                root = Path(temporary)
-                (root / 'BUILD.bazel').write_text(text)
-                with self.assertRaises(ValueError):
-                    recovery.configure_launcher(root, 'direct')
-
     def test_profile_flag_and_execution_duration(self):
         with tempfile.TemporaryDirectory() as temporary:
-            calls, report = self.exercise(Path(temporary), '11.0.100', smoke=True, profile=True, launcher='direct')
+            calls, report = self.exercise(Path(temporary), '11.0.100', smoke=True, profile=True)
             self.assertTrue(report['profile'])
             self.assertIn('--generate_json_trace_profile', calls[0])
             self.assertIn('--noslim_profile', calls[0])
