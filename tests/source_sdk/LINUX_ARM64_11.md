@@ -61,7 +61,7 @@ python3 "$rules/tests/source_sdk/source_action_prepare.py" \
 )
 ```
 
-`//:smoke` consumes the SDK as a Bazel toolchain, builds a `net11.0` executable, and verifies its runtime version. The smoke test uses `//:stripped_console_runtime`. Use `//:console_runtime` for native debugging with the original symbols. The controller SDK compiles the Bazel driver; the VMR uses its pinned RC SDK to build the product toolchain.
+`//:smoke` consumes the SDK as a Bazel toolchain, builds a `net11.0` executable, and verifies its runtime version. The smoke test uses `//:stripped_console_runtime`, built with the qualified Linux C++ toolchain’s ELF strip tool. Use `//:console_runtime` for native debugging with the original symbols. The controller SDK compiles the Bazel driver; the VMR uses its pinned RC SDK to build the product toolchain.
 
 ## Run an app with the runtime alone
 
