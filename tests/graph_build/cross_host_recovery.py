@@ -17,6 +17,7 @@ import subprocess
 import threading
 import time
 import urllib.request
+from urllib.parse import urlsplit
 
 from linux_action_recovery import rows, tree
 
@@ -96,11 +97,14 @@ def main():
     parser.add_argument('--seed', type=Path)
     parser.add_argument('--revision', required=True)
     parser.add_argument('--nonce', required=True)
+    parser.add_argument('--acquisition', type=Path, help='download-only mount; no action/project outputs')
     args = parser.parse_args()
     if not re.fullmatch(r'[0-9a-f]{40}', args.revision):
         parser.error('--revision requires a full commit ID')
     if os.uname().sysname != 'Linux' or os.uname().machine != 'aarch64':
         parser.error('Requires Ubuntu ARM64 guest')
+    if not Path('/usr/bin/bwrap').is_file():
+        parser.error('Requires packaged Bubblewrap at /usr/bin/bwrap for stable paths')
     rules, output = args.rules.resolve(), args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     workspace = output / 'workspace'
@@ -111,7 +115,7 @@ def main():
         source = workspace / relative
         source.write_text(source.read_text() + '\n// Qualification nonce: ' + args.nonce + '\n')
     build = workspace / 'BUILD.bazel'
-    build.write_text(build.read_text().replace('app_graph(name = "graph")', 'app_graph(name = "graph", profile_build = True, linux_worker = False)'))
+    build.write_text(build.read_text().replace('app_graph(name = "graph")', 'app_graph(name = "graph", profile_build = True, linux_worker = False, linux_stable_paths = True)'))
     proxy = ThreadingHTTPServer(('127.0.0.1', 18723), Proxy)
     proxy.upstream = os.environ['RULES_MSBUILD_SHARED_CACHE_URL'].rstrip('/')
     proxy.readonly = args.phase != 'seed'
@@ -130,6 +134,20 @@ def main():
              '--remote_upload_local_results=' + ('true' if args.phase == 'seed' else 'false'),
              '--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=' + url,
              '--action_env=RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=' + ('1' if args.phase == 'project' else '0')]
+    if args.acquisition:
+        acquisition = args.acquisition.resolve()
+        pins = json.loads((rules / 'scripts/toolchains.json').read_text())['dotnet']['platforms']['linux-arm64']
+        archive = acquisition / 'downloads' / pins['sha256']
+        digest = hashlib.sha256()
+        with archive.open('rb') as stream:
+            for block in iter(lambda: stream.read(1024 * 1024), b''):
+                digest.update(block)
+        if digest.hexdigest() != pins['sha256']:
+            raise ValueError('Acquisition archive does not match SDK pin')
+        named = archive.with_name(Path(urlsplit(pins['url']).path).name)
+        if not named.exists():
+            named.symlink_to(archive.name)
+        flags += ['--distdir=' + str(archive.parent), '--repository_cache=' + str(acquisition / 'repositories')]
     if args.phase in ('seed', 'project'):
         flags += ['--remote_accept_cached=false']
     report = {'revision': args.revision, 'phase': args.phase, 'nonce': args.nonce, 'platform': os.uname().sysname + '/' + os.uname().machine}

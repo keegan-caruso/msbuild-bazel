@@ -16,6 +16,12 @@ cache_url="${RULES_MSBUILD_SHARED_CACHE_URL:-}"
 if [[ -n "$cache_url" && ( ! "$cache_url" =~ ^https?://[^[:space:]\"]+$ || "$cache_url" == *"'"* || "$cache_url" == *\\* || "$cache_url" == *'#'* ) ]]; then
     echo 'RULES_MSBUILD_SHARED_CACHE_URL must be an HTTP(S) URL without whitespace, quotes, backslashes or fragments.' >&2; exit 2
 fi
+acquisition_mount=()
+if [[ -n "${RULES_MSBUILD_CONTAINER_ACQUISITION:-}" ]]; then
+    mkdir -p "$RULES_MSBUILD_CONTAINER_ACQUISITION"
+    acquisition_root="$(cd "$RULES_MSBUILD_CONTAINER_ACQUISITION" && pwd)"
+    acquisition_mount=(--volume "$acquisition_root:/acquisition")
+fi
 relay_mount=()
 if [[ -n "${RULES_MSBUILD_SHARED_CACHE_SOCKET:-}" ]]; then
     if [[ "$cache_url" != https://* || ! -S "$RULES_MSBUILD_SHARED_CACHE_SOCKET" ]]; then
@@ -29,6 +35,8 @@ printf 'Container evidence: %s\n' "$run_dir"
 container run --rm --init -i --arch "$arch" --cpus "${RULES_MSBUILD_CONTAINER_CPUS:-4}" --memory "${RULES_MSBUILD_CONTAINER_MEMORY:-6G}" \
     ${rosetta[@]+"${rosetta[@]}"} \
     ${relay_mount[@]+"${relay_mount[@]}"} \
+    ${acquisition_mount[@]+"${acquisition_mount[@]}"} \
+    -e "RULES_MSBUILD_CONTAINER_ACQUISITION=${RULES_MSBUILD_CONTAINER_ACQUISITION:+1}" \
     -e "RULES_MSBUILD_SHARED_CACHE_RELAY=${RULES_MSBUILD_SHARED_CACHE_SOCKET:+1}" \
     -e "RULES_MSBUILD_SHARED_CACHE_URL=$cache_url" \
     -e "RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=${RULES_MSBUILD_PROJECT_CACHE_READ_ONLY:-0}" \
@@ -51,6 +59,12 @@ tar -C /src --exclude=.git --exclude=.tools --exclude=.cache --exclude=artifacts
     --exclude=bin --exclude=obj --exclude='./bazel-*' --exclude=__pycache__ -cf - . |
     "$RULES_MSBUILD_TAR" --no-xattrs -C /workspace -xf -
 cd /workspace
+if [[ "${RULES_MSBUILD_CONTAINER_ACQUISITION:-}" == 1 ]]; then
+    # Acquisition only: never retain output bases or action/project caches here.
+    mkdir -p .cache /acquisition/downloads /acquisition/bazelisk
+    ln -s /acquisition/downloads .cache/downloads
+    export BAZELISK_HOME=/acquisition/bazelisk
+fi
 if [[ "${RULES_MSBUILD_SHARED_CACHE_RELAY:-}" == 1 ]]; then
     python3 scripts/shared-cache-guest-relay.py --url "$RULES_MSBUILD_SHARED_CACHE_URL" \
         --socket /var/host-services/shared-cache.sock --ready /tmp/shared-cache-relay.ready &
