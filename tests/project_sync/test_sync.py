@@ -34,6 +34,35 @@ class GraphSyncTests(unittest.TestCase):
         self.assertEqual(result.returncode == 0, success, result.stdout + result.stderr)
         return result.stdout + result.stderr
 
+    def fsharp_project(self):
+        (self.root / "Library.fsproj").write_text("""<Project Sdk="Microsoft.NET.Sdk">
+<PropertyGroup><TargetFramework>net11.0</TargetFramework><DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference></PropertyGroup>
+<ItemGroup><Compile Include="Library.fsi" /><Compile Include="Library.fs" /></ItemGroup></Project>""")
+        (self.root / "Library.fsi").write_text("module Library\nval answer: int\n")
+        (self.root / "Library.fs").write_text("module Library\nlet answer = 42\n")
+        (self.root / "App.csproj").write_text(self.project.replace('</Project>',
+            '<ItemGroup><ProjectReference Include="Library.fsproj" /></ItemGroup></Project>'))
+
+    def test_fsharp_explicit_inputs_and_conservative_dependency_boundaries(self):
+        self.fsharp_project()
+        self.sync({'projects': {'Library.fsproj': {}}})
+        contract = json.loads((self.root / 'graph.generated.json').read_text())
+        library = contract['Projects']['Library.fsproj']['Configurations'][0]
+        self.assertIn('Library.fsi', library['Inputs'])
+        self.assertIn('Library.fs', library['Inputs'])
+        self.assertFalse(library['ReferenceBoundary'])
+        self.assertFalse(contract['Projects']['App.csproj']['Configurations'][0]['ReferenceBoundary'])
+        self.sync({'projects': {'Library.fsproj': {}}}, flags=['--check'])
+        for project in ['Library.fsproj', 'App.csproj']:
+            with self.subTest(project=project):
+                self.assertIn('F# graphs require implementation dependency fingerprints',
+                    self.sync({'projects': {project: {'referenceBoundary': True}}}, success=False))
+
+    def test_fsharp_compile_globs_require_explicit_ordered_sources(self):
+        self.fsharp_project()
+        self.assertIn('Compile globs require a C# project', self.sync(
+            {'projects': {'Library.fsproj': {'compileGlobs': ['src/*.cs']}}}, success=False))
+
     def test_graph_is_the_only_default(self):
         self.sync()
         self.assertTrue((self.root / "graph.generated.json").is_file())

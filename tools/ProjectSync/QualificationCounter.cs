@@ -20,7 +20,7 @@ internal sealed class QualificationCounter : ILogger
     {
         eventSource.TaskStarted += (_, args) =>
         {
-            if (args.TaskName == "Csc")
+            if (args.TaskName is "Csc" or "Vbc" or "Fsc")
             {
                 Interlocked.Increment(ref compilations);
             }

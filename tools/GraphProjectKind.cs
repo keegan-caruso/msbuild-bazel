@@ -1,4 +1,5 @@
 using Microsoft.Build.Execution;
+using Microsoft.Build.Graph;
 
 namespace RulesMSBuild;
 
@@ -6,6 +7,30 @@ namespace RulesMSBuild;
 // Keep evaluated properties intact; only artifact/cache classification differs.
 internal static class GraphProjectKind
 {
+    // F# inline bodies and optimization metadata live in implementation DLLs.
+    internal static bool RequiresImplementationReferences(ProjectGraphNode node)
+    {
+        var seen = new HashSet<ProjectGraphNode>();
+        var pending = new Stack<ProjectGraphNode>();
+        pending.Push(node);
+        while (pending.TryPop(out var current))
+        {
+            if (!seen.Add(current))
+            {
+                continue;
+            }
+            if (Path.GetExtension(current.ProjectInstance.FullPath).Equals(".fsproj", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+            foreach (var dependency in current.ProjectReferences)
+            {
+                pending.Push(dependency);
+            }
+        }
+        return false;
+    }
+
     internal static bool IsTraversal(ProjectInstance project) =>
         project.GetPropertyValue("UsingMicrosoftTraversalSdk").Equals("true", StringComparison.OrdinalIgnoreCase);
 

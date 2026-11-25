@@ -23,7 +23,7 @@ internal static class Program
             }
             if (args.Length < 3)
             {
-                throw new ArgumentException("ProjectSync <workspace> <sdk-directory> <project.csproj|project.ilproj|dirs.proj>... [--check] [--configuration Release] [--framework TFM] [--package-build] [--resolve-references] [--package-input FILE] [--mappings mappings.json] [--qualification-cache DIR [--qualification-cache-url URL] [--qualification-cache-read-only]]");
+                throw new ArgumentException("ProjectSync <workspace> <sdk-directory> <project.csproj|project.fsproj|project.ilproj|dirs.proj>... [--check] [--configuration Release] [--framework TFM] [--package-build] [--resolve-references] [--package-input FILE] [--mappings mappings.json] [--qualification-cache DIR [--qualification-cache-url URL] [--qualification-cache-read-only]]");
             }
             using var profile = SyncProfile.Measure("sync-total");
             var sdk = WorkspaceView.PhysicalPath(args[1]);

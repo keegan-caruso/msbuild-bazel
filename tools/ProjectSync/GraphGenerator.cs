@@ -723,6 +723,17 @@ internal static class GraphGenerator
             {
                 throw new InvalidDataException("Explicit dependency copies require a reviewed reference boundary: " + Relative(node.ProjectInstance.FullPath));
             }
+            // F# consumers can use inline bodies and optimization metadata from
+            // implementation assemblies. Reference-assembly equality alone does
+            // not establish a safe dependency boundary for this graph closure.
+            if (GraphProjectKind.RequiresImplementationReferences(node))
+            {
+                if (binding.ReferenceBoundary == true)
+                {
+                    throw new InvalidDataException("F# graphs require implementation dependency fingerprints: " + Relative(node.ProjectInstance.FullPath));
+                }
+                return boundaries[node] = false;
+            }
             if (binding.ReferenceBoundary is not null)
             {
                 var supported = GraphProjectKind.HasAssembly(node.ProjectInstance) &&

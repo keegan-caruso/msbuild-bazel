@@ -433,6 +433,10 @@ internal sealed class GraphInputs : IDisposable
 
     private void Validate(ProjectGraphNode node)
     {
+        if (For(node).ReferenceBoundary && GraphProjectKind.RequiresImplementationReferences(node))
+        {
+            throw new InvalidDataException("F# graphs require implementation dependency fingerprints: " + Relative(node));
+        }
         if (contract.Version < 3 && For(node).ImplementationDependencies?.Length > 0)
         {
             throw new InvalidDataException("Implementation dependencies require graph contract version 3");
