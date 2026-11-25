@@ -6,6 +6,10 @@ namespace RulesMSBuild;
 // whether conflicts reject a graph or merely make its snapshots ineligible.
 internal sealed class OutputOwnershipIndex<TOwner> where TOwner : class
 {
+    internal static StringComparer PathComparer { get; } = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+    internal static StringComparison PathComparison { get; } = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+    internal static string CanonicalPath(string path) => OperatingSystem.IsWindows() ? path.Replace('\\', '/') : path;
+
     internal IReadOnlyDictionary<string, IReadOnlySet<TOwner>> Directories
     {
         get;
@@ -22,7 +26,7 @@ internal sealed class OutputOwnershipIndex<TOwner> where TOwner : class
     }
 
     internal IEnumerable<TOwner> Owners(string path, string? boundary = null) =>
-        (Files.TryGetValue(path, out var exact) ? exact : Enumerable.Empty<TOwner>())
+        (Files.TryGetValue(CanonicalPath(path), out var exact) ? exact : Enumerable.Empty<TOwner>())
         .Concat(Parents(path, boundary).Where(Directories.ContainsKey).SelectMany(parent => Directories[parent]))
         .Distinct(ReferenceEqualityComparer.Instance).Cast<TOwner>();
 
@@ -51,23 +55,26 @@ internal sealed class OutputOwnershipIndex<TOwner> where TOwner : class
 
     internal static IEnumerable<string> Parents(string path, string? boundary = null)
     {
-        for (var parent = Path.GetDirectoryName(path); !string.IsNullOrEmpty(parent) && parent != boundary; parent = Path.GetDirectoryName(parent))
+        for (var parent = Parent(path); !string.IsNullOrEmpty(parent) && !PathComparer.Equals(parent, boundary is null ? null : CanonicalPath(boundary)); parent = Parent(parent))
         {
             yield return parent;
         }
     }
 
+    private static string? Parent(string path) => Path.GetDirectoryName(path) is { } parent ? CanonicalPath(parent) : null;
+
     private static IReadOnlyDictionary<string, IReadOnlySet<TOwner>> Index(IEnumerable<(TOwner owner, string path)> entries)
     {
-        var index = new Dictionary<string, HashSet<TOwner>>(StringComparer.Ordinal);
-        foreach (var (owner, path) in entries)
+        var index = new Dictionary<string, HashSet<TOwner>>(PathComparer);
+        foreach (var (owner, rawPath) in entries)
         {
+            var path = CanonicalPath(rawPath);
             if (!index.TryGetValue(path, out var owners))
             {
                 index.Add(path, owners = new HashSet<TOwner>(ReferenceEqualityComparer.Instance));
             }
             owners.Add(owner);
         }
-        return index.ToFrozenDictionary(pair => pair.Key, pair => (IReadOnlySet<TOwner>)pair.Value.ToFrozenSet<TOwner>(ReferenceEqualityComparer.Instance), StringComparer.Ordinal);
+        return index.ToFrozenDictionary(pair => pair.Key, pair => (IReadOnlySet<TOwner>)pair.Value.ToFrozenSet<TOwner>(ReferenceEqualityComparer.Instance), PathComparer);
     }
 }
