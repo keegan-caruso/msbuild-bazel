@@ -63,6 +63,15 @@ class AppleContainerTests(unittest.TestCase):
             self.assertEqual(amd64.returncode, 0, amd64.stderr)
             self.assertIn('--rosetta', (root / 'args').read_text().splitlines())
             env.pop('RULES_MSBUILD_CONTAINER_ARCH')
+            env['RULES_MSBUILD_CONTAINER_ACQUISITION'] = str(root / 'downloads')
+            acquired = subprocess.run(['bash', str(script), 'true'], env=env, capture_output=True)
+            self.assertEqual(acquired.returncode, 0, acquired.stderr)
+            acquired_args = (root / 'args').read_text().splitlines()
+            self.assertIn(str(root / 'downloads') + ':/acquisition', acquired_args)
+            self.assertIn('RULES_MSBUILD_CONTAINER_ACQUISITION=1', acquired_args)
+            self.assertIn('export BAZELISK_HOME=/acquisition/bazelisk', (root / 'guest').read_text())
+            self.assertIn('ln -s /acquisition/downloads .cache/downloads', (root / 'guest').read_text())
+            env.pop('RULES_MSBUILD_CONTAINER_ACQUISITION')
             env['USE_BAZEL_VERSION'] = '9.3.2'
             result = subprocess.run(['bash', str(script), 'true'], env=env, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -79,6 +88,15 @@ class AppleContainerTests(unittest.TestCase):
                 relay_args = (root / 'args').read_text().splitlines()
                 self.assertIn(socket_path + ':/var/host-services/shared-cache.sock', relay_args)
                 self.assertIn('RULES_MSBUILD_SHARED_CACHE_RELAY=1', relay_args)
+                env['RULES_MSBUILD_SHARED_CACHE_URL'] = 'http://cache.invalid:18726'
+                rejected = subprocess.run(['bash', str(script), 'true'], env=env, capture_output=True)
+                self.assertEqual(rejected.returncode, 2)
+                self.assertIn(b'RULES_MSBUILD_SHARED_CACHE_ALLOW_HTTP', rejected.stderr)
+                env['RULES_MSBUILD_SHARED_CACHE_ALLOW_HTTP'] = '1'
+                allowed = subprocess.run(['bash', str(script), 'true'], env=env, capture_output=True)
+                self.assertEqual(allowed.returncode, 0, allowed.stderr)
+                self.assertIn('RULES_MSBUILD_SHARED_CACHE_ALLOW_HTTP=1', (root / 'args').read_text())
+                env.pop('RULES_MSBUILD_SHARED_CACHE_ALLOW_HTTP')
             env.pop('RULES_MSBUILD_SHARED_CACHE_SOCKET')
             env['RULES_MSBUILD_SHARED_CACHE_URL'] = 'http://cache.invalid:8080'
             guest = (root / 'guest').read_text()
