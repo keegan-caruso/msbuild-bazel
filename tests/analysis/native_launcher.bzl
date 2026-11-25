@@ -9,7 +9,7 @@ load("@rules_testing//lib:util.bzl", "TestingAspectInfo")
 load("//msbuild/private:shell_launcher.bzl", "SHELL_TOOLCHAIN", "shell_launcher", "shell_launcher_attrs")
 load(":helpers.bzl", "action")
 
-ScriptInfo = provider(fields = ["file"])
+ScriptInfo = provider("The original script wrapped by the launcher probe.", fields = ["file"])
 
 def _probe(ctx):
     script = ctx.file.script
@@ -46,6 +46,11 @@ def _unix(env, target):
     env.expect.that_collection([item.mnemonic for item in target[TestingAspectInfo].actions]).not_contains("MSBuildShellLauncher")
 
 def native_launcher_tests(name):
+    """Defines native launcher analysis controls.
+
+    Args:
+        name: Prefix for the generated test targets.
+    """
     native.platform(name = name + "_windows", constraint_values = ["@platforms//os:windows", "@platforms//cpu:x86_64"])
     native.platform(name = name + "_unix", constraint_values = ["@platforms//os:linux", "@platforms//cpu:x86_64"])
     sh_toolchain(name = name + "_shell", path = "C:/Program Files/Git/bin/bash.exe", launcher = ":launcher-template.txt", launcher_maker = ":dotnet", tags = ["manual"])
