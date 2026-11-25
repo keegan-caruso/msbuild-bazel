@@ -1,0 +1,96 @@
+load("@rules_msbuild//msbuild:defs.bzl", "msbuild_file_binding", "msbuild_graph", "msbuild_graph_layout", "msbuild_graph_output", "msbuild_graph_runner", "msbuild_native_tool")
+load("@rules_msbuild//msbuild:sdk.bzl", "msbuild_sdk")
+load(":native.bzl", "native")
+load(":source_action.bzl", "sdk_layout")
+
+sdk_layout(
+    name = "sdk",
+    archive = "sdk.tar.gz",
+)
+
+filegroup(
+    name = "dotnet",
+    srcs = [":sdk"],
+    output_group = "dotnet",
+)
+
+msbuild_sdk(
+    name = "produced",
+    dotnet = ":dotnet",
+    files = [":sdk"],
+    runtime_identifier = "linux-x64",
+    runtime_version = "10.0.0",
+    sdk_version = "10.0.100",
+)
+
+native(
+    name = "native",
+    archive = "native.tar",
+    clang = "clang",
+    objcopy = "objcopy",
+)
+
+msbuild_native_tool(
+    name = "clang_tool",
+    entry_point = "clang",
+    layout = ":native",
+)
+
+msbuild_file_binding(
+    name = "clang_binding",
+    property_name = "CppCompilerAndLinker",
+    tool = ":clang_tool",
+)
+
+genrule(
+    name = "ilcompiler",
+    srcs = ["sdk.tar.gz"],
+    outs = ["Microsoft.DotNet.ILCompiler.10.0.0.nupkg"],
+    cmd = "tar -xOzf $(location sdk.tar.gz) ./library-packs/Microsoft.DotNet.ILCompiler.10.0.0.nupkg > $@",
+)
+
+genrule(
+    name = "illink",
+    srcs = ["sdk.tar.gz"],
+    outs = ["Microsoft.NET.ILLink.Tasks.10.0.0.nupkg"],
+    cmd = "tar -xOzf $(location sdk.tar.gz) ./library-packs/Microsoft.NET.ILLink.Tasks.10.0.0.nupkg > $@",
+)
+
+msbuild_graph_runner(name = "runner")
+
+msbuild_graph(
+    name = "publish",
+    srcs = [
+        "Hello.csproj",
+        "Program.cs",
+    ],
+    bindings = [
+        ":clang_binding",
+    ],
+    contract = "contract.json",
+    linux_stable_paths = True,
+    linux_worker = False,
+    packages = [
+        ":ilcompiler",
+        ":illink",
+    ],
+    publish_outputs = {"Hello.csproj|net10.0": [
+        "bin/publish",
+        "Hello",
+        "Exe",
+    ]},
+    runner = ":runner",
+    target = "Publish",
+)
+
+msbuild_graph_output(
+    name = "binary",
+    graph = ":publish",
+    path = "bin/publish/Hello",
+)
+
+msbuild_graph_layout(
+    name = "published",
+    graph = ":publish",
+    project = "Hello.csproj",
+)

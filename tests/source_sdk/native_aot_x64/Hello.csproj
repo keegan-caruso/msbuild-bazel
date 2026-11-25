@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RuntimeIdentifier>ubuntu.26.04-x64</RuntimeIdentifier>
+    <OutputType>Exe</OutputType>
+    <PublishAot>true</PublishAot>
+    <SelfContained>true</SelfContained>
+    <PublishDir>bin/publish/</PublishDir>
+    <ObjCopyName>$([System.IO.Path]::GetDirectoryName('$(CppCompilerAndLinker)'))/objcopy</ObjCopyName>
+    <IlcUseSharedBuild>false</IlcUseSharedBuild>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+export LD_LIBRARY_PATH="$root/usr/lib/x86_64-linux-gnu:$root/usr/lib/llvm-18/lib"
+exec "$root/usr/bin/llvm-objcopy-18" "$@"
