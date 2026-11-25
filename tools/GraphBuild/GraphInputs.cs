@@ -24,6 +24,7 @@ internal sealed class GraphInputs : IDisposable
     private readonly Dictionary<string, string[]> packagePathAliases;
     private readonly Dictionary<ProjectGraphNode, string> baseFingerprints;
     private readonly Dictionary<ProjectGraphNode, ProjectContract> projects = [];
+    private readonly Lazy<HashSet<ProjectGraphNode>> implementationReferenceNodes;
     internal double EvaluationSeconds
     {
         get;
@@ -154,6 +155,7 @@ internal sealed class GraphInputs : IDisposable
                     return instance;
                 });
         }
+        implementationReferenceNodes = new(() => GraphProjectKind.ImplementationReferenceNodes(Graph));
         if (evaluationProfile is not null)
         {
             // Flush evaluation events before publishing diagnostics. Build logging
@@ -433,7 +435,7 @@ internal sealed class GraphInputs : IDisposable
 
     private void Validate(ProjectGraphNode node)
     {
-        if (For(node).ReferenceBoundary && GraphProjectKind.RequiresImplementationReferences(node))
+        if (For(node).ReferenceBoundary && implementationReferenceNodes.Value.Contains(node))
         {
             throw new InvalidDataException("F# graphs require implementation dependency fingerprints: " + Relative(node));
         }
