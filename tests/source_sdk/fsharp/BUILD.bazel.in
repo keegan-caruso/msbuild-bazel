@@ -1,0 +1,29 @@
+load("@rules_msbuild//msbuild:defs.bzl", "msbuild_nuget_package", "msbuild_package_lock")
+load("@rules_msbuild//msbuild:sync.bzl", "msbuild_sync")
+
+msbuild_nuget_package(
+    name = "core",
+    archive = "FSharp.Core.11.0.101.nupkg",
+    archive_sha256 = "d1d622e1933005fba930b4eea11fa8bccfda6c4bf1ac4a488e6d51b95b31da1e",
+    content_hash = "gTSmM9vHPk3mLX+esI90nFz6vH63GaMKDD7kKV4ZILC9tAp8FhJL4UnoWgSELIto2zuR73D8esB/5uYL6dVbcA==",
+    package_id = "FSharp.Core",
+    version = "11.0.101",
+)
+
+msbuild_package_lock(
+    name = "packages",
+    packages = [":core"],
+)
+
+msbuild_sync(
+    name = "sync",
+    srcs = glob([
+        "App/**",
+        "Library/**",
+    ]),
+    package_lock = ":packages",
+    projects = [
+        "App/App.fsproj",
+        "Library/Library.fsproj",
+    ],
+)

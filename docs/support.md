@@ -127,6 +127,8 @@ Native macOS ARM64 passed `//tests/integration:{quickstart,native_sdk}` (8.8.0 /
 
 `//tests/integration:visual_basic` passed on Linux ARM64 (SDK **10.0.400**, 8.8.0 / 9.3.0): explicit `.vbproj` roots/mappings, C# consumer, body edits, execution, disk-cache recovery (automatic compiler qualification and Compile globs are C# only).
 
+The full Linux ARM64 VMR SDK **11.0.100** builds an F# app and library with explicit, ordered `.fsi` and `.fs` inputs. Declare the SDK-bundled `FSharp.Core` in the package lock. The graph fingerprints implementation dependencies for F# and its consumers because inline bodies can change while the public signature stays the same. On Ubuntu 26.04 ARM64 / Bazel **9.3.2**, an inline edit changed the app result from 42 to 43. A fresh output base recovered the graph from disk cache and reran the app. Reversing the signature and implementation produced compiler error FS0238. Reproduce with `python3 tests/source_sdk/fsharp_consumer.py /path/to/full-sdk.tar.gz NEW_DIRECTORY`. The compact C# toolchain omits the F# compiler.
+
 ## Qualified SDKs
 
 Qualified on Linux ARM64 (Bazel 8.8.0 / 9.2.0): public sync, raw MSBuild parity, edits, failures, cached/uncached workers:
@@ -141,6 +143,8 @@ Qualified on Linux ARM64 (Bazel 8.8.0 / 9.2.0): public sync, raw MSBuild parity,
 | Arcade 10.0.0-beta.25509.106 | SDK composition, versioning, Build/Pack/Publish and generated packages | `arcade_sdk` |
 
 Web/Razor [graph controls](../tests/graph_build/web.py) cover compile/replay, Razor edits, and assembly attributes. `//tests/integration:sdk_web` passes cold on Ubuntu 26.04 ARM64 (SDK **11.0.100**, Bazel **9.3.2**, bundled ASP.NET without `runtime_host`; Build/test/Publish, compiled Razor + static assets; exact hashes + metadata except validated SDK `Last-Modified` timestamps; same cold check passes catalog with SDK **10.0.400**; 4-CPU / 6-GiB control, not general Blazor/Publish). Historical SDK **10.0.400** (8.8.0 / 9.3.0) also qualifies byte-exact HTTP action + forced project recovery (3 hits / 0 compilations, including timestamps).
+
+Blazor Server passed on native macOS ARM64 / SDK **11.0.100**. A Razor component rendered over HTTP, and an explicit SignalR `StartCircuit` invocation reached `CircuitHandler.OnCircuitOpenedAsync`. With outputs deleted, the graph plugin restored an identical app DLL (1 hit). A Razor edit rebuilt it (1 miss) and the new component rendered and opened a circuit. Run `python3 tests/graph_build/blazor.py` with `RULES_MSBUILD_DOTNET_ROOT` pointing to the pinned SDK after building ProjectSync and GraphBuild in Release. The fixture acquires the pinned static-assets package before offline Restore. Browser events, reconnect, WebAssembly, and Publish remain outside this control.
 
 [Package-backed catalog](../examples/catalog-web/README.md) (5 projects: Newtonsoft.Json, Humanizer, embedded data, Razor, static assets): `SDK_WEB_CACHE_URL=http://cache:8080 bash scripts/bazel.sh test //tests/integration:catalog_web --test_output=errors` passed 8.8.0 / 9.3.0 on Linux ARM64 (Publish parity, body 4 hits / 1 compile keeping ref bytes, API 1 hit / 4 compiles, remote Restore/graph hits, forced 5-hit / 0-compile HTTP recovery; eval reuse off since Razor API changes can reevaluate).
 
