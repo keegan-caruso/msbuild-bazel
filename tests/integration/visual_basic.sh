@@ -18,7 +18,7 @@ msbuild_graph_test(name="test",graph=":graph",project="App/App.csproj")
 BUILD
 options=(--remote_cache= "--disk_cache=$scratch/action-cache")
 run() {
-    bazel run //:app "${options[@]}" > "$TEST_TMPDIR/$1.log" 2>&1 || { cat "$TEST_TMPDIR/$1.log" >&2; exit 1; }
+    bazel run //:app "${options[@]}" "${@:3}" > "$TEST_TMPDIR/$1.log" 2>&1 || { cat "$TEST_TMPDIR/$1.log" >&2; exit 1; }
     assert_contains "$TEST_TMPDIR/$1.log" "VB:$2"
 }
 run seed 1
@@ -29,7 +29,7 @@ bazel run //:sync_auto -- --check
 bazel test //:test "${options[@]}" --test_output=errors
 bazel shutdown
 rm -rf "$scratch/bazel"
-run independent-recovery 2
+run independent-recovery 2 "--execution_log_json_file=$TEST_TMPDIR/independent-recovery.json"
 # A changed VB input must also invalidate a recovered whole-graph action.
 sed -i.bak 's/Return 2/Return 3/' Library/Code.vb
 rm Library/Code.vb.bak
