@@ -1,0 +1,90 @@
+using System.Net.WebSockets;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Components.Server.Circuits;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
+
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions { ContentRootPath = AppContext.BaseDirectory });
+builder.WebHost.UseUrls("http://127.0.0.1:0");
+builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+builder.Services.AddSingleton<CircuitHandler, OpenedCircuit>();
+await using var app = builder.Build();
+app.UseAntiforgery();
+app.MapRazorComponents<App.Page>().AddInteractiveServerRenderMode();
+using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+await app.StartAsync(deadline.Token);
+try
+{
+    var address = app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
+    using var client = new HttpClient { BaseAddress = new Uri(address) };
+    var html = await client.GetStringAsync("/", deadline.Token);
+    if (!html.Contains($"<h1>{args.Single()}</h1>", StringComparison.Ordinal)) throw new Exception("SSR marker missing: " + html);
+    var markers = Regex.Matches(html, "<!--Blazor:(.*?)-->")
+        .Select(match => JsonDocument.Parse(match.Groups[1].Value).RootElement.Clone())
+        .Where(marker => marker.TryGetProperty("descriptor", out _)).ToArray();
+    if (markers.Length != 1) throw new Exception("Expected one interactive server marker");
+    // A transport handshake/negotiation alone does not create a circuit.
+    using var socket = new ClientWebSocket();
+    await socket.ConnectAsync(new Uri(address.Replace("http:", "ws:") + "/_blazor"), deadline.Token);
+    await socket.SendAsync(Encoding.UTF8.GetBytes("{\"protocol\":\"blazorpack\",\"version\":1}\u001e"), WebSocketMessageType.Text, true, deadline.Token);
+    var buffer = new byte[65536];
+    var handshake = await socket.ReceiveAsync(buffer, deadline.Token);
+    if (Encoding.UTF8.GetString(buffer, 0, handshake.Count) != "{}\u001e") throw new Exception("BlazorPack handshake failed");
+    if (OpenedCircuit.Opened.Task.IsCompleted) throw new Exception("Transport unexpectedly opened a circuit");
+    var descriptors = JsonSerializer.Serialize(markers);
+    // SignalR MessagePack invocation: type, headers, id, target, arguments, streams.
+    using var payload = new MemoryStream();
+    payload.Write(new byte[] { 0x96, 1, 0x80 });
+    WriteString(payload, "1");
+    WriteString(payload, "StartCircuit");
+    payload.WriteByte(0x94);
+    WriteString(payload, address + "/");
+    WriteString(payload, address + "/");
+    WriteString(payload, descriptors);
+    payload.WriteByte(0xc0); // no persisted application state
+    payload.WriteByte(0x90);
+    var bytes = payload.ToArray();
+    using var frame = new MemoryStream();
+    var length = bytes.Length;
+    while (length >= 128) { frame.WriteByte((byte)(length | 128)); length >>= 7; }
+    frame.WriteByte((byte)length);
+    frame.Write(bytes);
+    await socket.SendAsync(frame.ToArray(), WebSocketMessageType.Binary, true, deadline.Token);
+    // Drain server messages concurrently so transport backpressure cannot hide failure.
+    var receive = Task.Run(async () =>
+    {
+        while (!deadline.IsCancellationRequested)
+        {
+            var message = await socket.ReceiveAsync(buffer, deadline.Token);
+            if (message.MessageType == WebSocketMessageType.Close) throw new Exception("Circuit transport closed before observation");
+        }
+    });
+    await OpenedCircuit.Opened.Task.WaitAsync(deadline.Token);
+    Console.WriteLine($"PASS: SSR {args.Single()}; server circuit opened");
+    deadline.Cancel();
+    socket.Abort();
+    try { await receive; } catch (OperationCanceledException) { } catch (WebSocketException) { }
+}
+finally { await app.StopAsync(CancellationToken.None); }
+
+static void WriteString(Stream stream, string value)
+{
+    var bytes = Encoding.UTF8.GetBytes(value);
+    if (bytes.Length < 32) stream.WriteByte((byte)(0xa0 | bytes.Length));
+    else if (bytes.Length <= byte.MaxValue) { stream.WriteByte(0xd9); stream.WriteByte((byte)bytes.Length); }
+    else if (bytes.Length <= ushort.MaxValue) { stream.WriteByte(0xda); stream.WriteByte((byte)(bytes.Length >> 8)); stream.WriteByte((byte)bytes.Length); }
+    else throw new Exception("Probe string exceeds bound");
+    stream.Write(bytes);
+}
+
+sealed class OpenedCircuit : CircuitHandler
+{
+    public static TaskCompletionSource Opened { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public override Task OnCircuitOpenedAsync(Circuit circuit, CancellationToken cancellationToken)
+    {
+        Opened.TrySetResult();
+        return Task.CompletedTask;
+    }
+}
