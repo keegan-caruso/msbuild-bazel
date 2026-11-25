@@ -11,14 +11,10 @@ import tempfile
 from qualify import DOTNET, ROOT, RUNNER, SDK, fixture, run
 
 
-def bazel_control(base, root, contract):
+def bazel_control(base, root):
     # Build through the public rule, with a declared downloaded SDK and staged
     # generated files, then resolve the portable metadata as an editor would.
     shutil.copy(ROOT / 'global.json', root / 'global.json')
-    contract['SharedInputs'].append('global.json')
-    for row in contract['Projects'].values():
-        row['Inputs'] = [p for p in row['Inputs'] if '/obj/' not in p]
-    (root / 'contract.json').write_text(json.dumps(contract))
     (root / 'MODULE.bazel').write_text(
         'module(name="design_time_probe")\n'
         'bazel_dep(name="rules_msbuild",version="0.0.0")\n'
@@ -26,13 +22,10 @@ def bazel_control(base, root, contract):
         'dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\n'
         'dotnet.sdk(name="dotnet",global_json="//:global.json")\n'
         'use_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
-    sources = contract['SharedInputs'] + [p for row in contract['Projects'].values() for p in row['Inputs']
-                                         if '/obj/' not in p]
-    (root / 'BUILD.bazel').write_text(
-        'load("@rules_msbuild//msbuild:defs.bzl","msbuild_graph","msbuild_graph_runner")\n'
-        'msbuild_graph_runner(name="runner")\n'
-        'msbuild_graph(name="editor",runner=":runner",contract="contract.json",'
-        f'srcs={json.dumps(sources)},target="DesignTimeBuild")\n')
+    build_file = root / 'BUILD.bazel'
+    declarations = ('load("@rules_msbuild//msbuild:sync.bzl","msbuild_sync")\n'
+                    'msbuild_sync(name="sync",projects=["P2/P2.csproj"])\n')
+    build_file.write_text(declarations)
     startup = [str(ROOT / 'scripts/bazel-launcher.sh'), f'--output_base={base / "bazel"}']
     env = dict(os.environ, RULES_MSBUILD_BAZELISK=os.environ.get(
         'RULES_MSBUILD_BAZELISK', str(SDK.parent / 'bin/bazelisk')))
@@ -43,6 +36,9 @@ def bazel_control(base, root, contract):
         return result.stdout.strip()
 
     try:
+        bazel('run', '//:sync')
+        build_file.write_text(declarations + 'load(":graph.generated.bzl","app_graph")\n'
+                              'app_graph(name="editor",target="DesignTimeBuild")\n')
         bazel('build', '//:editor', '--jobs=2')
         output = root / 'bazel-bin/editor.graph'
         result = json.loads((output / 'report.json').read_text())
@@ -57,6 +53,7 @@ def bazel_control(base, root, contract):
                 assert Path(resolved).is_file() or reference in project_outputs, reference
         assert not list((output / 'workspace').rglob('bin/**/*.dll'))
         assert 'EDITED_SYMBOL' in result['projects'][2]['defineConstants'].split(';')
+        assert str(base / '.editorconfig') not in (output / 'report.json').read_text()
         print('PASS: public Bazel DesignTimeBuild output and external-consumer source/reference path resolution')
     finally:
         bazel('shutdown')
@@ -70,6 +67,8 @@ def main():
         base = Path(temporary).resolve()
         root = base / 'workspace'
         root.mkdir()
+        ancestor = base / '.editorconfig'
+        ancestor.write_text('[*.cs]\ndotnet_diagnostic.IDE0055.severity = error\n')
         contract = fixture(root)
         props = root / 'Directory.Build.props'
         props.write_text('<Project><PropertyGroup><DefineConstants>$(DefineConstants);EDITOR_SYMBOL</DefineConstants>'
@@ -88,6 +87,7 @@ def main():
             assert 'Code.cs' in project['compile'], project
             assert 'EDITOR_SYMBOL' in project['defineConstants'].split(';'), project
             assert project['compilerArguments'], project
+            assert all(str(ancestor) not in item for item in project['compilerArguments']), project['compilerArguments']
             assert any('System.Runtime.dll' in item for item in project['references']), project
         assert result['projects'][2]['projectReferences'] == ['P0/P0.csproj', 'P1/P1.csproj'], result['projects'][2]['projectReferences']
         assert str(root) not in report.read_text() and str(SDK) not in report.read_text()
@@ -119,7 +119,7 @@ def main():
         contract.pop('EntryProperties')
         contract['Version'] = 1
         if args.bazel:
-            bazel_control(base, root, contract)
+            bazel_control(base, root)
         print('PASS: fresh C# design-time Compile, project/framework references, symbols, compiler arguments and edits without compilation')
 
 

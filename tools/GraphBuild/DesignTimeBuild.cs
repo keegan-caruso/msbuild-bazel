@@ -42,8 +42,13 @@ internal static class DesignTimeBuild
         }
         // Compile does not schedule referenced projects itself. Make each
         // configured node an entry point so every editor project has state.
+        // Preserve validated inputs and bounded SDK analyzer-config discovery.
+        var instances = inputs.Graph.ProjectNodes.ToDictionary(node => ConfiguredProjectKey.Create(node.ProjectInstance),
+            node => node.ProjectInstance, StringComparer.Ordinal);
         var graph = new ProjectGraph(inputs.Graph.ProjectNodes.Select(node =>
-            new ProjectGraphEntryPoint(node.ProjectInstance.FullPath, node.ProjectInstance.GlobalProperties)), inputs.Collection, null);
+            new ProjectGraphEntryPoint(node.ProjectInstance.FullPath, node.ProjectInstance.GlobalProperties)), inputs.Collection, (path, globals, _) =>
+                instances.GetValueOrDefault(ConfiguredProjectKey.Create(path, globals)) ??
+                throw new InvalidDataException("Unexpected design-time project configuration: " + path));
         using var manager = new BuildManager();
         var result = manager.Build(new BuildParameters(inputs.Collection)
         {
