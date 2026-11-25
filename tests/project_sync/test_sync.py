@@ -58,6 +58,32 @@ class GraphSyncTests(unittest.TestCase):
                 self.assertIn('F# graphs require implementation dependency fingerprints',
                     self.sync({'projects': {project: {'referenceBoundary': True}}}, success=False))
 
+    def test_fsharp_default_reference_resolution_retains_conservative_graph(self):
+        self.fsharp_project()
+        flags = ['--package-build', '--resolve-references']
+        self.sync(flags=flags)
+        projects = json.loads((self.root / 'graph.generated.json').read_text())['Projects']
+        for project in ['App.csproj', 'Library.fsproj']:
+            self.assertFalse(projects[project]['Configurations'][0]['ReferenceBoundary'])
+            self.assertFalse(projects[project]['Configurations'][0].get('CompilerReferencesComplete', False))
+        self.sync(flags=flags + ['--check'])
+        self.assertIn('F# graphs require implementation dependency fingerprints', self.sync(
+            {'projects': {'Library.fsproj': {'referenceBoundary': True}}}, flags=flags, success=False))
+
+    def test_fsharp_dependency_boundaries_follow_consumers_only(self):
+        self.fsharp_project()
+        bridge = self.project.replace('<OutputType>Exe</OutputType>', '')
+        (self.root / 'Bridge.csproj').write_text(bridge.replace('</Project>',
+            '<ItemGroup><ProjectReference Include="Library.fsproj" /></ItemGroup></Project>'))
+        (self.root / 'Independent.csproj').write_text(bridge)
+        (self.root / 'App.csproj').write_text(self.project.replace('</Project>',
+            '<ItemGroup><ProjectReference Include="Bridge.csproj" /><ProjectReference Include="Independent.csproj" /></ItemGroup></Project>'))
+        self.sync()
+        projects = json.loads((self.root / 'graph.generated.json').read_text())['Projects']
+        for project in ['App.csproj', 'Bridge.csproj', 'Library.fsproj']:
+            self.assertFalse(projects[project]['Configurations'][0]['ReferenceBoundary'])
+        self.assertTrue(projects['Independent.csproj']['Configurations'][0]['ReferenceBoundary'])
+
     def test_fsharp_compile_globs_require_explicit_ordered_sources(self):
         self.fsharp_project()
         self.assertIn('Compile globs require a C# project', self.sync(

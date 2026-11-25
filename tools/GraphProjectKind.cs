@@ -8,27 +8,23 @@ namespace RulesMSBuild;
 internal static class GraphProjectKind
 {
     // F# inline bodies and optimization metadata live in implementation DLLs.
-    internal static bool RequiresImplementationReferences(ProjectGraphNode node)
+    internal static HashSet<ProjectGraphNode> ImplementationReferenceNodes(ProjectGraph graph)
     {
-        var seen = new HashSet<ProjectGraphNode>();
-        var pending = new Stack<ProjectGraphNode>();
-        pending.Push(node);
+        var result = new HashSet<ProjectGraphNode>();
+        var pending = new Stack<ProjectGraphNode>(graph.ProjectNodes.Where(node =>
+            Path.GetExtension(node.ProjectInstance.FullPath).Equals(".fsproj", StringComparison.OrdinalIgnoreCase)));
         while (pending.TryPop(out var current))
         {
-            if (!seen.Add(current))
+            if (!result.Add(current))
             {
                 continue;
             }
-            if (Path.GetExtension(current.ProjectInstance.FullPath).Equals(".fsproj", StringComparison.OrdinalIgnoreCase))
+            foreach (var consumer in current.ReferencingProjects)
             {
-                return true;
-            }
-            foreach (var dependency in current.ProjectReferences)
-            {
-                pending.Push(dependency);
+                pending.Push(consumer);
             }
         }
-        return false;
+        return result;
     }
 
     internal static bool IsTraversal(ProjectInstance project) =>

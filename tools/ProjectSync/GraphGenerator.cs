@@ -308,6 +308,7 @@ internal static class GraphGenerator
                 fixedInputs[ConfiguredProjectKey.Create(instance)] = inputs[ConfiguredProjectKey.Create(instance)];
                 return instance;
             }));
+        var implementationReferenceNodes = new Lazy<HashSet<ProjectGraphNode>>(() => GraphProjectKind.ImplementationReferenceNodes(graph));
         var dependencyClosure = new Dictionary<ProjectGraphNode, HashSet<ProjectGraphNode>>();
         foreach (var node in graph.ProjectNodes)
         {
@@ -394,8 +395,10 @@ internal static class GraphGenerator
         // Qualification executes SDK targets that can mutate ProjectReference items.
         // Export implementation roles from the original static graph.
         var implementationDependencies = graph.ProjectNodes.ToDictionary(node => node, ImplementationDependencies);
-        var qualification = resolveReferences ? ResolvedGraphInputs.Build(graph, collection, root, sdkRoot,
-            graph.ProjectNodes.Where(node => node.ProjectInstance.GetPropertyValue("Language") == "C#" && CanUseReferenceBoundary(node)).ToArray(), CompilerProducts, Dependencies,
+        var qualificationNodes = resolveReferences ? graph.ProjectNodes.Where(node =>
+            node.ProjectInstance.GetPropertyValue("Language") == "C#" && CanUseReferenceBoundary(node)).ToArray() : [];
+        var qualification = qualificationNodes.Length != 0 ? ResolvedGraphInputs.Build(graph, collection, root, sdkRoot,
+            qualificationNodes, CompilerProducts, Dependencies,
             inputs.Values.SelectMany(paths => paths).Concat(shared), packageIdentities,
             node => inputs[ConfiguredProjectKey.Create(node.ProjectInstance)].Concat(shared), qualificationCache,
             node => JsonSerializer.Serialize(mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework"))),
@@ -726,7 +729,7 @@ internal static class GraphGenerator
             // F# consumers can use inline bodies and optimization metadata from
             // implementation assemblies. Reference-assembly equality alone does
             // not establish a safe dependency boundary for this graph closure.
-            if (GraphProjectKind.RequiresImplementationReferences(node))
+            if (implementationReferenceNodes.Value.Contains(node))
             {
                 if (binding.ReferenceBoundary == true)
                 {
