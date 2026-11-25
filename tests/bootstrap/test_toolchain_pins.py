@@ -25,6 +25,12 @@ class ToolchainPinsTests(unittest.TestCase):
             self.assertNotEqual(pin['sha256'], self.pins[name]['sha256'])
             self.assertIn('linux-arm64', pin['url'])
 
+    def test_windows_x64_uses_zip_and_executable(self):
+        selected = select(self.pins, 'AMD64', 'Windows')
+        self.assertEqual(selected, select(self.pins, 'x86_64', 'Windows'))
+        self.assertTrue(selected['dotnet']['url'].endswith('-win-x64.zip'))
+        self.assertTrue(selected['bazelisk']['url'].endswith('-windows-amd64.exe'))
+
     def test_unknown_architecture_does_not_fall_back_to_x64(self):
         with self.assertRaisesRegex(ValueError, 'Unsupported bootstrap platform'):
             select(self.pins, 'riscv64')

@@ -7,10 +7,19 @@ internal static class StarlarkTools
 {
     private static JsonNode Artifact(JsonNode tool)
     {
-        var os = OperatingSystem.IsMacOS() ? "Darwin" : OperatingSystem.IsLinux() ? "Linux" : throw new PlatformNotSupportedException();
-        var architecture = RuntimeInformation.OSArchitecture == Architecture.Arm64 ? os == "Darwin" ? "arm64" : "aarch64" : "x86_64";
-        return tool["platforms"]![os + "-" + architecture]!;
+        var platform = RuntimeInformation.OSArchitecture switch
+        {
+            Architecture.X64 when OperatingSystem.IsLinux() => "Linux-x86_64",
+            Architecture.Arm64 when OperatingSystem.IsLinux() => "Linux-aarch64",
+            Architecture.Arm64 when OperatingSystem.IsMacOS() => "Darwin-arm64",
+            Architecture.X64 when OperatingSystem.IsWindows() => "Windows-x86_64",
+            _ => throw new PlatformNotSupportedException(RuntimeInformation.RuntimeIdentifier)
+        };
+        return tool["platforms"]![platform]!;
     }
+
+    private static string Binary(string root, string name) =>
+        Path.Combine(root, ".tools/bin", OperatingSystem.IsWindows() ? name + ".exe" : name);
 
     internal static void Setup(string root)
     {
@@ -23,7 +32,7 @@ internal static class StarlarkTools
         {
             var tool = tools[name]!;
             var artifact = Artifact(tool);
-            var binary = Path.Combine(root, ".tools/bin", name);
+            var binary = Binary(root, name);
             if (!File.Exists(binary) || Json.FileSha256(binary) != artifact.String("sha256"))
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(binary)!);
@@ -50,7 +59,7 @@ internal static class StarlarkTools
     internal static string Buildifier(string root)
     {
         var artifact = Artifact(Json.Read(Path.Combine(root, "scripts/starlark-tools.json"))["buildifier"]!);
-        var binary = Path.Combine(root, ".tools/bin/buildifier");
+        var binary = Binary(root, "buildifier");
         if (!File.Exists(binary) || Json.FileSha256(binary) != artifact.String("sha256"))
         {
             throw new InvalidDataException("Run bash scripts/tooling.sh setup-starlark");
