@@ -39,7 +39,7 @@ Patterns are workspace-relative `directory/*.cs`, `directory/**/*.cs`, `*.cs`, o
 
 | Attribute | Use |
 | --- | --- |
-| `projects` | Project paths (`.csproj`, `.ilproj`, Traversal/NoTargets `.proj`) or one `.sln`/`.slnx` |
+| `projects` | Project paths (`.csproj`, `.vbproj`, `.fsproj`, `.ilproj`, Traversal/NoTargets `.proj`) or one `.sln`/`.slnx` |
 | `srcs` | Optional complete authored snapshot making sync preparation a cacheable Bazel action |
 | `configuration`, `framework` | Default `Release`; optional entry framework |
 | `inputs` | Single-file or directory-tree producer labels mapped to workspace-relative paths |
