@@ -117,7 +117,10 @@ native_path() {
 }
 resolve_runfile() {
     # Preserve trailing newline characters in Unix filenames across command substitution.
-    RULES_MSBUILD_RESOLVED_RUNFILE="$(rlocation "$1" '' && printf x)" || return
+    if ! RULES_MSBUILD_RESOLVED_RUNFILE="$(rlocation "$1" '' && printf x)"; then
+        echo "msbuild launcher: missing runfile: $1" >&2
+        return 1
+    fi
     RULES_MSBUILD_RESOLVED_RUNFILE="${RULES_MSBUILD_RESOLVED_RUNFILE%x}"
     RULES_MSBUILD_RESOLVED_RUNFILE="${RULES_MSBUILD_RESOLVED_RUNFILE%$'\\n'}"
     [[ -n "$RULES_MSBUILD_RESOLVED_RUNFILE" ]] || { echo "msbuild launcher: missing runfile: $1" >&2; return 1; }

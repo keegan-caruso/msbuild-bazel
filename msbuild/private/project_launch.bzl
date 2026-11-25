@@ -50,7 +50,7 @@ def create_executable_launcher(ctx, assembly, runtime, runtime_data, test):
     script = """#!/usr/bin/env bash
 set -euo pipefail
 fail() { echo "msbuild launcher: $*" >&2; exit 1; }
-resolve_runfile %s
+resolve_runfile %s || fail 'declared runtime host is missing or not executable'
 host_root="$RULES_MSBUILD_RESOLVED_RUNFILE"
 native_host_root="$RULES_MSBUILD_NATIVE_RUNFILE"
 entry=%s
