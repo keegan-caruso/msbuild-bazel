@@ -24,7 +24,7 @@ if [[ -n "${RULES_MSBUILD_CONTAINER_ACQUISITION:-}" ]]; then
 fi
 relay_mount=()
 if [[ -n "${RULES_MSBUILD_SHARED_CACHE_SOCKET:-}" ]]; then
-    if [[ "$cache_url" != https://* || ! -S "$RULES_MSBUILD_SHARED_CACHE_SOCKET" ]]; then
+    if [[ ( "$cache_url" != https://* && ( "$cache_url" != http://* || "${RULES_MSBUILD_SHARED_CACHE_ALLOW_HTTP:-0}" != 1 ) ) || ! -S "$RULES_MSBUILD_SHARED_CACHE_SOCKET" ]]; then
         echo 'Shared cache relay requires an HTTPS URL and an existing host UNIX socket.' >&2; exit 2
     fi
     relay_mount=(--volume "$RULES_MSBUILD_SHARED_CACHE_SOCKET:/var/host-services/shared-cache.sock")
@@ -36,6 +36,7 @@ container run --rm --init -i --arch "$arch" --cpus "${RULES_MSBUILD_CONTAINER_CP
     ${rosetta[@]+"${rosetta[@]}"} \
     ${relay_mount[@]+"${relay_mount[@]}"} \
     ${acquisition_mount[@]+"${acquisition_mount[@]}"} \
+    -e "RULES_MSBUILD_SHARED_CACHE_ALLOW_HTTP=${RULES_MSBUILD_SHARED_CACHE_ALLOW_HTTP:-0}" \
     -e "RULES_MSBUILD_CONTAINER_ACQUISITION=${RULES_MSBUILD_CONTAINER_ACQUISITION:+1}" \
     -e "RULES_MSBUILD_SHARED_CACHE_RELAY=${RULES_MSBUILD_SHARED_CACHE_SOCKET:+1}" \
     -e "RULES_MSBUILD_SHARED_CACHE_URL=$cache_url" \
@@ -66,7 +67,9 @@ if [[ "${RULES_MSBUILD_CONTAINER_ACQUISITION:-}" == 1 ]]; then
     export BAZELISK_HOME=/acquisition/bazelisk
 fi
 if [[ "${RULES_MSBUILD_SHARED_CACHE_RELAY:-}" == 1 ]]; then
-    python3 scripts/shared-cache-guest-relay.py --url "$RULES_MSBUILD_SHARED_CACHE_URL" \
+    relay_options=()
+    if [[ "${RULES_MSBUILD_SHARED_CACHE_ALLOW_HTTP:-0}" == 1 ]]; then relay_options+=(--allow-http); fi
+    python3 scripts/shared-cache-guest-relay.py "${relay_options[@]}" --url "$RULES_MSBUILD_SHARED_CACHE_URL" \
         --socket /var/host-services/shared-cache.sock --ready /tmp/shared-cache-relay.ready &
     relay_pid=$!
     for attempt in {1..100}; do

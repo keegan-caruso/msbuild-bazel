@@ -19,6 +19,8 @@ class RelayTests(unittest.TestCase):
     def test_endpoint_identity(self):
         self.assertEqual(relay.endpoint('https://cache.example:8443/path'), ('cache.example', 8443))
         self.assertEqual(relay.endpoint('https://cache.example'), ('cache.example', 443))
+        self.assertEqual(relay.endpoint('http://cache.example', allow_http=True), ('cache.example', 80))
+        self.assertEqual(relay.endpoint('http://cache.example:18726', allow_http=True), ('cache.example', 18726))
         for url in ('http://cache.example', 'https://127.0.0.1', 'https://user:secret@cache.example', 'https://bad%20host'):
             with self.subTest(url=url), self.assertRaises(ValueError):
                 relay.endpoint(url)

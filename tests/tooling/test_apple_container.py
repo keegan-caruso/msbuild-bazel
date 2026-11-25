@@ -88,6 +88,14 @@ class AppleContainerTests(unittest.TestCase):
                 relay_args = (root / 'args').read_text().splitlines()
                 self.assertIn(socket_path + ':/var/host-services/shared-cache.sock', relay_args)
                 self.assertIn('RULES_MSBUILD_SHARED_CACHE_RELAY=1', relay_args)
+                env['RULES_MSBUILD_SHARED_CACHE_URL'] = 'http://cache.invalid:18726'
+                rejected = subprocess.run(['bash', str(script), 'true'], env=env, capture_output=True)
+                self.assertEqual(rejected.returncode, 2)
+                env['RULES_MSBUILD_SHARED_CACHE_ALLOW_HTTP'] = '1'
+                allowed = subprocess.run(['bash', str(script), 'true'], env=env, capture_output=True)
+                self.assertEqual(allowed.returncode, 0, allowed.stderr)
+                self.assertIn('RULES_MSBUILD_SHARED_CACHE_ALLOW_HTTP=1', (root / 'args').read_text())
+                env.pop('RULES_MSBUILD_SHARED_CACHE_ALLOW_HTTP')
             env.pop('RULES_MSBUILD_SHARED_CACHE_SOCKET')
             env['RULES_MSBUILD_SHARED_CACHE_URL'] = 'http://cache.invalid:8080'
             guest = (root / 'guest').read_text()

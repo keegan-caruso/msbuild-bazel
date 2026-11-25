@@ -11,9 +11,9 @@ import time
 from urllib.parse import urlsplit
 
 
-def endpoint(url):
+def endpoint(url, allow_http=False):
     parsed = urlsplit(url)
-    if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password:
+    if parsed.scheme not in (('http', 'https') if allow_http else ('https',)) or not parsed.hostname or parsed.username or parsed.password:
         raise ValueError('Relay requires an HTTPS cache URL with a DNS hostname and no credentials.')
     try:
         ipaddress.ip_address(parsed.hostname)
@@ -24,7 +24,7 @@ def endpoint(url):
     hostname = parsed.hostname
     if not all(c.isascii() and (c.isalnum() or c in '.-') for c in hostname):
         raise ValueError('Invalid relay hostname.')
-    return hostname, parsed.port or 443
+    return hostname, parsed.port or (443 if parsed.scheme == 'https' else 80)
 
 
 class Relay(socketserver.ThreadingTCPServer):
@@ -96,11 +96,12 @@ class Forward(socketserver.BaseRequestHandler):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--url', required=True)
+    parser.add_argument('--allow-http', action='store_true', help='private HTTP transport only; HTTPS remains the default')
     parser.add_argument('--socket', required=True)
     parser.add_argument('--hosts', type=Path, default=Path('/etc/hosts'))
     parser.add_argument('--ready', type=Path, required=True)
     args = parser.parse_args()
-    hostname, port = endpoint(args.url)
+    hostname, port = endpoint(args.url, args.allow_http)
     with Relay(('127.0.0.1', port), Forward) as server:
         server.socket_path = args.socket
         # Verify the mount is reachable before changing name resolution.

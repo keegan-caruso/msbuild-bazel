@@ -7,6 +7,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import tempfile
 import sys
+import socket
 import threading
 import unittest
 
@@ -14,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'graph_build'))
 
 from cross_host_recovery import Proxy
 from linux_action_recovery import Cache
+from private_http_cache import Forward, UnixServer
 
 
 class UnknownLength(BaseHTTPRequestHandler):
@@ -116,6 +118,32 @@ class ProxyTests(unittest.TestCase):
         response = connection.getresponse()
         self.assertEqual(response.getheader('Connection'), 'close')
         self.assertEqual(response.read(), b'connection-delimited')
+
+    def test_private_cache_json_and_unix_transport(self):
+        with tempfile.TemporaryDirectory() as folder:
+            upstream = self.start(Cache(Path(folder), 1024**2))
+            path = str(Path(folder) / 'relay.sock')
+            relay = self.start(UnixServer(path, Forward))
+            relay.upstream = ('127.0.0.1', upstream.server_port)
+            connection = http.client.HTTPConnection('unused', timeout=5)
+            connection.sock = socket.socket(socket.AF_UNIX)
+            connection.sock.settimeout(5)
+            connection.sock.connect(path)
+            self.addCleanup(connection.close)
+            key = '/rules-msbuild/ac/' + 'a' * 64
+            payload = b'{"outputFiles":[]}'
+            connection.request('PUT', key, body=payload, headers={'Content-Type': 'application/json'})
+            response = connection.getresponse()
+            self.assertEqual(response.status, 200)
+            response.read()
+            connection.request('GET', key, headers={'Accept': 'application/json'})
+            self.assertEqual(connection.getresponse().read(), payload)
+            upstream.phase = 'consumer'
+            connection.request('PUT', key, body=payload)
+            response = connection.getresponse()
+            self.assertEqual(response.status, 403)
+            response.read()
+            connection.close()
 
     def test_truncated_trailers_terminate(self):
         # Exercise the decoder directly so expected EOF does not produce an
