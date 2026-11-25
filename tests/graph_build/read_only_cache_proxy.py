@@ -158,6 +158,8 @@ def main():
         parser.error('cache/executor/upload settings are owned by this read-only guard')
     proxy = ReadOnlyCacheProxy(args.cache, args.abort_grace)
     proxy.phase = args.phase
+    # Join the last response writer before recording the phase's byte count.
+    proxy.daemon_threads = False
     url = 'http://127.0.0.1:' + str(proxy.server_port)
     index = actions[0] + 1
     command = command[:index] + ['--remote_cache=' + url, '--remote_upload_local_results=false',
@@ -177,8 +179,8 @@ def main():
 
     signal.signal(signal.SIGTERM, interrupt)
     try:
-        process = subprocess.Popen(command, start_new_session=True)
         with proxy.lock:
+            process = subprocess.Popen(command, start_new_session=True)
             proxy.active = process
         process.wait(timeout=args.timeout)
         report['returnCode'] = process.returncode
@@ -188,6 +190,9 @@ def main():
             terminate_owned(process, args.abort_grace)
             report['returnCode'] = process.returncode
     finally:
+        proxy.shutdown()
+        proxy.server_close()
+        thread.join()
         with proxy.lock:
             proxy.active = None
             report.update(requests={'|'.join(map(str, key)): count for key, count in proxy.counts.items()},
@@ -195,9 +200,6 @@ def main():
         report.update(wallSeconds=time.monotonic()-started,
                       passed=report.get('returnCode') == 0 and not report.get('error') and
                       not report['misses'] and not any(key[1] == 'PUT' for key in proxy.counts))
-        proxy.shutdown()
-        proxy.server_close()
-        thread.join(timeout=10)
         signal.signal(signal.SIGTERM, prior_term)
         temporary = args.report.with_name(args.report.name + '.tmp')
         temporary.write_text(json.dumps(report, indent=2) + '\n')
