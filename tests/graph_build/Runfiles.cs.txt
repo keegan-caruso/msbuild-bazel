@@ -16,7 +16,7 @@ var runfiles = new Runfiles(manifest);
 Check(runfiles.Resolve("repo/tree") == tree);
 Check(runfiles.Resolve("repo/tree/child.txt") == alternate);
 Check(runfiles.Resolve("repo/space key") == alternate);
-Check(new Runfiles(root).Resolve("not-created/file.txt") == Path.Combine(root, "not-created/file.txt"));
+Check(new Runfiles(root).Resolve("not-created/file.txt") == Path.GetFullPath("not-created/file.txt", root));
 Reject(() => runfiles.Resolve("repo/absent"));
 foreach (var path in new[] { "", "../outside", "repo/../outside", "/absolute", "repo\\child", "repo//child", "repo/./child", "repo/zero\0" })
 {
