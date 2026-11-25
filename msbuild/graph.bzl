@@ -179,13 +179,35 @@ def _graph_action(ctx, prepare = False):
     export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_NOLOGO=1
     export DOTNET_CLI_USE_MSBUILD_SERVER=false MSBUILDUSESERVER=0
     export MSBUILDDISABLENODEREUSE=1
+    native_path() {
+        case "$(uname -s)" in
+            MINGW*|MSYS*|CYGWIN*) cygpath -am "$1" ;;
+            *) printf '%s\\n' "$1" ;;
+        esac
+    }
+    case "$(uname -s)" in
+        MINGW*|MSYS*|CYGWIN*)
+            export MSYS2_ARG_CONV_EXCL='*'
+            native_scratch="$(native_path "$scratch")"
+            mkdir -p "$scratch/appdata" "$scratch/localappdata" "$scratch/programfiles"
+            export DOTNET_ROOT="$(native_path "$(dirname "$dotnet")")"
+            export DOTNET_CLI_HOME="$native_scratch" HOME="$native_scratch"
+            export USERPROFILE="$native_scratch" APPDATA="$native_scratch/appdata" LOCALAPPDATA="$native_scratch/localappdata"
+            export TEMP="$native_scratch" TMP="$native_scratch" SystemTemp="$native_scratch"
+            export NUGET_PACKAGES="$native_scratch/packages"
+            # NuGet constructs machine-wide settings even with an explicit config.
+            export PROGRAMFILES="$native_scratch/programfiles"
+            export DOTNET_ADD_GLOBAL_TOOLS_TO_PATH=false DOTNET_GENERATE_ASPNET_CERTIFICATE=false
+            export DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=true
+            ;;
+    esac
     if test "$isolated" = 1; then
         bash "$sandbox" "$(dirname "$dotnet")" "$runner" "$output" "$contract" "$scratch" "$target" "$mode" "$prepared" - 0 "$profile"
         if test "$mode" = prepare; then rm -rf "$workspace"; rm -f "$output/report.json"; fi
         exit 0
     fi
     if test "$profile" = 1; then export RULES_MSBUILD_GRAPH_PROFILE=1; fi
-    "$dotnet" exec "$runner/GraphBuild.dll" action "$workspace" "$contract" "$output/report.json" "$scratch/cache" "$target"
+    "$dotnet" exec "$(native_path "$runner/GraphBuild.dll")" action "$(native_path "$workspace")" "$(native_path "$contract")" "$(native_path "$output/report.json")" "$(native_path "$scratch/cache")" "$target"
     """,
             mnemonic = "MSBuildGraphRestore" if prepare else "MSBuildGraph",
         )
