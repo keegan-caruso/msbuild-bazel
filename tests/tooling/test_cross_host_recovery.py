@@ -13,7 +13,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'graph_build'))
 
-from cross_host_recovery import Proxy
+from cross_host_recovery import Proxy, PROJECT_OMISSIONS, compare_outputs
 from linux_action_recovery import Cache
 from private_http_cache import Forward, UnixServer
 
@@ -144,6 +144,18 @@ class ProxyTests(unittest.TestCase):
             self.assertEqual(response.status, 403)
             response.read()
             connection.close()
+
+    def test_exact_replay_omissions_and_modes(self):
+        artifact = {'app.dll': {'sha256': 'bytes', 'mode': 0o555}}
+        seed = dict(artifact, **{path: {'sha256': 'transient', 'mode': 0o555} for path in PROJECT_OMISSIONS})
+        self.assertEqual(compare_outputs(seed, seed, False), 3)
+        self.assertEqual(compare_outputs(seed, artifact, True), 1)
+        with self.assertRaises(AssertionError):
+            compare_outputs(seed, artifact, False)
+        with self.assertRaises(AssertionError):
+            compare_outputs(seed, {}, True)
+        with self.assertRaises(AssertionError):
+            compare_outputs(seed, {'app.dll': {'sha256': 'bytes', 'mode': 0o444}}, True)
 
     def test_truncated_trailers_terminate(self):
         # Exercise the decoder directly so expected EOF does not produce an

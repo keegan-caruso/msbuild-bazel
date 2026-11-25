@@ -89,6 +89,37 @@ class Proxy(BaseHTTPRequestHandler):
     do_GET = do_HEAD = do_PUT = handle_request
 
 
+
+# MSBuild's AssemblyReference caches contain transient local resolution state;
+# GraphCache.CapturedFiles intentionally does not publish them.
+PROJECT_OMISSIONS = {
+    'workspace/App/obj/Release/net11.0/App.csproj.AssemblyReference.cache',
+    'workspace/Tests/obj/Release/net11.0/Tests.csproj.AssemblyReference.cache',
+}
+
+
+def compare_outputs(seed, recovered, project_replay):
+    if project_replay:
+        if set(seed) - set(recovered) != PROJECT_OMISSIONS or PROJECT_OMISSIONS & set(recovered):
+            raise AssertionError('Project replay must omit exactly its two transient AssemblyReference caches')
+        expected = {k: v for k, v in seed.items() if k not in PROJECT_OMISSIONS}
+    else:
+        expected = seed
+    if expected != recovered:
+        raise AssertionError('Graph output bytes/modes differ')
+    return len(expected)
+
+
+def workload_identity(report, graph):
+    # Read-only/cache location are transport controls removed by GraphRunOptions.
+    # Preserve every declared graph input digest and actual command argument.
+    record = {key: report[key] for key in ('revision', 'nonce', 'inputTree', 'toolchainPins')}
+    record.update({key: graph[key] for key in ('commandArgs', 'inputs', 'listedOutputs')})
+    record['environment'] = [item for item in graph['environmentVariables']
+                             if not item['name'].startswith('RULES_MSBUILD_PROJECT_CACHE_')]
+    return hashlib.sha256(json.dumps(record, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('phase', choices=['seed', 'action', 'project'])
@@ -152,6 +183,7 @@ def main():
         flags += ['--remote_accept_cached=false']
     report = {'revision': args.revision, 'phase': args.phase, 'nonce': args.nonce, 'platform': os.uname().sysname + '/' + os.uname().machine}
     report['inputTree'] = tree(workspace)
+    report['verifierVersion'] = 2
     report['fixtureSha256'] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     report['toolchainPins'] = json.loads((rules / 'scripts/toolchains.json').read_text())
     started = time.monotonic()
@@ -181,6 +213,7 @@ def main():
         report['graphReport'] = json.loads((graph_root / 'report.json').read_text())
         report['tree'] = {k: v for k, v in tree(graph_root).items()
                           if k != 'report.json' and not k.endswith('.binlog')}
+        report['workloadSha256'] = workload_identity(report, graph[0])
         report['graphActions'] = len(graph)
         report['graphHits'] = sum(bool(r.get('cacheHit')) for r in graph)
         report['executedTests'] = len(tests)
@@ -199,10 +232,16 @@ def main():
             raise AssertionError('Recovered app did not run')
         if args.phase != 'seed':
             seed = json.loads(args.seed.read_text())
-            if any(report[key] != seed[key] for key in ('nonce', 'revision', 'inputTree', 'fixtureSha256', 'toolchainPins')):
+            if any(report[key] != seed[key] for key in ('nonce', 'revision', 'inputTree', 'toolchainPins')):
                 raise AssertionError('Seed identity mismatch')
-            if report['tree'] != seed['tree']:
-                raise AssertionError('Graph output bytes/modes differ')
+            seed_execution = args.seed.with_suffix('.execution.json')
+            seed_graph = next(r for r in rows(seed_execution) if r.get('mnemonic') == 'MSBuildGraph')
+            report['seedWorkloadSha256'] = workload_identity(seed, seed_graph)
+            report['seedFixtureSha256'] = seed['fixtureSha256']
+            if report['workloadSha256'] != report['seedWorkloadSha256']:
+                raise AssertionError('Declared graph workload differs from frozen seed')
+            report['outputEntriesCompared'] = compare_outputs(seed['tree'], report['tree'], args.phase == 'project')
+            report['parityOmissions'] = sorted(PROJECT_OMISSIONS) if args.phase == 'project' else []
             report['outputTreesMatch'] = True
     finally:
         subprocess.run(base + ['shutdown'], cwd=workspace, env=env, capture_output=True, timeout=60, check=True)
