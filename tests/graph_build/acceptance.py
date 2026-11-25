@@ -7,7 +7,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
-SLICES = ["qualify", "design_time", "replay", "reviewed_dependencies", "source_groups", "output_ownership", "payload_concurrency", "shared_payloads", "worker_supervision", "publication_queue", "remote_streaming", "remote", "remote_publication", "signing", "package_sdks", "private_assets", "tools", "native_tools", "protocols", "direct_executable_smoke", "executable_launcher"]
+SLICES = ["qualify", "runfiles", "design_time", "replay", "reviewed_dependencies", "source_groups", "output_ownership", "payload_concurrency", "shared_payloads", "worker_supervision", "publication_queue", "remote_streaming", "remote", "remote_publication", "signing", "package_sdks", "private_assets", "tools", "native_tools", "protocols", "direct_executable_smoke", "executable_launcher"]
 
 
 def main():
