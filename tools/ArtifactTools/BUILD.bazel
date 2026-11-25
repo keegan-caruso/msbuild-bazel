@@ -13,5 +13,6 @@ filegroup(
         "//tools:Directory.Build.props",
         "//tools:MSBuildTool.props",
         "//tools:RelativePathComponents.cs",
+        "//tools:Runfiles.cs",
     ],
 )

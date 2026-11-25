@@ -3,4 +3,7 @@
   <PropertyGroup>
     <UseAppHost>false</UseAppHost>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Runfiles.cs" />
+  </ItemGroup>
 </Project>

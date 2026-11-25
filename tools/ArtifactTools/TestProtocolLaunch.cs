@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using RulesMSBuild;
 using static Program;
 
 internal static class TestProtocolLaunch
@@ -8,26 +9,27 @@ internal static class TestProtocolLaunch
         TestExecution.Validate(request.TestOptions);
 
         var root = Environment.GetEnvironmentVariable("RULES_MSBUILD_RUNFILES") ?? throw new InvalidDataException("Missing runfiles root");
+        var runfiles = new Runfiles(root);
         var temporary = Path.Combine(Environment.GetEnvironmentVariable("TEST_TMPDIR") ?? Path.GetTempPath(), "msbuild-run-" + Guid.NewGuid().ToString("N"));
         var runtimeDirectory = request.TestOptions.WorkingDirectory is { } workingDirectory
             ? Path.Combine(temporary, Safe(workingDirectory)) : temporary;
         Directory.CreateDirectory(runtimeDirectory);
         try
         {
-            var input = Path.Combine(root, Safe(request.Entry));
+            var input = runfiles.Resolve(Safe(request.Entry));
             // Bazel test runfiles expand tree artifacts into file symlinks.
             // This directory is the selected declared graph output, not a host tree.
             foreach (var file in Directory.EnumerateFiles(input, "*", SearchOption.AllDirectories))
             {
-                Copy(file, Path.Combine(runtimeDirectory, Safe(Path.GetRelativePath(input, file))));
+                Copy(file, Path.Combine(runtimeDirectory, Safe(RelativePathComponents.LogicalRelative(input, file))));
             }
             foreach (var file in request.Data)
             {
-                Copy(Path.Combine(root, Safe(file.Source)), Path.Combine(temporary, Safe(file.Path)));
+                Copy(runfiles.Resolve(Safe(file.Source)), Path.Combine(temporary, Safe(file.Path)));
             }
 
             var runtimeHost = request.RuntimeHost ?? throw new InvalidDataException("Missing declared runtime host");
-            var hostRoot = Path.Combine(root, Safe(runtimeHost.Directory));
+            var hostRoot = runfiles.Resolve(Safe(runtimeHost.Directory));
             var host = Path.Combine(hostRoot, Safe(runtimeHost.EntryPoint));
             if (!File.Exists(host))
             {
@@ -68,7 +70,7 @@ internal static class TestProtocolLaunch
                 start.ArgumentList.Add(arg);
             }
 
-            return TestExecution.Run(start, request.TestOptions, root, temporary);
+            return TestExecution.Run(start, request.TestOptions, runfiles, temporary);
         }
         finally { Directory.Delete(temporary, true); }
     }

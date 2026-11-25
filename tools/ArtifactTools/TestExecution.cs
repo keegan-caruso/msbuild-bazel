@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Xml;
 using System.Xml.Linq;
+using RulesMSBuild;
 
 internal sealed record TestOptions(string Protocol, string? Settings = null, string FilterArgument = "", bool AllowEmpty = false, string? Runner = null, string[]? Adapters = null, bool Diagnostics = false, string[]? OutputDirectories = null, string? SettingsOutput = null, string? WorkingDirectory = null);
 
@@ -41,7 +42,7 @@ internal static class TestExecution
         }
     }
 
-    internal static int Run(ProcessStartInfo start, TestOptions options, string runfiles, string stagingRoot)
+    internal static int Run(ProcessStartInfo start, TestOptions options, Runfiles runfiles, string stagingRoot)
     {
         var protocol = options.Protocol;
         var output = Environment.GetEnvironmentVariable("TEST_UNDECLARED_OUTPUTS_DIR") ?? Path.Combine(stagingRoot, "test-results");
@@ -69,7 +70,7 @@ internal static class TestExecution
             }
             var settings = options.SettingsOutput is not null
                 ? Path.Combine(stagingRoot, Program.Safe(options.SettingsOutput))
-                : options.Settings is not null ? Path.Combine(runfiles, Program.Safe(options.Settings)) : null;
+                : options.Settings is not null ? runfiles.Resolve(Program.Safe(options.Settings)) : null;
             if (settings is not null && !File.Exists(settings))
             {
                 throw new InvalidDataException("Missing declared test settings: " + settings);
@@ -118,7 +119,7 @@ internal static class TestExecution
                     throw new InvalidDataException("VSTest requires an explicit runner");
                 }
 
-                start.ArgumentList.Insert(0, Path.Combine(runfiles, Program.Safe(options.Runner)));
+                start.ArgumentList.Insert(0, runfiles.Resolve(Program.Safe(options.Runner)));
                 Add(start, "/Logger:trx;LogFileName=results.trx", "/ResultsDirectory:" + output);
                 if (options.Diagnostics)
                 {
@@ -132,7 +133,7 @@ internal static class TestExecution
 
                 if (options.Adapters is { Length: > 0 })
                 {
-                    var adapters = options.Adapters.Select(p => Path.Combine(runfiles, Program.Safe(p))).ToArray();
+                    var adapters = options.Adapters.Select(p => runfiles.Resolve(Program.Safe(p))).ToArray();
                     foreach (var adapter in adapters)
                     {
                         if (!Directory.Exists(adapter))
@@ -147,7 +148,7 @@ internal static class TestExecution
                     {
                         foreach (var file in Directory.GetFiles(adapter, "*", SearchOption.AllDirectories))
                         {
-                            Program.Copy(file, Path.Combine(start.WorkingDirectory, Program.Safe(Path.GetRelativePath(adapter, file).Replace('\\', '/'))));
+                            Program.Copy(file, Path.Combine(start.WorkingDirectory, Program.Safe(RelativePathComponents.LogicalRelative(adapter, file))));
                         }
                     }
 

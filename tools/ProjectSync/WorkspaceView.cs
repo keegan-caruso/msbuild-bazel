@@ -95,6 +95,7 @@ internal sealed class WorkspaceView : IDisposable
         {
             throw new InvalidDataException("--inputs requires --runfiles");
         }
+        var resolver = new Runfiles(runfiles);
         var inputs = JsonSerializer.Deserialize<SyncInputs>(File.ReadAllText(manifest), new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }) ?? throw new InvalidDataException("Empty sync input manifest");
         var temporary = PhysicalPath(Directory.CreateTempSubdirectory("msbuild-sync-").FullName);
         var view = new WorkspaceView(temporary, temporary, inputs.PackageLock);
@@ -109,7 +110,7 @@ internal sealed class WorkspaceView : IDisposable
                 {
                     throw new InvalidDataException("Duplicate or reserved sync input: " + path);
                 }
-                var source = Path.Combine(runfiles, Safe(input.Runfile));
+                var source = resolver.Resolve(input.Runfile);
                 var destination = Path.Combine(temporary, path);
                 if (Path.Exists(Path.Combine(root, path)) || Path.Exists(destination) || (input.Directory ? !Directory.Exists(source) : !File.Exists(source)))
                 {
@@ -167,7 +168,7 @@ internal sealed class WorkspaceView : IDisposable
                     {
                         throw new InvalidDataException("Duplicate or ambiguous graph tool binding: " + binding.Property);
                     }
-                    var source = Path.Combine(runfiles, Safe(binding.Runfiles[0]));
+                    var source = resolver.Resolve(binding.Runfiles[0]);
                     foreach (var file in Directory.GetFiles(source, "*", SearchOption.AllDirectories))
                     {
                         var destination = Path.Combine(temporary, relative, Safe(RelativePathComponents.LogicalRelative(source, file)));
@@ -176,7 +177,18 @@ internal sealed class WorkspaceView : IDisposable
                     }
                     view.GraphBindingLabels.Add(binding.Label);
                 }
-                var paths = binding.Runfiles.Select(path => Path.Combine(runfiles, Safe(path), Safe(binding.Entry))).Where(File.Exists).ToArray();
+                string? BindingPath(string path)
+                {
+                    try
+                    {
+                        return resolver.Resolve(Safe(path) + "/" + Safe(binding.Entry));
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        return null;
+                    }
+                }
+                var paths = binding.Runfiles.Select(BindingPath).OfType<string>().Where(File.Exists).ToArray();
                 if (paths.Length != 1 || !view.bindings.TryAdd(LabelKey(binding.Label), (binding.Property, paths[0])))
                 {
                     throw new InvalidDataException("Ambiguous or missing evaluation tool: " + binding.Label);
@@ -187,7 +199,7 @@ internal sealed class WorkspaceView : IDisposable
             foreach (var package in inputs.Packages)
             {
                 var identity = Safe(package.Id.ToLowerInvariant() + "/" + package.Version.ToLowerInvariant());
-                var source = Path.Combine(runfiles, Safe(package.Runfile));
+                var source = resolver.Resolve(package.Runfile);
                 if (!Directory.Exists(source) || !view.packageSources.TryAdd(identity, source))
                 {
                     throw new InvalidDataException("Missing or conflicting SDK package: " + identity);

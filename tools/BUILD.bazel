@@ -15,6 +15,7 @@ exports_files([
     "NoLinkTree.cs",
     "OutputOwnershipIndex.cs",
     "RelativePathComponents.cs",
+    "Runfiles.cs",
 ])
 
 # Shared adapter inputs retain their tools/ paths in staged workspaces.
