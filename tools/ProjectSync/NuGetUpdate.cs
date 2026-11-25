@@ -186,7 +186,7 @@ internal static class NuGetUpdate
                 configDigests = NuGetConfigs.Capture(workspace, finalMetadata, source, Path.Combine(scratch, "home"), originals),
                 lockFiles = locks.Keys.ToArray(),
                 packages,
-            }, new JsonSerializerOptions { WriteIndented = true }) + "\n";
+            }, new JsonSerializerOptions { WriteIndented = true, NewLine = "\n" }) + "\n";
             foreach (var (path, digest) in originals)
             {
                 if (!File.Exists(path) || Digest(path) != digest)
