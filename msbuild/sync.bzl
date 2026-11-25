@@ -5,6 +5,7 @@ load("//msbuild/private:defaults.bzl", "STABLE_PATHS_TOOLCHAIN", "automatic")
 load("//msbuild/private:paths.bzl", _TOOLCHAIN = "TOOLCHAIN", _quote = "quote", _runfile = "runfile")
 load("//msbuild/private:providers.bzl", "MSBuildBindingInfo", "MSBuildPackageLockInfo")
 load("//msbuild/private:sdk_bootstrap.bzl", "bootstrap_project")
+load("//msbuild/private:shell_launcher.bzl", _SHELL_TOOLCHAIN = "SHELL_TOOLCHAIN", _shell_launcher = "shell_launcher", _shell_launcher_attrs = "shell_launcher_attrs", _shell_runfiles = "shell_runfiles", _write_shell_script = "write_shell_script")
 load("//msbuild/private:sync_preparation.bzl", "prepare_sync")
 
 def _source_globs_impl(ctx):
@@ -91,25 +92,37 @@ def _sync_impl(ctx):
         "MSBuildSyncBootstrap",
         private_home = False,
     )
+    mappings_setup = ""
+    mappings_argument = ""
+    if ctx.file.mappings:
+        mappings_setup = "resolve_runfile " + _quote(_runfile(ctx, ctx.file.mappings)) + '\nmappings="$RULES_MSBUILD_NATIVE_RUNFILE"\n'
+        mappings_argument = ' --mappings "$mappings"'
     if ctx.attr.nuget_update:
         launcher = ctx.actions.declare_file(ctx.label.name)
-        ctx.actions.write(launcher, """#!/usr/bin/env bash
+        _write_shell_script(ctx, launcher, """#!/usr/bin/env bash
 set -euo pipefail
-runfiles="${RUNFILES_DIR:-$0.runfiles}"
-export DOTNET_ROOT="$runfiles/"%s
-exec "$runfiles/"%s "$runfiles/"%s nuget-update "${BUILD_WORKSPACE_DIRECTORY:?Run with bazel run}" "$DOTNET_ROOT" %s --output %s --configuration %s --sdk-version %s %s "$@"
+resolve_runfile %s
+dotnet="$RULES_MSBUILD_RESOLVED_RUNFILE"
+resolve_runfile %s
+runner="$RULES_MSBUILD_NATIVE_RUNFILE"
+export DOTNET_ROOT="${dotnet%%/*}"
+case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) export DOTNET_ROOT="$(native_path "$DOTNET_ROOT")" ;; esac
+workspace="${BUILD_WORKSPACE_DIRECTORY:?Run with bazel run}"
+case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) workspace="$(native_path "$workspace")" ;; esac
+%s
+exec "$dotnet" "$runner" nuget-update "$workspace" "$DOTNET_ROOT" %s --output %s --configuration %s --sdk-version %s %s "$@"
 """ % (
-            _quote(_runfile(ctx, tc.dotnet).rsplit("/", 1)[0]),
             _quote(_runfile(ctx, tc.dotnet)),
             _quote(_runfile(ctx, payload) + "/ProjectSync.dll"),
+            mappings_setup,
             " ".join([_quote(project) for project in ctx.attr.projects]),
             _quote(ctx.attr.output),
             _quote(ctx.attr.configuration),
             _quote(tc.sdk_version),
             ("--framework " + _quote(ctx.attr.framework) if ctx.attr.framework else "") +
-            (' --mappings "$runfiles/"' + _quote(_runfile(ctx, ctx.file.mappings)) if ctx.file.mappings else ""),
-        ), is_executable = True)
-        return [DefaultInfo(executable = launcher, runfiles = ctx.runfiles(files = [payload, tc.dotnet] + ([ctx.file.mappings] if ctx.file.mappings else []), transitive_files = tc.sdk))]
+            mappings_argument,
+        ))
+        return [DefaultInfo(executable = _shell_launcher(ctx, launcher), runfiles = _shell_runfiles(ctx, files = [launcher, payload, tc.dotnet] + ([ctx.file.mappings] if ctx.file.mappings else []), transitive_files = tc.sdk))]
     if any([target in ctx.attr.inputs for target in ctx.attr.build_inputs]):
         fail("A producer cannot be both inputs and build_inputs")
     bound = []
@@ -153,36 +166,45 @@ exec "$runfiles/"%s "$runfiles/"%s nuget-update "${BUILD_WORKSPACE_DIRECTORY:?Ru
     if ctx.attr.srcs:
         return [prepare_sync(ctx, tc, payload, manifest, input_files + package_files + binding_files)]
     launcher = ctx.actions.declare_file(ctx.label.name)
-    ctx.actions.write(launcher, """#!/usr/bin/env bash
+    _write_shell_script(ctx, launcher, """#!/usr/bin/env bash
 set -euo pipefail
 if [[ -z "${BUILD_WORKSPACE_DIRECTORY:-}" ]]; then
     echo 'Run this target with bazel run from the application workspace.' >&2
     exit 1
 fi
-runfiles="${RUNFILES_DIR:-$0.runfiles}"
-export DOTNET_ROOT="$runfiles/"%s
+resolve_runfile %s
+dotnet="$RULES_MSBUILD_RESOLVED_RUNFILE"
+resolve_runfile %s
+runner="$RULES_MSBUILD_NATIVE_RUNFILE"
+resolve_runfile %s
+inputs="$RULES_MSBUILD_NATIVE_RUNFILE"
+export DOTNET_ROOT="${dotnet%%/*}"
+case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) export DOTNET_ROOT="$(native_path "$DOTNET_ROOT")" ;; esac
 export DOTNET_NOLOGO=1 DOTNET_CLI_TELEMETRY_OPTOUT=1
 export DOTNET_CLI_USE_MSBUILD_SERVER=false MSBUILDUSESERVER=0
-exec "$runfiles/"%s "$runfiles/"%s "$BUILD_WORKSPACE_DIRECTORY" "$DOTNET_ROOT/sdk/"%s %s %s %s --inputs "$runfiles/"%s --runfiles "$runfiles" "$@"
+workspace="$BUILD_WORKSPACE_DIRECTORY"
+case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) workspace="$(native_path "$workspace")" ;; esac
+%s
+exec "$dotnet" "$runner" "$workspace" "$DOTNET_ROOT/sdk/"%s %s %s %s --inputs "$inputs" --runfiles "$runfiles_context" "$@"
 """ % (
-        _quote(_runfile(ctx, tc.dotnet).rsplit("/", 1)[0]),
         _quote(_runfile(ctx, tc.dotnet)),
         _quote(_runfile(ctx, payload) + "/ProjectSync.dll"),
+        _quote(_runfile(ctx, manifest)),
+        mappings_setup,
         _quote(tc.sdk_version),
         " ".join([_quote(project) for project in ctx.attr.projects]),
-        '--mappings "$runfiles/"' + _quote(_runfile(ctx, ctx.file.mappings)) if ctx.file.mappings else "",
+        mappings_argument,
         "--configuration " + _quote(ctx.attr.configuration) + (" --framework " + _quote(ctx.attr.framework) if ctx.attr.framework else "") + (" --package-build" if ctx.attr.package_build else "") + (" --resolve-references" if ctx.attr.resolve_references else "") + "".join([" --package-input " + _quote(path) for path in ctx.attr.package_inputs]),
-        _quote(_runfile(ctx, manifest)),
-    ), is_executable = True)
+    ))
     return [DefaultInfo(
-        executable = launcher,
-        runfiles = ctx.runfiles(files = [payload, tc.dotnet, manifest] + input_files + package_files + binding_files + ([ctx.file.mappings] if ctx.file.mappings else []), transitive_files = tc.sdk),
+        executable = _shell_launcher(ctx, launcher),
+        runfiles = _shell_runfiles(ctx, files = [launcher, payload, tc.dotnet, manifest] + input_files + package_files + binding_files + ([ctx.file.mappings] if ctx.file.mappings else []), transitive_files = tc.sdk),
     )]
 
 _sync = rule(
     implementation = _sync_impl,
     executable = True,
-    toolchains = [_TOOLCHAIN, config_common.toolchain_type(STABLE_PATHS_TOOLCHAIN, mandatory = False)],
+    toolchains = [_TOOLCHAIN, config_common.toolchain_type(STABLE_PATHS_TOOLCHAIN, mandatory = False), config_common.toolchain_type(_SHELL_TOOLCHAIN, mandatory = False)],
     attrs = {
         "projects": attr.string_list(mandatory = True),
         "srcs": attr.label_list(allow_files = True),
@@ -205,7 +227,7 @@ _sync = rule(
         "mappings": attr.label(allow_single_file = [".json"]),
         "_sources": attr.label(default = Label("//tools/ProjectSync:sources")),
         "_project": attr.label(default = Label("//tools/ProjectSync:ProjectSync.csproj"), allow_single_file = True),
-    },
+    } | _shell_launcher_attrs(),
 )
 
 def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = None, bindings = [], package_locks = [], configuration = "Release", framework = "", package_build = None, package_inputs = [], resolve_references = None, build_inputs = {}, srcs = None, qualification_cache = None, seed_build_cache = None, **kwargs):

@@ -5,6 +5,7 @@ load("//msbuild/private:paths.bzl", _RUNTIME_TOOLCHAIN = "RUNTIME_TOOLCHAIN", _T
 load("//msbuild/private:project_launch.bzl", _create_executable_launcher = "create_executable_launcher", _create_test_protocol_launcher = "create_test_protocol_launcher")
 load("//msbuild/private:providers.bzl", "MSBuildBindingInfo", "MSBuildLayoutInfo", "MSBuildPackageLockInfo", "MSBuildRuntimeInfo")
 load("//msbuild/private:sdk_bootstrap.bzl", "bootstrap_project")
+load("//msbuild/private:shell_launcher.bzl", _SHELL_TOOLCHAIN = "SHELL_TOOLCHAIN", _shell_launcher_attrs = "shell_launcher_attrs")
 load("//msbuild/private:test_options.bzl", _TEST_OPTIONS_ATTRS = "TEST_OPTIONS_ATTRS", _validate_test = "validate_test")
 
 MSBuildGraphInfo = provider("A declared MSBuild graph workspace and its execution SDK.", fields = {"directory": "Graph output workspace", "contract": "Declared graph output ownership", "dotnet": "Execution host", "sdk": "Declared SDK files", "projects": "Configured project runtime outputs"})
@@ -318,19 +319,19 @@ _RUNTIME_ATTRS = {
     "assembly": attr.string(),
     "runtime_host": attr.label(providers = [MSBuildRuntimeInfo]),
     "data_paths": attr.label_keyed_string_dict(allow_files = True),
-}
+} | _shell_launcher_attrs()
 
 msbuild_graph_binary = rule(
     implementation = _runtime,
     attrs = _RUNTIME_ATTRS,
     executable = True,
-    toolchains = [config_common.toolchain_type(_RUNTIME_TOOLCHAIN, mandatory = False)],
+    toolchains = [config_common.toolchain_type(_RUNTIME_TOOLCHAIN, mandatory = False), config_common.toolchain_type(_SHELL_TOOLCHAIN, mandatory = False)],
 )
 
 msbuild_graph_test = rule(
     implementation = _test,
     attrs = dict(_RUNTIME_ATTRS, direct_executable_smoke = attr.bool(doc = "Opt in to a restricted executable smoke launcher using only the selected runtime host."), **{key: value for key, value in _TEST_OPTIONS_ATTRS.items() if key != "test_output_type"}),
-    toolchains = [_TOOLCHAIN, config_common.toolchain_type(_RUNTIME_TOOLCHAIN, mandatory = False)],
+    toolchains = [_TOOLCHAIN, config_common.toolchain_type(_RUNTIME_TOOLCHAIN, mandatory = False), config_common.toolchain_type(_SHELL_TOOLCHAIN, mandatory = False)],
     test = True,
 )
 
