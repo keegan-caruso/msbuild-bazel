@@ -48,7 +48,7 @@ internal sealed class GraphInputs : IDisposable
     internal ProjectCollection Collection => collection;
     internal object? EvaluationProfile => evaluationProfile?.Report;
 
-    internal GraphInputs(GraphContract contract, string root, string sdkRoot, bool restored = false, RestoredInputs? prepared = null, EvaluationSession? evaluation = null)
+    internal GraphInputs(GraphContract contract, string root, string sdkRoot, bool restored = false, RestoredInputs? prepared = null, EvaluationSession? evaluation = null, string? immutableSdkDigest = null)
     {
         var timer = System.Diagnostics.Stopwatch.StartNew();
         Files = new(root, sdkRoot);
@@ -56,7 +56,8 @@ internal sealed class GraphInputs : IDisposable
         contract = CompileGlobInputs.Expand(contract, Files);
         this.contract = contract;
         Dictionary<string, string>? verifiedInputs = null;
-        string? verifiedSdk = null;
+        // Only same-action handoffs may reuse an already verified immutable SDK.
+        string? verifiedSdk = immutableSdkDigest;
         if (evaluation is not null)
         {
             var paths = Files.ResolveInputs(contract.SharedInputs.Concat(contract.Projects.Values.SelectMany(project => project.Inputs

@@ -1093,11 +1093,33 @@ integration_case(
     workspace_path = "tests/integration/fixtures/worker",
 )
 
+integration_runner(
+    name = "qualification_seed_targets_runner",
+    srcs = ["qualification_seed_targets.sh"],
+)
+
+integration_case(
+    name = "qualification_seed_targets_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+        "QUALIFICATION_CACHE_URL",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
+    test_runner = ":qualification_seed_targets_runner",
+    workspace_files = glob(["fixtures/worker/**"]),
+    workspace_path = "tests/integration/fixtures/worker",
+)
+
 integration_suite(
     name = "qualification_seed",
     cases = [
         "qualification_seed_cases",
         "qualification_seed_packages_cases",
+        "qualification_seed_targets_cases",
     ],
 )
 
@@ -1189,4 +1211,9 @@ integration_case(
 integration_suite(
     name = "worker_defaults",
     cases = ["worker_defaults_cases"],
+)
+
+integration_suite(
+    name = "qualification_seed_targets",
+    cases = ["qualification_seed_targets_cases"],
 )

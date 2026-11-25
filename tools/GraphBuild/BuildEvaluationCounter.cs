@@ -7,6 +7,10 @@ namespace RulesMSBuild.GraphBuild;
 internal sealed class BuildEvaluationCounter : ILogger
 {
     private long evaluations;
+    private long compilerTasks;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, int> compilerProjects = new(StringComparer.Ordinal);
+    internal IReadOnlyDictionary<string, int> CompilerProjects => compilerProjects;
+    internal long CompilerTasks => Interlocked.Read(ref compilerTasks);
     internal long Evaluations => Interlocked.Read(ref evaluations);
     public LoggerVerbosity Verbosity { get; set; } = LoggerVerbosity.Diagnostic;
     public string? Parameters
@@ -14,13 +18,24 @@ internal sealed class BuildEvaluationCounter : ILogger
         get; set;
     }
 
-    public void Initialize(IEventSource source) => source.StatusEventRaised += (_, args) =>
+    public void Initialize(IEventSource source)
     {
-        if (args is ProjectEvaluationStartedEventArgs)
+        source.TaskStarted += (_, args) =>
         {
-            Interlocked.Increment(ref evaluations);
-        }
-    };
+            if (args.TaskName is "Csc" or "Vbc" or "Fsc")
+            {
+                Interlocked.Increment(ref compilerTasks);
+                compilerProjects.AddOrUpdate(args.ProjectFile ?? "", 1, (_, count) => count + 1);
+            }
+        };
+        source.StatusEventRaised += (_, args) =>
+        {
+            if (args is ProjectEvaluationStartedEventArgs)
+            {
+                Interlocked.Increment(ref evaluations);
+            }
+        };
+    }
 
     public void Shutdown()
     {

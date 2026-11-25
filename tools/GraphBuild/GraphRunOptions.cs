@@ -1,7 +1,7 @@
 namespace RulesMSBuild.GraphBuild;
 
 internal sealed record GraphRunOptions(string? RemoteUrl, string? BearerToken, string? LocalState,
-    string? Prepared, bool ReadOnlyPackages, bool Profile, bool EvaluationProfile, string CopyMode, bool RemoteReadOnly)
+    string? Prepared, bool ReadOnlyPackages, bool Profile, bool EvaluationProfile, string CopyMode, bool RemoteReadOnly, bool ReuseBuildCache = false)
 {
     internal static GraphRunOptions Read()
     {
@@ -15,7 +15,8 @@ internal sealed record GraphRunOptions(string? RemoteUrl, string? BearerToken, s
             Take("RULES_MSBUILD_GRAPH_LOCAL_STATE"), Take("RULES_MSBUILD_GRAPH_PREPARED_RESTORE"),
             Take("RULES_MSBUILD_GRAPH_READONLY_PACKAGES") == "1", Take("RULES_MSBUILD_GRAPH_PROFILE") == "1",
             Take("RULES_MSBUILD_GRAPH_EVALUATION_PROFILE") == "1", Take("RULES_MSBUILD_GRAPH_COPY_MODE") ?? "clone",
-            RulesMSBuild.ProjectCache.ProjectCachePolicy.ReadOnly(Take("RULES_MSBUILD_PROJECT_CACHE_READ_ONLY")));
+            RulesMSBuild.ProjectCache.ProjectCachePolicy.ReadOnly(Take("RULES_MSBUILD_PROJECT_CACHE_READ_ONLY")),
+            Take("RULES_MSBUILD_GRAPH_REUSE_BUILD_CACHE") == "1");
         if (result.CopyMode is not ("copy" or "clone"))
         {
             throw new InvalidDataException("RULES_MSBUILD_GRAPH_COPY_MODE must be copy or clone");
