@@ -139,6 +139,16 @@ SDK **11.0.100** / runtime **11.0.0** and Bazel **9.3.2**:
 
 Rosetta integration-test archive helper fails in GNU tar following Bazel symlinks (`Function not implemented`); direct quickstart passes without it (separate from `libarchive` extraction). Retained source-built SDK 10.0.100 and NativeAOT keep their own pins.
 
+## Windows x64 qualification in progress
+
+Native Windows Server 2025 x64 (10.0.26100), SDK **11.0.100**, runtime **11.0.0**, and MSBuild **18.12.2** passed direct GraphBuild and ProjectSync controls. A two-project offline fixture restored, generated its contract, built with **0 hits / 2 misses**, then recovered both project snapshots after deleting declared outputs (**2 hits / 0 misses**); the app ran. Native `tests/graph_build/{qualify,replay,configurations,design_time}.py` controls passed source/import invalidation, undeclared imports, overlapping outputs, multi-target compilation/replay, custom Restore layouts, and fresh design-time metadata. These are same-host, same-path tooling checks; native Bazel entry points, full acceptance, remote recovery, and Windows ARM64 remain unqualified.
+
+The Windows image needed Git Bash and the Microsoft Visual C++ x64 Redistributable before native Bazel startup. Version **14.52.37029.0** resolved Bazel **9.3.2** exiting with `0xC0000135` (missing `MSVCP140.dll`, `VCRUNTIME140.dll`, and `VCRUNTIME140_1.dll`). Successful startup alone does not qualify the build entry points.
+
+Windows contract paths use `/` while filesystem paths use native normalization. Native controls reject alternate data streams, device names, invalid filename characters, and trailing dots/spaces; ownership checks recognize case and separator aliases. These lexical checks do not detect Windows 8.3 short-name aliases or hardlinks. Unix filename behavior remains unchanged. Reproduce the portable source controls with `python3 tests/graph_build/input_integrity.py` and `python3 tests/graph_build/output_ownership.py` after building GraphBuild.
+
+A separate AppContainer prototype passed declared-input reads, output writes, denied host reads/writes, denied SDK writes, and an inherited managed child token. Real SDK Restore/compilation and the two-project cold/warm graph action also passed inside it. This prototype is not a product filesystem boundary: SDK `Exec` tasks launching external programs through `cmd.exe` still fail, and cancellation, concurrent actions, cleanup, and general task compatibility remain open. Windows isolation is not enabled by these checks.
+
 ## Downloaded SDK platforms
 
 Downloaded-SDK controls passed on native Linux ARM64 and Linux x64 **under Apple Rosetta**: 29 analysis/integration checks (8.8.0 / 9.3.0) + 21 SDK/runtime repo controls (SDK selection/locks, quickstart, Web/Razor Build/test/Publish + HTTP recovery, cached/uncached workers, body/API edits, raw parity; Web fixture verifies arch):
