@@ -99,7 +99,8 @@ internal static class GraphRunner
             }
             contract = DesignTimeBuild.Configure(contract);
         }
-        using var inputs = new GraphInputs(contract, root, sdkRoot, restored: args[0] == "action", prepared: prepared, evaluation: evaluation);
+        using var initialInputs = new GraphInputs(contract, root, sdkRoot, restored: args[0] == "action", prepared: prepared, evaluation: evaluation);
+        var inputs = initialInputs;
         if (designTime)
         {
             return DesignTimeBuild.Run(inputs, root, report);
@@ -156,8 +157,52 @@ internal static class GraphRunner
                     Parameters = Path.ChangeExtension(report, ".binlog") + ";ProjectImports=None"
                 });
             }
+            var buildSeedHits = 0;
+            var buildSeedMisses = 0;
+            if (options.ReuseBuildCache)
+            {
+                if (target is not ("Pack" or "Publish") || localState is not null || evaluation is not null)
+                {
+                    throw new InvalidDataException("Build cache handoff requires a fresh Pack or Publish action");
+                }
+                if (inputs.Graph.ProjectNodes.Any(node => inputs.For(node).ReplayOmissions is { Length: > 0 }))
+                {
+                    throw new InvalidDataException("Build cache handoff does not support replay omissions");
+                }
+                using var buildManager = new BuildManager();
+                var build = buildManager.Build(parameters, new GraphBuildRequestData(inputs.Graph, ["Build"], null,
+                    BuildRequestDataFlags.ProvideProjectStateAfterBuild));
+                if (build.OverallResult != BuildResultCode.Success)
+                {
+                    Console.Error.WriteLine(build.Exception);
+                    return 1;
+                }
+                inputs.VerifyUnchangedInputs();
+                temporaryOutputs.Discard(build);
+                await plugin.SaveAsync(build);
+                buildSeedHits = plugin.Hits;
+                buildSeedMisses = plugin.Misses;
+            }
+            using var targetInputs = options.ReuseBuildCache ? new GraphInputs(contract with
+            {
+                Properties = new Dictionary<string, string>(contract.Properties, StringComparer.OrdinalIgnoreCase) { ["NoBuild"] = "true" }
+            }, root, sdkRoot, restored: true, prepared: prepared, immutableSdkDigest: inputs.SdkDigest) : null;
+            if (targetInputs is not null)
+            {
+                if (!inputs.Graph.ProjectNodes.SelectMany(inputs.OutputDirectories).ToHashSet(StringComparer.Ordinal)
+                    .SetEquals(targetInputs.Graph.ProjectNodes.SelectMany(targetInputs.OutputDirectories)))
+                {
+                    throw new InvalidDataException("Build cache handoff changes declared output directories with NoBuild=true");
+                }
+                RequireHandoffOutputs(inputs, targetInputs);
+                inputs = targetInputs;
+                temporaryOutputs = new TemporaryOutputs(contract, inputs);
+                // Build snapshots do not qualify Pack/Publish products or hooks.
+                // Cache the complete two-phase action through Bazel instead.
+                parameters.ProjectCacheDescriptor = null;
+            }
             using var manager = new BuildManager();
-            var flags = inputs.Graph.ProjectNodes.Any(node => inputs.For(node).CompilerReferencesComplete)
+            var flags = !options.ReuseBuildCache && inputs.Graph.ProjectNodes.Any(node => inputs.For(node).CompilerReferencesComplete)
                 ? BuildRequestDataFlags.ProvideProjectStateAfterBuild : BuildRequestDataFlags.None;
             var result = manager.Build(parameters, new GraphBuildRequestData(inputs.Graph, [target], null, flags));
             if (result.OverallResult != BuildResultCode.Success)
@@ -179,8 +224,11 @@ internal static class GraphRunner
             var temporaryDirectoriesRemoved = temporaryOutputs.Discard(result);
             verificationTimer.Stop();
             var snapshotTimer = System.Diagnostics.Stopwatch.StartNew();
-            await plugin.SaveAsync(result);
-            plugin.DiscardReplayOmissions();
+            if (!options.ReuseBuildCache)
+            {
+                await plugin.SaveAsync(result);
+                plugin.DiscardReplayOmissions();
+            }
             snapshotTimer.Stop();
             localState?.Complete();
             File.WriteAllText(report, JsonSerializer.Serialize(new
@@ -198,12 +246,16 @@ internal static class GraphRunner
                 verificationSeconds = verificationTimer.Elapsed.TotalSeconds,
                 temporaryDirectoriesRemoved,
                 snapshotSeconds = snapshotTimer.Elapsed.TotalSeconds,
-                hits = plugin.Hits,
-                misses = plugin.Misses,
+                buildSeedHits,
+                buildSeedMisses,
+                hits = options.ReuseBuildCache ? 0 : plugin.Hits,
+                misses = options.ReuseBuildCache ? 0 : plugin.Misses,
                 buildAndSnapshotSeconds = timer.Elapsed.TotalSeconds,
-                evaluationSeconds = inputs.EvaluationSeconds,
+                evaluationSeconds = inputs.EvaluationSeconds + (targetInputs is null ? 0 : initialInputs.EvaluationSeconds),
                 buildNodeEvaluations = buildEvaluation?.Evaluations,
-                inputHashSeconds = inputs.InputHashSeconds,
+                compilerTasks = buildEvaluation?.CompilerTasks,
+                compilerProjects = buildEvaluation?.CompilerProjects,
+                inputHashSeconds = inputs.InputHashSeconds + (targetInputs is null ? 0 : initialInputs.InputHashSeconds),
                 totalSeconds = totalTimer.Elapsed.TotalSeconds
             }));
             return 0;
@@ -216,4 +268,39 @@ internal static class GraphRunner
         }), new JsonSerializerOptions { WriteIndented = true }));
         return 0;
     }
+    private static void RequireHandoffOutputs(GraphInputs build, GraphInputs target)
+    {
+        string Key(ProjectGraphNode node) => ConfiguredProjectKey.Create(node.ProjectInstance.FullPath,
+            node.ProjectInstance.GlobalProperties.Where(pair => !pair.Key.Equals("NoBuild", StringComparison.OrdinalIgnoreCase)));
+        var nodes = target.Graph.ProjectNodes.ToDictionary(Key, StringComparer.Ordinal);
+        if (!nodes.Keys.ToHashSet(StringComparer.Ordinal).SetEquals(build.Graph.ProjectNodes.Select(Key)))
+        {
+            throw new InvalidDataException("Build cache handoff changes configured projects with NoBuild=true");
+        }
+        foreach (var node in build.Graph.ProjectNodes)
+        {
+            var other = nodes[Key(node)];
+            if (!other.ProjectInstance.GetPropertyValue("NoBuild").Equals("true", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException("Build cache handoff requires effective NoBuild=true: " + other.ProjectInstance.FullPath);
+            }
+            foreach (var property in new[] { "TargetPath", "TargetRefPath", "OutputPath", "IntermediateOutputPath", "PublishDir", "PackageOutputPath" })
+            {
+                string PathValue(ProjectGraphNode project)
+                {
+                    var value = project.ProjectInstance.GetPropertyValue(property);
+                    return value.Length == 0 ? "" : Path.TrimEndingDirectorySeparator(Path.GetFullPath(value.Replace('\\', '/'), Path.GetDirectoryName(project.ProjectInstance.FullPath)!));
+                }
+                if (PathValue(node) != PathValue(other))
+                {
+                    throw new InvalidDataException("Build cache handoff changes " + property + " with NoBuild=true: " + node.ProjectInstance.FullPath);
+                }
+            }
+            if (!node.ProjectReferences.Select(Key).ToHashSet(StringComparer.Ordinal).SetEquals(other.ProjectReferences.Select(Key)))
+            {
+                throw new InvalidDataException("Build cache handoff changes project references with NoBuild=true");
+            }
+        }
+    }
+
 }

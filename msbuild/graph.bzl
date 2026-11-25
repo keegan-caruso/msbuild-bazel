@@ -69,6 +69,8 @@ def _graph_action(ctx, prepare = False):
         fail("worker_cache_mb must be nonnegative")
     if ctx.attr.evaluation_cache_mb < 0 or ctx.attr.evaluation_cache_mb > 4096:
         fail("evaluation_cache_mb must be between zero and 4096")
+    if ctx.attr.reuse_build_cache and (prepare or ctx.attr.target not in ["Pack", "Publish"] or ctx.attr.linux_worker):
+        fail("reuse_build_cache requires a fresh Pack or Publish action")
     linux_worker = ctx.attr.linux_worker or (ctx.attr.automatic_worker and not prepare and ctx.attr.target == "Build" and linux_stable_paths and stable_paths(ctx))
     worker_sources = []
     prefix = ctx.attr.source_root + "/" if ctx.attr.source_root else ""
@@ -149,7 +151,7 @@ def _graph_action(ctx, prepare = False):
             outputs = [output],
             arguments = [args],
             # Offline preparation never reads or publishes project snapshots.
-            env = {} if prepare else {key: value for key, value in ctx.configuration.default_shell_env.items() if key.startswith("RULES_MSBUILD_PROJECT_CACHE_")},
+            env = {} if prepare else {key: value for key, value in ctx.configuration.default_shell_env.items() if key.startswith("RULES_MSBUILD_PROJECT_CACHE_")} | {"RULES_MSBUILD_GRAPH_REUSE_BUILD_CACHE": "1" if ctx.attr.reuse_build_cache else "0"},
             command = """set -eu
     dotnet="$PWD/$1"; runner="$PWD/$2"; output="$PWD/$3"; contract="$PWD/$4"; target="$5"; isolated="$6"; sandbox="$PWD/$7"; mode="$8"; prepared="$9"; profile="${10}"
     if test "$prepared" != -; then prepared="$PWD/$prepared"; fi
@@ -206,6 +208,7 @@ _GRAPH_ATTRS = {
     "source_root": attr.string(),
     "project_outputs": attr.string_list_dict(),
     "publish_outputs": attr.string_list_dict(),
+    "reuse_build_cache": attr.bool(default = False, doc = "Build first using project snapshots, then execute Pack/Publish with NoBuild=true. Review the two-phase semantics before opting in."),
     "profile_build": attr.bool(default = False, doc = "Opt-in runner operation and worker staging timings; profiling is disabled by default."),
     "evaluation_cache_mb": attr.int(default = 512, doc = "Retained evaluation heap budget in MiB for reviewed compiler-only contracts; zero uses fresh engines. Retire between requests above this live-heap budget or max(256 MiB, three times this limit) resident memory; these are not peak-memory caps."),
     "worker_cache_mb": attr.int(default = 4096, doc = "Conservative logical snapshot-cache budget in MiB; zero discards between requests."),
