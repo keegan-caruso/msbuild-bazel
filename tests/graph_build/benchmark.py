@@ -40,7 +40,7 @@ def main():
             # Restore is outside this timing, so bind its existing files explicitly.
             for path, project in contract['Projects'].items():
                 restored = roots['cached'] / Path(path).parent / 'obj'
-                project['Inputs'].extend(str(file.relative_to(roots['cached']))
+                project['Inputs'].extend(file.relative_to(roots['cached']).as_posix()
                                          for file in restored.iterdir() if file.is_file())
             if args.conservative:
                 for project in contract['Projects'].values():
