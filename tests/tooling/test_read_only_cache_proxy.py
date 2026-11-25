@@ -1,11 +1,13 @@
 """Remote misses and broken downloads must not fall back to local producers."""
 import hashlib
+import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import signal
 import subprocess
 import sys
 import threading
+import tempfile
 import time
 import unittest
 import urllib.error
@@ -84,6 +86,39 @@ class CacheProxy(unittest.TestCase):
         self.assertEqual(caught.exception.code, 403)
         self.assertEqual(Upstream.puts, 0)
         self.assertFalse(self.proxy.misses)
+
+    def test_cli_reports_streamed_bytes_for_one_owned_phase(self):
+        self.cli_case(present=True, ignore_term=False)
+
+    def test_cli_stops_even_signal_ignoring_requester_before_fallback(self):
+        self.cli_case(present=False, ignore_term=True)
+
+    def cli_case(self, present, ignore_term):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            fake = root / 'fake_bazel.py'
+            marker = root / 'fallback'
+            fake.write_text("import signal,sys,urllib.request,urllib.error\n" +
+                ("signal.signal(signal.SIGTERM,signal.SIG_IGN)\n" if ignore_term else '') +
+                "url=next(a.split('=',1)[1] for a in sys.argv if a.startswith('--remote_cache='))\n" +
+                "try: data=urllib.request.urlopen(url+'/cas/" + (DIGEST if present else '0'*64) + "').read()\n" +
+                "except urllib.error.HTTPError: open(" + repr(str(marker)) + ",'w').write('fallback')\n")
+            report = root / 'phase.json'
+            command = [sys.executable, str(Path(__file__).resolve().parents[1] / 'graph_build/read_only_cache_proxy.py'),
+                       '--cache=http://127.0.0.1:' + str(self.upstream.server_port), '--report=' + str(report),
+                       '--abort-grace=0.1', '--', sys.executable, str(fake), '--batch',
+                       '--output_base=' + str(root / 'base'), 'build']
+            result = subprocess.run(command, capture_output=True, text=True, timeout=10)
+            receipt = json.loads(report.read_text())
+            self.assertEqual(result.returncode, 0 if present else 1, result.stderr)
+            self.assertEqual(receipt['passed'], present)
+            self.assertFalse(marker.exists(), 'guard returned a cache miss while fallback was possible')
+            if present:
+                self.assertEqual(receipt['getPayloadBytes']['recover'], len(PAYLOAD))
+                self.assertFalse(receipt['misses'])
+            else:
+                self.assertTrue(receipt['misses'])
+                self.assertEqual(receipt['returnCode'], -signal.SIGKILL)
 
     def test_transport_failure_stops_group(self):
         self.upstream.shutdown()
