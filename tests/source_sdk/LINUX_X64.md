@@ -75,6 +75,6 @@ RULES_MSBUILD_BAZEL="$rules_repo/scripts/bazel-launcher.sh" \
   --bazel-option=--nocache_test_results
 ```
 
-Reports distro RID `ubuntu.26.04-x64`, SDK `10.0.100`, Core/ASP.NET `10.0.0`, registered as `linux-x64` (older distros unqualified). Preserve archive hash, acquisition report, build log/time, smoke output, and execution log. Passed at rules revision `de47cfe1df06e6ec82d14aff56425af6e6227b93` (one real source action, zero extra source builds in consumers; separate exact-archive handoff also passed). Stopped-producer read-only recovery is unqualified for x64; no speedup or byte-reproducibility claim.
+Reports distro RID `ubuntu.26.04-x64`, SDK `10.0.100`, Core/ASP.NET `10.0.0`, registered as `linux-x64` (older distros unqualified). Preserve archive hash, acquisition report, build log/time, smoke output, and execution log. Passed at rules revision `de47cfe1df06e6ec82d14aff56425af6e6227b93` (one real source action, zero extra source builds in consumers; separate exact-archive handoff also passed). For stopped-producer read-only recovery on the same x64 host, see the [SDK qualification](../../docs/support.md#native-ubuntu-2604-x64-sdk).
 
 Connected bootstrap needs outbound access to pinned Microsoft archive URLs and VMR NuGet feeds (record Restore assets/logs and Bootstrap archive digest). Producer qualification requires ≥ 70 GiB free disk for native root, VMR, bootstrap, and build, plus full build time; input assembly/emulated probes do not substitute for native execution.
