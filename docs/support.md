@@ -69,7 +69,37 @@ If guests cannot route directly to HTTPS, set `RULES_MSBUILD_SHARED_CACHE_SOCKET
 
 Run one heavy container per host (default 4 CPUs / 6 GiB); check `df -h` (remote cache avoids duplicate action caches, not active outputs/SDK/package/repo space). Containers use `--rm`, keeping only `/evidence` and `artifacts/apple-container/run.*`. Recovery evidence still requires fresh bases and a stopped producer.
 
-Controls: `test_apple_container.py` and `test_shared_cache_guest_relay.py` pass (bidirectional TCP/UNIX, half-close, delayed/sustained reverse responses, nonclosing peer, blocked reverse write; 30 s idle-after-EOF bound reset on progress). Fresh Ubuntu ARM64 guest (Bazel **9.3.2**) passed quickstart Build/test/run with relay + shared cache (`--remote_accept_cached=false`, `GraphCache` loaded, HTTPS status OK; qualifies Linux access, not stopped-producer cross-host recovery or workers). Keep consumer and rules outside `/tmp` or under one scratch parent so Bazel's hermetic `/tmp` does not hide local overrides.
+### Cross-host downloaded-SDK graph recovery
+
+The [three-phase quickstart fixture](../tests/graph_build/cross_host_recovery.py) compares Bazel action recovery with MSBuild project snapshot recovery. Use the same checkout, an Ubuntu ARM64 guest on each physical host, and one reachable HTTP cache supporting both Bazel and JSON project-cache requests. Place the rules and workspace outside the sandbox’s private `/tmp`. Select a fresh nonce per run. Keep the revision, nonce and rules path identical across phases.
+
+On Ubuntu 26.04 ARM64 / Bazel **9.3.2** / downloaded SDK **11.0.100**, a MacBook guest compiled three projects, published snapshots and stopped. Two fresh Mac mini guests read from the same frozen HTTP cache with `linux_stable_paths = True` (Bubblewrap) and workers disabled. Both executed the test and app and attempted zero PUTs.
+
+| Consumer | Build/test wall | HTTP response-body bytes | Result |
+| --- | ---: | ---: | --- |
+| Bazel whole-action recovery | 127.13 s | 135,342,887 | All five build actions hit. All 82 files and 29 directories matched the producer. One GET connection was retried. |
+| MSBuild project snapshots; Bazel action reads disabled | 13.75 s | 152,341 | Three project hits, zero compiler calls. All 109 replayable entries matched; the two cold `obj/*.AssemblyReference.cache` files are excluded from snapshots. |
+
+Times are single observations with SDK downloads prepared, and exclude the subsequent app invocation. File comparisons cover bytes and modes; timing reports and binlogs are excluded. A separate control using ordinary sandbox paths missed all three projects.
+
+For repeat runs, the Apple Container wrapper accepts a host download directory in `RULES_MSBUILD_CONTAINER_ACQUISITION`; pass `--acquisition /acquisition` to reuse verified SDK downloads in the guest. Each host can prepare its own downloads.
+
+Run inside the producer guest and save its report before stopping the guest:
+
+```sh
+python3 tests/graph_build/cross_host_recovery.py seed /qualification \
+  --rules "$PWD" --revision "$REVISION" --nonce "$NONCE"
+cp /qualification/report.json /evidence/seed.json
+```
+
+Transfer only `seed.json` to the consumer. Run each command in its own fresh guest on the second host with the report at `/evidence/seed.json`:
+
+```sh
+python3 tests/graph_build/cross_host_recovery.py action /qualification \
+  --rules "$PWD" --revision "$REVISION" --nonce "$NONCE" --seed /evidence/seed.json
+python3 tests/graph_build/cross_host_recovery.py project /qualification \
+  --rules "$PWD" --revision "$REVISION" --nonce "$NONCE" --seed /evidence/seed.json
+```
 
 ## Native Linux x64 controls
 
@@ -347,6 +377,15 @@ Source prep applies one reviewed linker adaptation before discovery (`StringBuil
 
 Qualification runs (all verify 172 framework members, bytes/modes, archive contents, SDK-absent execution, and missing-CoreCLR rejection):
 - **Native Ubuntu 26.04 x64** (rules `7e82ad6fe3d19e22be67c569a2c493ed1a785585`, runtime **10.0.0** `60629d14374c56f1cb51819049ad1fa529307f8d`, SDK **11.0.100**, Bazel **9.3.2**, Clang **18.1.8**, 6-CPU / 22-GiB controller, .NET 4 CPUs, `-numproc 4`, `--jobs=1`): built 3 native producers + **631 configs / 563 compilations** (121 archives / 320 locks); resumed after deadline to pass 2/2 forced tests; `runtime-linux-x64.tar.gz` SHA-256 `08199700d6f2e5c2bf32c7d3b32ef2294f26adcd4504f8ecb10d828ce92e28f6` (same-host only; `--system-bwrap` requires exact generic `amd64` `0.11.1-1ubuntu0.3`, not `amd64v3`; host GCC/G++ needed for `rules_pkg`/`rules_cc`; see [guide](../examples/source-runtime-app/README.md#native-linux-x64) and [x64 SDK](#native-ubuntu-2604-x64-sdk)).
+  - **Stopped-producer HTTP recovery on the same native host.** An input-only consumer recovered 140 build actions, including all three native producers and all three managed graphs. Bazel locally unpacked the declared native toolchain (`//native:tools` uses `no-remote`); its 14,996 entries matched the producer. All 649 runtime files and their modes matched, as did the archive SHA above. Recovery took 70.90 s and downloaded 5,347,668,317 HTTP response-body bytes. Both forced tests then ran in 21.70 s and downloaded another 29,001 bytes. The build had zero HTTP misses. Generating the forced test’s XML output had one cache miss. The consumer attempted zero PUTs throughout. These are single observations.
+  - Reproduce with the [native HTTP recovery driver](../tests/graph_build/upstream/runtime_http_recovery.py) against the pinned [prepared x64 workspace](../examples/source-runtime-app/README.md#native-linux-x64). Its `--system-bwrap` test requires the exact generic amd64 binary (SHA256 `523da3e7399044be5163aee6f57a77a6bef7454376e28f0a0627920bae1b76b6`). The cold build produced the runtime, but its runtime test rejected a different installed binary. The passing consumer ran with the pinned binary mounted at `/usr/bin/bwrap` in a private mount namespace.
+
+    ```sh
+    python3 tests/graph_build/upstream/runtime_http_recovery.py "$SETUP/workspace" "$FRESH" \
+      --rules "$PINNED_RULES" --expected-revision 7e82ad6fe3d19e22be67c569a2c493ed1a785585 \
+      --bazel "$BAZELISK" --repository-cache "$REPO_CACHE" --distdir "$SETUP/downloads/nuget-dist"
+    ```
+
 - **Ubuntu 26.04 ARM64 SDK 11** (4 CPUs / **12 GiB**, Bazel **9.3.2**, Apple Container **1.7.1** / init **0.54.0**): compiled graph, assembled 649-file archive SHA-256 `aaecfc189f42d0793acc273199ad50d46aa873b765ad4d21741291df27bf3f3f`, passed both forced tests + retained host launcher (0 OOM). With producer stopped, a fresh consumer on a second Mac (Container 1.7.1 / init 0.54.0) passed read-only recovery (all 3 graph actions, Restore, 3 native producers, version gen hit with misses prohibited; both tests ran; 649 files + archive matched; **27,622 GETs / 0 PUTs**).
 - **Ubuntu 26.04 ARM64 SDK 10** (4 CPUs / 8 GiB, SDK **10.0.400**, Bazel **9.3.2**, Clang **18.1.8**): 563 misses / 0 project hits; resumed after host interruption reusing cached native outputs; 22 MiB archive SHA-256 `5bc7ec87952a0062eaaf991e7a04fd8b090e4f73c95139d7ea96db2a71d0d3a6` ([phases](performance.md#source-runtime-product)).
 - **Historical Ubuntu 22.04 ARM64** (4 CPUs / 8 GiB, SDK **10.0.400**, Bazel **9.3.0**): 631 configs / 563 compilations, 119 archives, 320 locks; stopped-producer consumer recovered all **649 runtime files** + archive (package extraction sole local action) and source-only consumer recovered `MSBuildSyncPrepare` (122 remote hits / 0 executions; [timings](performance.md#source-runtime-product)). For compiling with a source-built **SDK**, see [quick start](../examples/quickstart/README.md#source-built-sdk).
@@ -394,7 +433,7 @@ Omit `--case` for body + API + native. Bounded graph only (no full repo bootstra
 
 Use serialized publishers per endpoint/namespace and explicit read-only consumers (HTTP AC lacks compare-and-swap for divergent writers; default is read-write; see [cache configuration](api.md#caching-and-workers)).
 
-Native macOS ARM64 / SDK **10.0.400** passes `remote_publication.py` and `remote.py` (identical writers, concurrent readers, divergence rejection, no-PUT consumers, 3-project HTTP recovery, eviction, interrupted downloads, corruption). Cross-host synthetic snapshot check (MacBook publisher → stopped → Mac mini read-only consumer via HTTPS) matched SHA-256 (not whole graph or Linux workers; Linux same-host whole-action recovery is in [x64 controls](#native-linux-x64-controls); whole-graph cross-host recovery remains unqualified).
+Native macOS ARM64 / SDK **10.0.400** passes `remote_publication.py` and `remote.py` (identical writers, concurrent readers, divergence rejection, no-PUT consumers, 3-project HTTP recovery, eviction, interrupted downloads, corruption). The native macOS synthetic snapshot check (stopped MacBook publisher → read-only Mac mini consumer) matched SHA-256 over HTTPS. For Linux guests, see the [two-host quickstart](#cross-host-downloaded-sdk-graph-recovery) and [native x64 controls](#native-linux-x64-controls).
 
 ## Linux worker qualification
 
