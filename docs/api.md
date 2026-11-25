@@ -127,7 +127,7 @@ Manual `compilerReferencesComplete: true` requires `referenceBoundary: true` and
 
 | Rule | Use |
 | --- | --- |
-| `msbuild_graph_runner`, `msbuild_graph` | Runner bootstrap; Build, Pack, or Publish a graph |
+| `msbuild_graph_runner`, `msbuild_graph` | Runner bootstrap and graph targets (Build, Pack, Publish, DesignTimeBuild) |
 | `msbuild_graph_binary`, `msbuild_graph_test` | Run/test a `project` (set `framework` if ambiguous) |
 | `msbuild_graph_layout`, `msbuild_graph_output` | Export a layout, owned file, or directory tree |
 | `msbuild_graph_layouts` | Merge selected configured project outputs in one action |
@@ -138,6 +138,8 @@ Manual `compilerReferencesComplete: true` requires `referenceBoundary: true` and
 | `msbuild_nuget_package`, `msbuild_generated_nuget_package` | Validate/extract acquired or produced packages |
 | `msbuild_nuget_dependencies`, `msbuild_package_lock` | Declare closed package inventories |
 | `msbuild_test_tool`, `msbuild_native_toolchain*` | Select package test tools and native toolchains |
+
+Use `app_graph(name = "editor", target = "DesignTimeBuild")` to export C# compiler inputs. Run `bazel build //:editor` and read `bazel-bin/editor.graph/report.json`. Each entry in `projects` identifies a project by its workspace-relative path and global properties. It includes Compile items, resolved references, project references, compiler arguments, and defined constants. Resolve relative Compile paths from the staged project directory. Expand `{workspace}` to `bazel-bin/editor.graph/workspace` and `{sdk}` to the matching SDK root. Project assembly references can point to another entry's `targetPath` or `targetRefPath`; bind those to the source project. The target uses a fresh non-worker graph.
 
 Graph and Restore targets expose their exec-configured tool in the `runner` output group (`bazel build TARGET --output_groups=+runner`).
 
