@@ -89,6 +89,33 @@ def product(workspace):
     return dict(archiveSha256=digest.hexdigest(), fileCount=count, files=files)
 
 
+def validate_recovery(logged, cold, producer, consumer):
+    local = [row for row in logged if not row.get('cacheHit') or row.get('runner') != 'remote cache hit']
+    if len(local) != 1 or local[0].get('mnemonic') != 'MSBuildNativeToolchainPackages' or \
+            local[0].get('targetLabel') != '//native:tools' or local[0].get('runner') != 'processwrapper-sandbox':
+        raise ValueError('Unexpected local recovery spawn: ' + repr(local))
+    originals = [row for row in cold if row.get('mnemonic') == 'MSBuildNativeToolchainPackages' and
+                 row.get('targetLabel') == '//native:tools']
+    if len(originals) != 1 or not local[0].get('actualOutputs') or \
+            sorted(local[0]['actualOutputs'], key=lambda row: row['path']) != \
+            sorted(originals[0].get('actualOutputs', []), key=lambda row: row['path']):
+        raise ValueError('Local package preparation output digests differ')
+    expected = tree(producer / 'bazel-bin/native/tools.root')
+    actual = tree(consumer / 'bazel-bin/native/tools.root')
+    if not expected or actual != expected:
+        raise ValueError('Local package preparation bytes, modes or links differ')
+    for mnemonic, count in [('RuntimeNative', 3), ('MSBuildGraph', 3),
+                            ('MSBuildGraphRestore', 1), ('RuntimeNativeVersions', 1)]:
+        matches = [row for row in logged if row.get('mnemonic') == mnemonic]
+        if len(matches) != count or not all(row.get('cacheHit') for row in matches):
+            raise ValueError('Expected remote producer recovery: ' + mnemonic)
+    return dict(remoteHits=len(logged)-1, localPreparation=dict(
+        mnemonic='MSBuildNativeToolchainPackages', targetLabel='//native:tools',
+        reason='Declared no-remote because dpkg-deb is host-provided',
+        treeEntries=len(actual), treeSha256=hashlib.sha256(
+            json.dumps(actual, sort_keys=True).encode()).hexdigest(), matchesColdBytesModesLinks=True))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('workspace', type=Path)
@@ -206,8 +233,7 @@ def main():
                            ['--remote_upload_local_results=false', '--remote_download_outputs=all'])
         if server.misses:
             raise ValueError('Recovery cache miss: ' + repr(server.misses))
-        if not recovered or not all(r.get('cacheHit') and r.get('runner') == 'remote cache hit' for r in recovered):
-            raise ValueError('Recovery executed a build spawn')
+        report['recoveryActions'] = validate_recovery(recovered, seeded, producer, consumer)
         if product(consumer) != expected or inputs(consumer) != manifest:
             raise ValueError('Recovered output or input parity differs')
         server.phase = 'forced-tests'
@@ -218,8 +244,10 @@ def main():
                   r.get('commandArgs') and r['commandArgs'][0].endswith('/test-setup.sh')]
         if {r.get('targetLabel') for r in shells} != {'//:app_test', '//:runtime_test'}:
             raise ValueError('Both product tests must actually execute')
-        if not all(r.get('mnemonic') == 'TestRunner' or r.get('cacheHit') for r in tested):
-            raise ValueError('Forced tests executed a producer spawn')
+        local = [r for r in tested if r.get('mnemonic') != 'TestRunner' and not r.get('cacheHit')]
+        if local:
+            report['forcedPreparation'] = validate_recovery(
+                [r for r in recovered if r.get('cacheHit')] + local, seeded, producer, consumer)
         if any(phase != 'seed' and method == 'PUT' and count
                for (phase, method, status), count in server.counts.items()) or tree(cache) != inventory:
             raise ValueError('Read-only consumer modified the cache')

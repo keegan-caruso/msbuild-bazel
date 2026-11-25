@@ -76,6 +76,31 @@ class RuntimeHttpRecovery(unittest.TestCase):
         self.assertEqual((target / 'bazel-authored.txt').read_text(), 'authored')
         self.assertFalse((target / 'bazel-bin').is_symlink())
 
+    def test_recovery_allows_only_identical_declared_toolchain_unpack(self):
+        producer, consumer = self.root / 'producer', self.root / 'consumer'
+        for workspace in [producer, consumer]:
+            tool = workspace / 'bazel-bin/native/tools.root/usr/bin/tool'
+            tool.parent.mkdir(parents=True)
+            tool.write_bytes(b'declared package bytes')
+            tool.chmod(0o755)
+        output = dict(path='bazel-out/k8-fastbuild/bin/native/tools.root/usr/bin/tool',
+                      digest=dict(hash='verified-output-digest'))
+        unpack = dict(mnemonic='MSBuildNativeToolchainPackages', targetLabel='//native:tools',
+                      cacheHit=False, runner='processwrapper-sandbox', actualOutputs=[output])
+        remote = [dict(mnemonic=name, cacheHit=True, runner='remote cache hit')
+                  for name, count in [('RuntimeNative', 3), ('MSBuildGraph', 3),
+                                      ('MSBuildGraphRestore', 1), ('RuntimeNativeVersions', 1)]
+                  for _ in range(count)]
+        result = recovery.validate_recovery(remote + [unpack], [unpack], producer, consumer)
+        self.assertEqual(result['remoteHits'], 8)
+        self.assertTrue(result['localPreparation']['matchesColdBytesModesLinks'])
+        with self.assertRaisesRegex(ValueError, 'Unexpected local'):
+            recovery.validate_recovery(remote + [unpack, dict(mnemonic='UnexpectedProducer')],
+                                       [unpack], producer, consumer)
+        (consumer / 'bazel-bin/native/tools.root/usr/bin/tool').chmod(0o644)
+        with self.assertRaisesRegex(ValueError, 'bytes, modes or links'):
+            recovery.validate_recovery(remote + [unpack], [unpack], producer, consumer)
+
     def test_input_manifest_rejects_outputs_and_links(self):
         workspace = self.root / 'workspace'
         workspace.mkdir()
