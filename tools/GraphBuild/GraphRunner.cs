@@ -90,7 +90,20 @@ internal static class GraphRunner
             }
         }
         restoreTimer.Stop();
+        var designTime = args[0] is "build" or "action" && args.Length > 5 && args[5] == "DesignTimeBuild";
+        if (designTime)
+        {
+            if (localState is not null || evaluation is not null)
+            {
+                throw new InvalidDataException("DesignTimeBuild requires a fresh non-worker graph");
+            }
+            contract = DesignTimeBuild.Configure(contract);
+        }
         using var inputs = new GraphInputs(contract, root, sdkRoot, restored: args[0] == "action", prepared: prepared, evaluation: evaluation);
+        if (designTime)
+        {
+            return DesignTimeBuild.Run(inputs, root, report);
+        }
         if (args[0] is "build" or "action")
         {
             var target = args.Length > 5 ? args[5] : "Build";

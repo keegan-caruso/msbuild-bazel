@@ -63,6 +63,8 @@ def _graph_action(ctx, prepare = False):
         fail("Prepared Restore must use the graph's contract, runner and SDK")
     if ctx.attr.linux_worker and (prepare or not linux_stable_paths):
         fail("Graph workers require linux_stable_paths and build actions")
+    if ctx.attr.linux_worker and ctx.attr.target == "DesignTimeBuild":
+        fail("DesignTimeBuild requires a fresh non-worker graph")
     if ctx.attr.worker_cache_mb < 0:
         fail("worker_cache_mb must be nonnegative")
     if ctx.attr.evaluation_cache_mb < 0 or ctx.attr.evaluation_cache_mb > 4096:
@@ -213,7 +215,7 @@ _GRAPH_ATTRS = {
     "optional_restore": attr.bool(default = False),
     "linux_stable_paths": attr.bool(default = False, doc = "Use bubblewrap on Linux for stable graph paths; cache transport retains network access."),
     "_linux_stable_paths": attr.label(default = "//msbuild:graph-sandbox.sh", allow_single_file = True),
-    "target": attr.string(default = "Build", values = ["Build", "Pack", "Publish"]),
+    "target": attr.string(default = "Build", values = ["Build", "Pack", "Publish", "DesignTimeBuild"]),
 }
 
 _msbuild_graph = rule(
