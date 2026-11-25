@@ -263,7 +263,7 @@ internal static class GraphGenerator
                     {
                         continue;
                     }
-                    if (Path.GetRelativePath(root, fullPath).StartsWith("../", StringComparison.Ordinal))
+                    if (RelativePathComponents.LogicalRelative(root, fullPath).StartsWith("../", StringComparison.Ordinal))
                     {
                         throw new InvalidDataException("Graph item outside workspace: " + item.ItemType + " " + fullPath + " from " + item.Xml.ContainingProject.FullPath);
                     }

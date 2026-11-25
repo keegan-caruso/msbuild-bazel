@@ -170,7 +170,7 @@ internal sealed class WorkspaceView : IDisposable
                     var source = Path.Combine(runfiles, Safe(binding.Runfiles[0]));
                     foreach (var file in Directory.GetFiles(source, "*", SearchOption.AllDirectories))
                     {
-                        var destination = Path.Combine(temporary, relative, Safe(Path.GetRelativePath(source, file)));
+                        var destination = Path.Combine(temporary, relative, Safe(RelativePathComponents.LogicalRelative(source, file)));
                         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
                         File.Copy(file, destination);
                     }

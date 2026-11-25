@@ -56,7 +56,7 @@ internal sealed class ReplayOmissions
                     (output.Length != 0 && path.StartsWith(Path.TrimEndingDirectorySeparator(Path.GetFullPath(output, projectDirectory)) + Path.DirectorySeparatorChar, StringComparison.Ordinal)) ||
                     !inputs.OwnsOutput(node, path) || required.Contains(path) || Directory.Exists(path) || inputs.OutputDirectories(node).Contains(path, StringComparer.Ordinal))
                 {
-                    throw new InvalidDataException("Replay omission must be an optional owned file, not a required product: " + Path.GetRelativePath(inputs.Files.Root, path));
+                    throw new InvalidDataException("Replay omission must be an optional owned file, not a required product: " + RelativePathComponents.LogicalRelative(inputs.Files.Root, path));
                 }
             }
         }
@@ -92,7 +92,7 @@ internal sealed class ReplayOmissions
         foreach (var path in omitted.Values.SelectMany(paths => paths))
         {
             // Misses produce complete snapshots before optional files are removed.
-            inputs.Files.Resolve(Path.GetRelativePath(inputs.Files.Root, path));
+            inputs.Files.Resolve(RelativePathComponents.LogicalRelative(inputs.Files.Root, path));
             File.Delete(path);
         }
     }

@@ -82,6 +82,14 @@ foreach (var path in new[] { "...", "a/dot./b", "a/space ", "a/file:stream", "NU
 {
     if (!RelativePathComponents.IsSafeRelative(path, windows: false)) throw new Exception("Unix path behavior changed: " + path);
 }
+var logicalRoot = Path.Combine(Path.GetTempPath(), "logical-relative-root");
+var physicalChild = Path.Combine(logicalRoot, "dir", "child.cs");
+if (RelativePathComponents.LogicalRelative(logicalRoot, physicalChild) != "dir/child.cs")
+    throw new Exception("Logical contract path has native separators");
+var normalizedFiles = new ContractFiles(logicalRoot, logicalRoot + "-sdk");
+if (normalizedFiles.Resolve("dir/child.cs") != physicalChild ||
+    normalizedFiles.ResolveInputs(["dir/child.cs"])["dir/child.cs"] != physicalChild)
+    throw new Exception("Contract resolution did not produce native absolute paths");
 string LegacyHash(IEnumerable<string> records) => Convert.ToHexStringLower(
     SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(records))));
 foreach (var records in new[] {

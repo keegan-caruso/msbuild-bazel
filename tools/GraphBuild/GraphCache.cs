@@ -173,7 +173,7 @@ internal sealed partial class GraphCache(GraphInputs inputs, string cache, bool 
             }
             foreach (var file in SnapshotFiles(node))
             {
-                var relative = Path.GetRelativePath(inputs.Files.Root, file);
+                var relative = RelativePathComponents.LogicalRelative(inputs.Files.Root, file);
                 ValidateCopyOwnership(node, relative);
                 var digest = OutputDigest(file);
                 var producer = (inputs.For(node).DependencyCopies ?? []).GetValueOrDefault(relative);
@@ -362,8 +362,8 @@ internal sealed partial class GraphCache(GraphInputs inputs, string cache, bool 
     {
         omissions.RequireTargetOutputs(node, snapshot.Targets);
         if (snapshot.Fingerprint != fingerprint || !snapshot.Targets.Select(t => t.Name).SequenceEqual(ReplayTargets(node, targets), StringComparer.OrdinalIgnoreCase) ||
-            (GraphProjectKind.HasAssembly(node.ProjectInstance) && !snapshot.Files.ContainsKey(Path.GetRelativePath(inputs.Files.Root, TargetPath(node)))) ||
-            inputs.DeclaredOutputFiles(node).Any(path => !snapshot.Files.ContainsKey(Path.GetRelativePath(inputs.Files.Root, path)) && !snapshot.ProjectCopies.ContainsKey(Path.GetRelativePath(inputs.Files.Root, path))))
+            (GraphProjectKind.HasAssembly(node.ProjectInstance) && !snapshot.Files.ContainsKey(RelativePathComponents.LogicalRelative(inputs.Files.Root, TargetPath(node)))) ||
+            inputs.DeclaredOutputFiles(node).Any(path => !snapshot.Files.ContainsKey(RelativePathComponents.LogicalRelative(inputs.Files.Root, path)) && !snapshot.ProjectCopies.ContainsKey(RelativePathComponents.LogicalRelative(inputs.Files.Root, path))))
         {
             throw new InvalidDataException("Invalid graph snapshot contract");
         }
@@ -427,7 +427,7 @@ internal sealed partial class GraphCache(GraphInputs inputs, string cache, bool 
             // it on a miss rather than publishing machine-specific dependency state.
             .Where(path => !path.EndsWith(".AssemblyReference.cache", StringComparison.Ordinal) && path != resourceState)
             .Concat(inputs.DeclaredOutputFiles(current).Where(File.Exists))
-            .Select(path => inputs.Files.Resolve(Path.GetRelativePath(inputs.Files.Root, path)))
+            .Select(path => inputs.Files.Resolve(RelativePathComponents.LogicalRelative(inputs.Files.Root, path)))
             // Task scratch is not a dependency product, even while its producer
             // has finished and cleanup is waiting for the complete graph.
             .Where(path => !temporaryOutputs.Contains(path))

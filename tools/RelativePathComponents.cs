@@ -5,6 +5,13 @@ namespace RulesMSBuild;
 // Filesystem containment and reparse-point checks remain the caller's job.
 internal static class RelativePathComponents
 {
+    // Contract keys are logical paths; native full paths are used for filesystem IO.
+    internal static string LogicalRelative(string root, string path)
+    {
+        var relative = Path.GetRelativePath(root, path);
+        return OperatingSystem.IsWindows() ? relative.Replace('\\', '/') : relative;
+    }
+
     internal static bool IsSafeRelative(string path) => IsSafeRelative(path, OperatingSystem.IsWindows());
 
     internal static bool IsSafeRelative(string path, bool windows)

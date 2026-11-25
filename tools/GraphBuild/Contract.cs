@@ -43,7 +43,7 @@ internal sealed class ContractFiles(string root, string sdk)
         {
             throw new InvalidDataException("Expected a workspace-relative path: " + relative);
         }
-        var path = Path.Combine(Root, relative);
+        var path = Path.GetFullPath(relative, Root);
         for (var current = path; current != Root; current = Path.GetDirectoryName(current)!)
         {
             if (new FileInfo(current).LinkTarget is not null || new DirectoryInfo(current).LinkTarget is not null)
@@ -66,7 +66,7 @@ internal sealed class ContractFiles(string root, string sdk)
             {
                 throw new InvalidDataException("Expected a workspace-relative path: " + relative);
             }
-            var path = Path.Combine(Root, relative);
+            var path = Path.GetFullPath(relative, Root);
             for (var current = path; checkedPaths.Add(current); current = Path.GetDirectoryName(current)!)
             {
                 if (new FileInfo(current).LinkTarget is not null || new DirectoryInfo(current).LinkTarget is not null)
@@ -103,7 +103,7 @@ internal sealed class ContractFiles(string root, string sdk)
     internal static string TreeDigest(string directory, int parallelism = 1)
     {
         var paths = Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal);
-        string Record(string path) => Path.GetRelativePath(directory, path) + ":" + InputDigest(path);
+        string Record(string path) => RelativePathComponents.LogicalRelative(directory, path) + ":" + InputDigest(path);
         return Hash(parallelism == 1 ? paths.Select(Record) : paths.AsParallel().AsOrdered()
             .WithDegreeOfParallelism(Math.Min(Environment.ProcessorCount, parallelism)).Select(Record));
     }
