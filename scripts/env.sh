@@ -3,7 +3,6 @@
 REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 export RULES_MSBUILD_DOTNET_ROOT="${RULES_MSBUILD_DOTNET_ROOT:-$REPO_ROOT/.tools/dotnet}"
 export DOTNET_ROOT="$RULES_MSBUILD_DOTNET_ROOT"
-export RULES_MSBUILD_BAZEL="${RULES_MSBUILD_BAZEL:-$REPO_ROOT/scripts/bazel-launcher.sh}"
 export DOTNET_CLI_HOME="$REPO_ROOT/.cache/dotnet-home"
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 export DOTNET_CLI_USE_MSBUILD_SERVER=false MSBUILDUSESERVER=0
@@ -13,6 +12,15 @@ export NUGET_PACKAGES="$REPO_ROOT/.cache/nuget/packages"
 export PATH="$REPO_ROOT/.tools/bin:$DOTNET_ROOT:$PATH"
 
 # Carry the selected version into generated workspaces without a .bazelversion.
-export RULES_MSBUILD_BAZELISK="${RULES_MSBUILD_BAZELISK:-$REPO_ROOT/.tools/bin/bazelisk}"
+case "$(uname -s)" in
+    MINGW*|MSYS_NT*)
+        export RULES_MSBUILD_BAZELISK="${RULES_MSBUILD_BAZELISK:-$REPO_ROOT/.tools/bin/bazelisk.exe}"
+        export RULES_MSBUILD_BAZEL="${RULES_MSBUILD_BAZEL:-$RULES_MSBUILD_BAZELISK}"
+        ;;
+    *)
+        export RULES_MSBUILD_BAZELISK="${RULES_MSBUILD_BAZELISK:-$REPO_ROOT/.tools/bin/bazelisk}"
+        export RULES_MSBUILD_BAZEL="${RULES_MSBUILD_BAZEL:-$REPO_ROOT/scripts/bazel-launcher.sh}"
+        ;;
+esac
 export USE_BAZEL_VERSION="${USE_BAZEL_VERSION:-$(cat "$REPO_ROOT/.bazelversion")}"
 export BAZELISK_HOME="${BAZELISK_HOME:-$REPO_ROOT/.cache/bazelisk}"

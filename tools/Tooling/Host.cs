@@ -8,7 +8,7 @@ internal static class Host
     {
         path = Path.GetFullPath(path);
         var current = Path.GetPathRoot(path)!;
-        foreach (var component in path[current.Length..].Split('/', StringSplitOptions.RemoveEmptyEntries))
+        foreach (var component in path[current.Length..].Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries))
         {
             current = Path.Combine(current, component);
             FileSystemInfo info = Directory.Exists(current) ? new DirectoryInfo(current) : new FileInfo(current);
