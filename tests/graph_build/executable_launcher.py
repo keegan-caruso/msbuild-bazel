@@ -22,7 +22,7 @@ class Files(list):
 def pinned_runfiles_library(arguments):
     if arguments.runfiles_library:
         return Path(arguments.runfiles_library).resolve(strict=True)
-    command = [os.environ.get('RULES_MSBUILD_BAZEL', str(ROOT / 'scripts/bazel-launcher.sh'))]
+    command = [os.environ.get('RULES_MSBUILD_BAZEL', str(ROOT / 'scripts/bazel-launcher.sh')), '--batch']
     if arguments.bazel_output_root:
         command.append('--output_user_root=' + str(Path(arguments.bazel_output_root).resolve()))
     def bazel(*args):
@@ -31,7 +31,7 @@ def pinned_runfiles_library(arguments):
         return result.stdout.strip()
     files = bazel('cquery', '@rules_shell//shell/runfiles:runfiles.bash', '--output=files', '--lockfile_mode=off').splitlines()
     assert len(files) == 1, files
-    return (Path(bazel('info', 'execution_root')) / files[0]).resolve(strict=True)
+    return (Path(bazel('info', 'output_base')) / files[0]).resolve(strict=True)
 
 
 def manifest_escape(value, key=False):
