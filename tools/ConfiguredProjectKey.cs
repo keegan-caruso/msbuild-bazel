@@ -13,7 +13,7 @@ internal static class ConfiguredProjectKey
     internal static string Create(BuildRequestData request) => Create(request.ProjectFullPath,
         request.GlobalProperties.Select(property => KeyValuePair.Create(property.Name, property.EvaluatedValue)));
 
-    private static string Create(string project, IEnumerable<KeyValuePair<string, string>> properties)
+    internal static string Create(string project, IEnumerable<KeyValuePair<string, string>> properties)
     {
         var records = new List<string> { Format, project };
         foreach (var (name, value) in properties.OrderBy(pair => pair.Key, StringComparer.Ordinal))
