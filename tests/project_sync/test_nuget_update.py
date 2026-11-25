@@ -20,6 +20,23 @@ RUNNER = ROOT / 'tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll'
 
 
 class NuGetUpdateCacheTests(unittest.TestCase):
+    def test_fsharp_projects_in_shared_directory_get_distinct_native_locks(self):
+        with tempfile.TemporaryDirectory(prefix='nuget-fsharp-locks-') as temporary:
+            root = Path(temporary)
+            (root / 'Directory.Build.props').write_text('<Project><PropertyGroup><BaseIntermediateOutputPath>obj/$(MSBuildProjectName)/</BaseIntermediateOutputPath></PropertyGroup></Project>')
+            (root / 'NuGet.Config').write_text('<configuration><packageSources><clear/></packageSources></configuration>')
+            project = """<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>
+<TargetFramework>net11.0</TargetFramework><DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
+</PropertyGroup>{}</Project>"""
+            (root / 'Library.fsproj').write_text(project.format(''))
+            (root / 'App.fsproj').write_text(project.format('<ItemGroup><ProjectReference Include="Library.fsproj" /></ItemGroup>'))
+            result = subprocess.run([str(SDK / 'dotnet'), str(RUNNER), 'nuget-update', str(root), str(SDK),
+                                     'App.fsproj', '--distdir', str(root / 'distdir')], text=True, capture_output=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertTrue((root / 'packages.App.lock.json').is_file())
+            self.assertTrue((root / 'packages.Library.lock.json').is_file())
+            self.assertFalse((root / 'packages.lock.json').exists())
+
     def test_restore_disables_ambient_msbuild_server(self):
         with tempfile.TemporaryDirectory(prefix='nuget-server-control-') as temporary:
             root = Path(temporary)
