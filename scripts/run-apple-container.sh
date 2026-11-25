@@ -25,7 +25,7 @@ fi
 relay_mount=()
 if [[ -n "${RULES_MSBUILD_SHARED_CACHE_SOCKET:-}" ]]; then
     if [[ ( "$cache_url" != https://* && ( "$cache_url" != http://* || "${RULES_MSBUILD_SHARED_CACHE_ALLOW_HTTP:-0}" != 1 ) ) || ! -S "$RULES_MSBUILD_SHARED_CACHE_SOCKET" ]]; then
-        echo 'Shared cache relay requires an HTTPS URL and an existing host UNIX socket.' >&2; exit 2
+        echo 'Shared cache relay requires an existing host UNIX socket and HTTPS; private HTTP needs RULES_MSBUILD_SHARED_CACHE_ALLOW_HTTP=1.' >&2; exit 2
     fi
     relay_mount=(--volume "$RULES_MSBUILD_SHARED_CACHE_SOCKET:/var/host-services/shared-cache.sock")
 fi

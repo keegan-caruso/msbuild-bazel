@@ -6,10 +6,9 @@ separate relay on a consumer host can target an encrypted Rex TCP forward.
 Only this disposable service reads the phase file; managed services are untouched.
 """
 import argparse
-import errno
+import importlib.util
 import json
 from pathlib import Path
-import select
 import socket
 import socketserver
 import threading
@@ -21,43 +20,21 @@ from linux_action_recovery import Cache
 class UnixServer(socketserver.ThreadingUnixStreamServer):
     daemon_threads = True
     request_queue_size = 64
+    drain_idle_seconds = 30
 
 
-class Forward(socketserver.BaseRequestHandler):
-    def handle(self):
-        try:
-            with socket.create_connection(self.server.upstream, timeout=30) as upstream:
-                upstream.settimeout(None)
-                peers = {self.request: upstream, upstream: self.request}
-                deadline = None
-                while peers:
-                    timeout = None if deadline is None else deadline - time.monotonic()
-                    if timeout is not None and timeout <= 0:
-                        return
-                    ready, _, _ = select.select(list(peers), [], [], timeout)
-                    if not ready:
-                        return
-                    for source in ready:
-                        data = source.recv(65536)
-                        destination = peers[source]
-                        if data:
-                            if deadline is not None:
-                                destination.settimeout(max(0.001, deadline - time.monotonic()))
-                            destination.sendall(data)
-                            if deadline is not None:
-                                deadline = time.monotonic() + 30
-                        else:
-                            try:
-                                destination.shutdown(socket.SHUT_WR)
-                            except OSError as error:
-                                if error.errno not in (errno.ENOTCONN, errno.ECONNRESET, errno.EPIPE):
-                                    raise
-                            del peers[source]
-                            if deadline is None:
-                                deadline = time.monotonic() + 30
-        except (ConnectionError, socket.timeout):
-            # A canceled Bazel request may disappear while its response drains.
-            pass
+# Use the same tested half-close/drain pump in both transport directions.
+spec = importlib.util.spec_from_file_location(
+    'private_cache_guest_relay', Path(__file__).resolve().parents[2] / 'scripts/shared-cache-guest-relay.py')
+relay = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(relay)
+
+
+class Forward(relay.Forward):
+    def connect_upstream(self):
+        upstream = socket.create_connection(self.server.upstream, timeout=30)
+        upstream.settimeout(None)
+        return upstream
 
 
 def main():

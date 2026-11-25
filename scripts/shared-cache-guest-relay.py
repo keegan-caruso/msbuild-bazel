@@ -14,13 +14,13 @@ from urllib.parse import urlsplit
 def endpoint(url, allow_http=False):
     parsed = urlsplit(url)
     if parsed.scheme not in (('http', 'https') if allow_http else ('https',)) or not parsed.hostname or parsed.username or parsed.password:
-        raise ValueError('Relay requires an HTTPS cache URL with a DNS hostname and no credentials.')
+        raise ValueError('Relay requires HTTPS with a DNS hostname and no credentials; --allow-http permits private HTTP transport.')
     try:
         ipaddress.ip_address(parsed.hostname)
     except ValueError:
         pass
     else:
-        raise ValueError('Relay requires a DNS hostname to preserve TLS identity.')
+        raise ValueError('Relay requires a DNS hostname for guest mapping and HTTPS identity.')
     hostname = parsed.hostname
     if not all(c.isascii() and (c.isalnum() or c in '.-') for c in hostname):
         raise ValueError('Invalid relay hostname.')
@@ -53,10 +53,18 @@ def drain_send(destination, data, deadline, idle_seconds):
 
 
 class Forward(socketserver.BaseRequestHandler):
+    def connect_upstream(self):
+        upstream = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        try:
+            upstream.connect(self.server.socket_path)
+            return upstream
+        except OSError:
+            upstream.close()
+            raise
+
     def handle(self):
         try:
-            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as upstream:
-                upstream.connect(self.server.socket_path)
+            with self.connect_upstream() as upstream:
                 peers = {self.request: upstream, upstream: self.request}
                 deadline = None
                 idle_seconds = self.server.drain_idle_seconds

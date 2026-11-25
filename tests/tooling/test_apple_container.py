@@ -91,6 +91,7 @@ class AppleContainerTests(unittest.TestCase):
                 env['RULES_MSBUILD_SHARED_CACHE_URL'] = 'http://cache.invalid:18726'
                 rejected = subprocess.run(['bash', str(script), 'true'], env=env, capture_output=True)
                 self.assertEqual(rejected.returncode, 2)
+                self.assertIn(b'RULES_MSBUILD_SHARED_CACHE_ALLOW_HTTP', rejected.stderr)
                 env['RULES_MSBUILD_SHARED_CACHE_ALLOW_HTTP'] = '1'
                 allowed = subprocess.run(['bash', str(script), 'true'], env=env, capture_output=True)
                 self.assertEqual(allowed.returncode, 0, allowed.stderr)

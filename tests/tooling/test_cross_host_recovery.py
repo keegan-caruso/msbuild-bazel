@@ -8,12 +8,14 @@ from pathlib import Path
 import tempfile
 import sys
 import socket
+import subprocess
+import json
 import threading
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'graph_build'))
 
-from cross_host_recovery import Proxy, PROJECT_OMISSIONS, compare_outputs
+from cross_host_recovery import Proxy, PROJECT_OMISSIONS, compare_outputs, seed_workload_identity, workload_identity
 from linux_action_recovery import Cache
 from private_http_cache import Forward, UnixServer
 
@@ -156,6 +158,27 @@ class ProxyTests(unittest.TestCase):
             compare_outputs(seed, {}, True)
         with self.assertRaises(AssertionError):
             compare_outputs(seed, {'app.dll': {'sha256': 'bytes', 'mode': 0o444}}, True)
+
+    def test_compact_seed_handoff_and_legacy_log(self):
+        with tempfile.TemporaryDirectory() as folder:
+            report = Path(folder) / 'report.json'
+            seed = {'revision': 'revision', 'nonce': 'nonce', 'inputTree': {}, 'toolchainPins': {}}
+            graph = {'mnemonic': 'MSBuildGraph', 'commandArgs': [], 'inputs': [],
+                     'listedOutputs': [], 'environmentVariables': []}
+            execution = report.parent / 'execution.json'
+            execution.write_text(json.dumps(graph))
+            expected = workload_identity(seed, graph)
+            self.assertEqual(seed_workload_identity(seed, report), expected)
+            seed['workloadSha256'] = expected
+            execution.unlink()
+            self.assertEqual(seed_workload_identity(seed, report), expected)
+
+    def test_missing_seed_is_an_argument_error(self):
+        script = Path(__file__).resolve().parents[1] / 'graph_build/cross_host_recovery.py'
+        result = subprocess.run([sys.executable, str(script), 'action', '/unused', '--rules', '/unused',
+                                 '--revision', 'a' * 40, '--nonce', 'nonce'], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn('--seed is required', result.stderr)
 
     def test_truncated_trailers_terminate(self):
         # Exercise the decoder directly so expected EOF does not produce an

@@ -120,16 +120,32 @@ def workload_identity(report, graph):
     return hashlib.sha256(json.dumps(record, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
 
 
+def seed_workload_identity(seed, report_path):
+    if 'workloadSha256' in seed:
+        if not re.fullmatch(r'[0-9a-f]{64}', seed['workloadSha256']):
+            raise ValueError('Invalid recorded seed workload digest')
+        return seed['workloadSha256']
+    # Compatibility with the first frozen qualification report. New reports
+    # carry the digest and need no execution-log transfer.
+    execution = report_path.with_suffix('.execution.json')
+    if not execution.is_file():
+        execution = report_path.parent / 'execution.json'
+    graph = next(r for r in rows(execution) if r.get('mnemonic') == 'MSBuildGraph')
+    return workload_identity(seed, graph)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('phase', choices=['seed', 'action', 'project'])
     parser.add_argument('output', type=Path)
     parser.add_argument('--rules', type=Path, required=True)
-    parser.add_argument('--seed', type=Path)
+    parser.add_argument('--seed', type=Path, help='frozen seed JSON, required for action/project; current reports are self-contained')
     parser.add_argument('--revision', required=True)
     parser.add_argument('--nonce', required=True)
     parser.add_argument('--acquisition', type=Path, help='download-only mount; no action/project outputs')
     args = parser.parse_args()
+    if args.phase != 'seed' and (args.seed is None or not args.seed.is_file()):
+        parser.error('--seed is required for action/project and must name an existing report')
     if not re.fullmatch(r'[0-9a-f]{40}', args.revision):
         parser.error('--revision requires a full commit ID')
     if os.uname().sysname != 'Linux' or os.uname().machine != 'aarch64':
@@ -234,9 +250,7 @@ def main():
             seed = json.loads(args.seed.read_text())
             if any(report[key] != seed[key] for key in ('nonce', 'revision', 'inputTree', 'toolchainPins')):
                 raise AssertionError('Seed identity mismatch')
-            seed_execution = args.seed.with_suffix('.execution.json')
-            seed_graph = next(r for r in rows(seed_execution) if r.get('mnemonic') == 'MSBuildGraph')
-            report['seedWorkloadSha256'] = workload_identity(seed, seed_graph)
+            report['seedWorkloadSha256'] = seed_workload_identity(seed, args.seed)
             report['seedFixtureSha256'] = seed['fixtureSha256']
             if report['workloadSha256'] != report['seedWorkloadSha256']:
                 raise AssertionError('Declared graph workload differs from frozen seed')
