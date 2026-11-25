@@ -100,6 +100,15 @@ Package/tool runfiles materialize before entering a fixed private namespace; aut
 
 Eligible qualification also publishes ordinary Build snapshots to the same HTTP cache (`seed_build_cache`, defaults on with declared execution capability; disable via `seed_build_cache = False`). Consumers auto-use stable paths on that execution platform (or set `linux_stable_paths = True`) with matching SDK, runner, config, and inputs. Qualification retains intermediate outputs; the ordinary runner verifies SDK/input/output bytes, evaluated properties/items, target results, and compiler selections, reusing verified Restore products with no second compilation (incompatible handoffs fail before declaration publication). Runs only when qualification executes (whole-action hits do not refill evicted project entries). See [qualified scope](support.md#project-qualification-cache).
 
+For a packaging action that can run after a separate Build, set `reuse_build_cache = True` on `app_graph` or `msbuild_graph`. Rerun sync to add the option to an existing generated wrapper.
+
+```starlark
+app_graph(name = "package", target = "Pack", reuse_build_cache = True)
+app_graph(name = "publish", target = "Publish", reuse_build_cache = True)
+```
+
+The first phase requests normal Build results. A matching project snapshot supplies its outputs, and a miss executes the project's Build. The second phase executes the requested SDK target with `NoBuild=true` in the same staged workspace. Bazel can cache the complete packaging action. Use a fresh non-worker graph and keep the configured project references and product paths stable across both phases. Place target-only products, such as the nupkg, under a declared output directory. The Build phase must produce every individually required `outputFiles` entry. This mode requires all Build intermediates, so it rejects contracts with replay omissions. The graph report records Build-phase reuse in `buildSeedHits` and `buildSeedMisses`.
+
 Complete inventories exclude unselected compiler edges from invalidation while keeping graph execution and noncompiler dep roles. New snapshots verify `ReferencePathWithRefAssemblies`; SDK and declared package/file inputs keep byte hashes. Custom task reads and Pack/Publish-specific selections still need contracts; unsupported boundaries keep conservative keys.
 
 ### Mappings
