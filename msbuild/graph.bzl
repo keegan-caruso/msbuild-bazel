@@ -117,6 +117,7 @@ def _graph_action(ctx, prepare = False):
         args.add_all([file.path, ".package-source/" + file.basename])
         worker_sources.append({"path": file.path, "destination": ".package-source/" + file.basename})
     action_inputs = depset(ctx.files.srcs + [file for target in ctx.attr.input_paths for file in target[DefaultInfo].files.to_list()] + packages + closures + ([prepared.directory] if prepared else []) + [ctx.file.contract, runner[0], ctx.file._linux_stable_paths], transitive = [tc.sdk] + ([ctx.attr.package_lock[MSBuildPackageLockInfo].validations] if ctx.attr.package_lock else []))
+    cache_env = {key: value for key, value in ctx.configuration.default_shell_env.items() if key.startswith("RULES_MSBUILD_PROJECT_CACHE_")}
     if linux_worker:
         request = ctx.actions.declare_file(ctx.label.name + ".graph-request.json")
         ctx.actions.write(request, json.encode({
@@ -140,18 +141,20 @@ def _graph_action(ctx, prepare = False):
             inputs = depset([request], transitive = [action_inputs]),
             tools = depset([tc.dotnet, runner[0], ctx.file._linux_stable_paths], transitive = [tc.sdk]),
             outputs = [output],
-            env = {key: value for key, value in ctx.configuration.default_shell_env.items() if key.startswith("RULES_MSBUILD_PROJECT_CACHE_")},
+            env = cache_env,
             execution_requirements = {"supports-workers": "1", "requires-worker-protocol": "json"},
             mnemonic = "MSBuildGraph",
         )
     else:
+        if ctx.attr.reuse_build_cache:
+            cache_env["RULES_MSBUILD_GRAPH_REUSE_BUILD_CACHE"] = "1"
         ctx.actions.run_shell(
             inputs = action_inputs,
             tools = [tc.dotnet],
             outputs = [output],
             arguments = [args],
             # Offline preparation never reads or publishes project snapshots.
-            env = {} if prepare else {key: value for key, value in ctx.configuration.default_shell_env.items() if key.startswith("RULES_MSBUILD_PROJECT_CACHE_")} | {"RULES_MSBUILD_GRAPH_REUSE_BUILD_CACHE": "1" if ctx.attr.reuse_build_cache else "0"},
+            env = {} if prepare else cache_env,
             command = """set -eu
     dotnet="$PWD/$1"; runner="$PWD/$2"; output="$PWD/$3"; contract="$PWD/$4"; target="$5"; isolated="$6"; sandbox="$PWD/$7"; mode="$8"; prepared="$9"; profile="${10}"
     if test "$prepared" != -; then prepared="$PWD/$prepared"; fi
