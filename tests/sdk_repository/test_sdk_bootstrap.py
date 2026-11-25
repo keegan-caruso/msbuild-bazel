@@ -11,6 +11,7 @@ import subprocess
 import tempfile
 from types import SimpleNamespace
 import unittest
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -28,7 +29,8 @@ class BootstrapPaths(unittest.TestCase):
             dotnet.write_text('''#!/usr/bin/env python3
 import json,os,sys
 from pathlib import Path
-Path(os.environ['RECEIPT']).write_text(json.dumps({'args':sys.argv[1:],'env':dict(os.environ)}))
+home=os.environ['DOTNET_CLI_HOME'].removeprefix('C:/mapped')
+Path(os.environ['RECEIPT']).write_text(json.dumps({'args':sys.argv[1:],'env':dict(os.environ),'restoreConfig':Path(home,'NuGet.Config').read_text()}))
 ''')
             dotnet.chmod(0o755)
             captured = {}
@@ -57,8 +59,22 @@ cygpath() { test "$1" = -am; printf 'C:/mapped%s\\n' "$2"; }
             self.assertTrue(scratch.startswith(native_prefix + '/'), scratch)
             self.assertIn('-p:BaseIntermediateOutputPath=' + scratch + '/obj/', arguments)
             self.assertIn('-p:RestoreSources=' + scratch + '/empty', arguments)
+            self.assertIn('-p:RestoreConfigFile=' + scratch + '/NuGet.Config', arguments)
+            config = ET.fromstring(data['restoreConfig'])
+            self.assertIsNotNone(config.find('packageSources/clear'))
+            self.assertIsNotNone(config.find('fallbackPackageFolders/clear'))
             if windows:
                 self.assertEqual(data['env']['MSYS2_ARG_CONV_EXCL'], '*')
+                self.assertEqual(data['env']['USERPROFILE'], scratch)
+                self.assertEqual(data['env']['APPDATA'], scratch + '/appdata')
+                self.assertEqual(data['env']['LOCALAPPDATA'], scratch + '/localappdata')
+                self.assertEqual(data['env']['PROGRAMFILES'], scratch + '/programfiles')
+                self.assertEqual(data['env']['NUGET_PACKAGES'], scratch + '/packages')
+                for name in ['TEMP', 'TMP', 'SystemTemp']:
+                    self.assertEqual(data['env'][name], scratch)
+            self.assertEqual(data['env']['DOTNET_ADD_GLOBAL_TOOLS_TO_PATH'], 'false')
+            self.assertEqual(data['env']['DOTNET_GENERATE_ASPNET_CERTIFICATE'], 'false')
+            self.assertEqual(data['env']['DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE'], 'true')
             if path_map:
                 self.assertIn('-p:PathMap=' + native_prefix + str(folder / 'repository with spaces') +
                               '=/_/rules_msbuild%2C' + scratch + '=/_/bootstrap', arguments)

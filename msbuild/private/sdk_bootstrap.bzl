@@ -44,6 +44,7 @@ output="$PWD/$3"
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 mkdir -p "$scratch/empty"
+printf '%%s\\n' '<configuration><packageSources><clear/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>' > "$scratch/NuGet.Config"
 native_path() {
     case "$(uname -s)" in
         MINGW*|MSYS*|CYGWIN*) cygpath -am "$1" ;;
@@ -52,14 +53,25 @@ native_path() {
 }
 case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) export MSYS2_ARG_CONV_EXCL='*' ;; esac
 native_scratch="$(native_path "$scratch")"
+case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*)
+        mkdir -p "$scratch/appdata" "$scratch/localappdata" "$scratch/programfiles"
+        export USERPROFILE="$native_scratch" APPDATA="$native_scratch/appdata" LOCALAPPDATA="$native_scratch/localappdata"
+        export PROGRAMFILES="$native_scratch/programfiles"
+        export TEMP="$native_scratch" TMP="$native_scratch" SystemTemp="$native_scratch"
+        export NUGET_PACKAGES="$native_scratch/packages"
+        ;;
+esac
 export DOTNET_ROOT="$(native_path "$(dirname "$dotnet")")" DOTNET_CLI_HOME="$native_scratch"
 export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
 export DOTNET_CLI_USE_MSBUILD_SERVER=false MSBUILDUSESERVER=0
+export DOTNET_ADD_GLOBAL_TOOLS_TO_PATH=false DOTNET_GENERATE_ASPNET_CERTIFICATE=false
+export DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=true
 %s
 %s
 "$dotnet" build "$(native_path "$project")" -c Release -o "$(native_path "$output")" --nologo \\
     -p:BaseIntermediateOutputPath="$native_scratch/obj/" -p:UseSharedCompilation=false \\
-    -p:RestoreSources="$native_scratch/empty" -p:NuGetAudit=false %s
+    -p:RestoreSources="$native_scratch/empty" -p:RestoreConfigFile="$native_scratch/NuGet.Config" -p:NuGetAudit=false %s
 """ % (home, setup, debug),
         mnemonic = mnemonic,
     )
