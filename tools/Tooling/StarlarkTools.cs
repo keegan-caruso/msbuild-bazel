@@ -12,7 +12,8 @@ internal static class StarlarkTools
             Architecture.X64 when OperatingSystem.IsLinux() => "Linux-x86_64",
             Architecture.Arm64 when OperatingSystem.IsLinux() => "Linux-aarch64",
             Architecture.Arm64 when OperatingSystem.IsMacOS() => "Darwin-arm64",
-            Architecture.X64 when OperatingSystem.IsWindows() => "Windows-x86_64",
+            // Buildtools publishes a single Windows x64 executable, supported by Windows 11 on Arm.
+            Architecture.X64 or Architecture.Arm64 when OperatingSystem.IsWindows() => "Windows-x86_64",
             _ => throw new PlatformNotSupportedException(RuntimeInformation.RuntimeIdentifier)
         };
         return tool["platforms"]![platform]!;

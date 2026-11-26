@@ -1,6 +1,7 @@
 """Architecture selection must preserve the baseline and reject unknown hosts."""
 import json
 from pathlib import Path
+import subprocess
 import sys
 import unittest
 
@@ -31,6 +32,23 @@ class ToolchainPinsTests(unittest.TestCase):
         self.assertTrue(selected['dotnet']['url'].endswith('-win-x64.zip'))
         self.assertTrue(selected['bazelisk']['url'].endswith('-windows-amd64.exe'))
 
+    def test_git_bash_on_windows_arm_selects_native_download(self):
+        # Portable Git on ARM64 reports x86_64 for its shell process.
+        command = """uname() {
+            if [[ $1 == -s ]]; then echo MINGW64_NT-10.0-26300-ARM64; else echo x86_64; fi
+        }
+        source scripts/toolchain-pins.sh
+        echo "$dotnet_url"
+        """
+        url = subprocess.check_output(['bash', '-c', command], cwd=ROOT, text=True).strip()
+        self.assertTrue(url.endswith('-win-arm64.zip'))
+
+    def test_windows_arm64_selects_native_tools(self):
+        for arch in ('ARM64', 'arm64', 'aarch64'):
+            selected = select(self.pins, arch, 'Windows')
+            self.assertTrue(selected['dotnet']['url'].endswith('-win-arm64.zip'))
+            self.assertTrue(selected['bazelisk']['url'].endswith('-windows-arm64.exe'))
+
     def test_unknown_architecture_does_not_fall_back_to_x64(self):
         with self.assertRaisesRegex(ValueError, 'Unsupported bootstrap platform'):
             select(self.pins, 'riscv64')
@@ -47,4 +65,4 @@ class ToolchainPinsTests(unittest.TestCase):
 
     def test_unknown_operating_system_is_rejected(self):
         with self.assertRaises(ValueError):
-            select(self.pins, 'arm64', 'Windows')
+            select(self.pins, 'arm64', 'UnknownOS')

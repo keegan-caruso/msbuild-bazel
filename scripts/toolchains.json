@@ -15,6 +15,10 @@
       "win-x64": {
         "url": "https://builds.dotnet.microsoft.com/dotnet/Sdk/11.0.100/dotnet-sdk-11.0.100-win-x64.zip",
         "sha256": "ae800f1fa1a6428e0d7c740bb745d9414f15334118c51e246dab9850b738fadd"
+      },
+      "win-arm64": {
+        "url": "https://builds.dotnet.microsoft.com/dotnet/Sdk/11.0.100/dotnet-sdk-11.0.100-win-arm64.zip",
+        "sha256": "f9a271f91ea25a65f7eb742269b0881f657ff35b2b485016d27e2cc7b27c1969"
       }
     }
   },
@@ -34,6 +38,10 @@
       "win-x64": {
         "url": "https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-windows-amd64.exe",
         "sha256": "092a8738d5b41aae7a85c42cc961b1034e3389aba43ffc20c0fabda7b43e095b"
+      },
+      "win-arm64": {
+        "url": "https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-windows-arm64.exe",
+        "sha256": "8bc42bd5d7857f18a21440b906469bb6c7cf91a7c72364d4b1e5ec56a76fe94f"
       }
     }
   }
