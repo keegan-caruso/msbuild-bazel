@@ -124,6 +124,60 @@ python3 tests/graph_build/worker_preparation.py --cache-mb=0
 python3 -m unittest discover -s tests/project_sync -p test_sync.py -v
 ```
 
+### Native x64 cross-host source recovery
+
+A native producer build on Ubuntu 26.04.1 x64 stopped before its frozen HTTP cache was served to a separate Azure VM (4 vCPUs, 16 GiB). The consumer used Bazel **9.3.2**, a fresh workspace and empty output roots. Input handoffs contained declared inputs, pinned rules and verified acquisition archives, not recovered products or action caches. The downloaded-SDK graph action/project-cache gate is [qualified separately](#cross-host-downloaded-sdk-graph-recovery).
+
+**Source SDK 10.0.100.** Using the [pinned SDK producer](#native-ubuntu-2604-x64-sdk), the consumer recovered all ten build actions, including `SourceSdkBuild`. All 15,623 declared output files matched the producer in content and Unix permissions, including 664 symlink targets. The recovered SDK archive was 578,504,698 bytes (SHA256 `322aefcd7cfcbd4e76625ed86d1c3ae9937559b90f7a9c788e92040228af23db`). The forced smoke test executed and printed `SDK_FROM_SOURCE=10.0.0`.
+
+Recovery took 623.47 s and transferred 4,646,770,550 HTTP response-body bytes in 14,987 successful GETs; the separate forced smoke command took 15.54 s. Preparation of the 13 declared inputs (6,154,224,627 bytes) preceded these timings. All 7,428 cached files were unchanged afterward. These single-run observations include full output materialization.
+
+**Source runtime 10.0.0.** On [rules `7e82ad6f`](https://github.com/keegan-caruso/msbuild-bazel/commit/7e82ad6fe3d19e22be67c569a2c493ed1a785585), the consumer recovered 140 build actions, including every native source producer and managed graph. Exactly one action executed locally: `MSBuildNativeToolchainPackages //native:tools`, whose declared `no-remote` preparation unpacks the native toolchain using host `dpkg-deb`. All 14,996 preparation entries matched the cold producer's bytes, modes and links. All 649 runtime files and modes matched, as did the runtime archive SHA256 `08199700d6f2e5c2bf32c7d3b32ef2294f26adcd4504f8ecb10d828ce92e28f6`. Both `app_test` and `runtime_test` actually executed and passed.
+
+| Runtime phase | Command wall time | HTTP GET 200 responses | Response-body bytes |
+| --- | ---: | ---: | ---: |
+| Recover app and runtime package | 284.45 s | 29,747 | 5,347,668,317 |
+| Force both tests | 177.64 s | 6 | 28,045 |
+
+The runtime cache's 14,104 files / 3,079,201,746 logical bytes were unchanged afterward. Its 10,216-file source handoff preceded timing; transfer and output/cache verification are excluded. Source and consumer HTTP body counters agreed for both products. Both phases of both products had zero misses and zero attempted PUTs. Times include guarded Bazel batch execution and response-handler draining; bytes exclude headers and transport overhead. These are single observations with full output materialization, not paired speedups, RBE, general filesystem hermeticity or byte-reproducibility claims.
+
+The [read-only phase guard](../tests/graph_build/read_only_cache_proxy.py) rejects writes and stops only its owned Bazel process group before returning an upstream miss. Positive, miss, transport-failure and signal-ignoring-child controls accompany it. Forced phases use `--nocache_test_results` plus the TestRunner-only `no-remote-cache` modifier, so source-action misses remain prohibited while actual tests execute. The measured guard revision is `f69afb3`.
+
+To repeat the SDK recovery check, prepare the pinned SDK fixture on the consumer. Set `GUARD` to the absolute path of [the read-only proxy](../tests/graph_build/read_only_cache_proxy.py), `CACHE` to the frozen HTTP endpoint, `BAZEL` to the pinned executable, `BASE` to a fresh output base and `OUT` to an existing directory for receipts. Unset ambient `RULES_MSBUILD_PROJECT_CACHE_URL` and `RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN`; these source-product gates test Bazel whole-action recovery. From the fixture root, run each phase separately:
+
+```sh
+python3 "$GUARD" --cache "$CACHE" --report "$OUT/recover.json" -- \
+  "$BAZEL" --batch --output_base="$BASE" --ignore_all_rc_files build //:smoke \
+  --disk_cache= --remote_download_outputs=all --experimental_remote_require_cached \
+  --action_env=RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1 --execution_log_json_file="$OUT/build.json"
+python3 "$GUARD" --cache "$CACHE" --phase smoke --report "$OUT/smoke.json" -- \
+  "$BAZEL" --batch --output_base="$BASE" --ignore_all_rc_files test //:smoke \
+  --disk_cache= --nocache_test_results --modify_execution_info=TestRunner=+no-remote-cache \
+  --action_env=RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1 --execution_log_json_file="$OUT/test.json"
+```
+
+For runtime recovery, use the [pinned native x64 source-to-app recipe](../examples/source-runtime-app/README.md#native-linux-x64). Close the producer's inputs and retain its seed inventory with [the product recovery helper](../tests/graph_build/upstream/runtime_product_recovery.py), then transfer that input-only closure and the pinned rules to the independent consumer. Set `RULES`, `BASE`, `USER_ROOT`, `ACQUISITION` and `OUT` to consumer-local paths; `BASE` and `USER_ROOT` start empty, and `ACQUISITION` contains only verified repository download archives. From the transferred workspace:
+
+```sh
+python3 "$GUARD" --cache "$CACHE" --report "$OUT/recover.json" -- \
+  "$BAZEL" --batch --output_base="$BASE" --output_user_root="$USER_ROOT" \
+  --ignore_all_rc_files build //:app //:runtime_package \
+  --override_module=rules_msbuild="$RULES" --jobs=1 \
+  --strategy=MSBuildGraph=worker --worker_sandboxing --disk_cache= \
+  --repository_cache="$ACQUISITION" --repo_contents_cache= --remote_download_outputs=all \
+  --action_env=RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1 --execution_log_json_file="$OUT/build.json"
+python3 "$GUARD" --cache "$CACHE" --phase forced-tests --report "$OUT/tests.json" -- \
+  "$BAZEL" --batch --output_base="$BASE" --output_user_root="$USER_ROOT" \
+  --ignore_all_rc_files test //:app_test //:runtime_test \
+  --override_module=rules_msbuild="$RULES" --jobs=1 \
+  --strategy=MSBuildGraph=worker --worker_sandboxing --disk_cache= \
+  --repository_cache="$ACQUISITION" --repo_contents_cache= --remote_download_outputs=all \
+  --nocache_test_results --modify_execution_info=TestRunner=+no-remote-cache \
+  --action_env=RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1 --execution_log_json_file="$OUT/test.json"
+```
+
+These runtime tests require the exact generic amd64 Bubblewrap binary [recorded with the native product](#complete-source-runtime-product). The measured consumer bound it read-only at `/usr/bin/bwrap` in a private mount namespace and dropped to UID/GID 1000 before Bazel; the live system package was unchanged. Inspect every build spawn: only the documented toolchain unpack may execute locally. Check producer/consumer file and archive parity, and require distinct real `app_test` and `runtime_test` spawns in the forced phase. The product helper's mnemonic checks alone do not exclude extra local execution.
+
 ## SDK 11 platform qualification
 
 SDK **11.0.100** / runtime **11.0.0** and Bazel **9.3.2**:
