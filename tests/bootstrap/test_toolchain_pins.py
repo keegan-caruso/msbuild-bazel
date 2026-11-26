@@ -1,3 +1,4 @@
+import subprocess
 """Architecture selection must preserve the baseline and reject unknown hosts."""
 import json
 from pathlib import Path
@@ -30,6 +31,17 @@ class ToolchainPinsTests(unittest.TestCase):
         self.assertEqual(selected, select(self.pins, 'x86_64', 'Windows'))
         self.assertTrue(selected['dotnet']['url'].endswith('-win-x64.zip'))
         self.assertTrue(selected['bazelisk']['url'].endswith('-windows-amd64.exe'))
+
+    def test_git_bash_on_windows_arm_selects_native_download(self):
+        # Portable Git on ARM64 reports x86_64 for its shell process.
+        command = """uname() {
+            if [[ $1 == -s ]]; then echo MINGW64_NT-10.0-26300-ARM64; else echo x86_64; fi
+        }
+        source scripts/toolchain-pins.sh
+        echo "$dotnet_url"
+        """
+        url = subprocess.check_output(['bash', '-c', command], text=True).strip()
+        self.assertTrue(url.endswith('-win-arm64.zip'))
 
     def test_windows_arm64_selects_native_tools(self):
         for arch in ('ARM64', 'arm64', 'aarch64'):
