@@ -62,7 +62,7 @@ def main():
             assert json.loads(report.read_text())['hits'] == hits, report.read_text()
             assert run(DOTNET, root / 'P2/bin/Release/net11.0/P2.dll').stdout.strip() == str(value)
             observed = (root / 'P2/obj/Release/net11.0/source-group-observation.txt').read_text()
-            assert '/P0/Code.cs|Code.cs|False' in observed, observed
+            assert f'{root / "P0/Code.cs"}|Code.cs|False' in observed.splitlines(), observed
             return {str(p.relative_to(root)): p.read_bytes() for node in contract['Projects'].values()
                     for directory in node['OutputDirectories'] for p in (root / directory).rglob('*')
                     if p.is_file() and p.suffix in ['.dll', '.pdb']}
