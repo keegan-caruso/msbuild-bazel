@@ -1,7 +1,7 @@
-import subprocess
 """Architecture selection must preserve the baseline and reject unknown hosts."""
 import json
 from pathlib import Path
+import subprocess
 import sys
 import unittest
 
@@ -40,7 +40,7 @@ class ToolchainPinsTests(unittest.TestCase):
         source scripts/toolchain-pins.sh
         echo "$dotnet_url"
         """
-        url = subprocess.check_output(['bash', '-c', command], text=True).strip()
+        url = subprocess.check_output(['bash', '-c', command], cwd=ROOT, text=True).strip()
         self.assertTrue(url.endswith('-win-arm64.zip'))
 
     def test_windows_arm64_selects_native_tools(self):
