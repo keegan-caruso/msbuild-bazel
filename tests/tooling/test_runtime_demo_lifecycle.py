@@ -6,6 +6,9 @@ from pathlib import Path
 import tempfile
 import sys
 import unittest
+
+if os.name == 'nt':
+    raise unittest.SkipTest('Linux runtime lifecycle and fcntl locks require POSIX')
 from unittest.mock import patch
 
 SCRIPT = Path(__file__).resolve().parents[2] / 'scripts/setup-runtime-demo.py'

@@ -8,6 +8,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
+
+if os.name == 'nt':
+    raise unittest.SkipTest('Linux source-runtime actions and fcntl locks require POSIX')
 from unittest.mock import patch
 from types import SimpleNamespace
 

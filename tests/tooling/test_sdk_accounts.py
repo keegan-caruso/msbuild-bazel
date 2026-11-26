@@ -50,6 +50,7 @@ class SdkAccountTests(unittest.TestCase):
         self.assertEqual(rules, [])
         self.assertEqual(archive['files'], {})
 
+    @unittest.skipIf(os.name == 'nt', 'Linux SDK account guard requires POSIX UID/GID and shell tools')
     def test_guard_accepts_declared_accounts_and_rejects_other_host_ids(self):
         with tempfile.TemporaryDirectory() as temporary:
             folder = Path(temporary)

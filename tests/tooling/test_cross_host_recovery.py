@@ -11,13 +11,15 @@ import socket
 import subprocess
 import json
 import threading
+import os
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'graph_build'))
 
 from cross_host_recovery import Proxy, PROJECT_OMISSIONS, compare_outputs, seed_workload_identity, workload_identity
 from linux_action_recovery import Cache
-from private_http_cache import Forward, UnixServer
+if os.name != 'nt':
+    from private_http_cache import Forward, UnixServer
 
 
 class UnknownLength(BaseHTTPRequestHandler):
@@ -121,6 +123,7 @@ class ProxyTests(unittest.TestCase):
         self.assertEqual(response.getheader('Connection'), 'close')
         self.assertEqual(response.read(), b'connection-delimited')
 
+    @unittest.skipIf(os.name == 'nt', 'Unix-domain cache relay requires POSIX')
     def test_private_cache_json_and_unix_transport(self):
         with tempfile.TemporaryDirectory() as folder:
             upstream = self.start(Cache(Path(folder), 1024**2))
