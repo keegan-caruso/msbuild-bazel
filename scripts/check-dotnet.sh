@@ -13,8 +13,8 @@ for project in "${projects[@]}"; do
     bash scripts/dotnet.sh format "$project" --verify-no-changes --no-restore \
         --severity warn
 done
-python3 -m unittest discover -s tests/code_style -v
-python3 -m unittest discover -s tests/tooling -v
+"${RULES_MSBUILD_PYTHON:-python3}" -m unittest discover -s tests/code_style -v
+"${RULES_MSBUILD_PYTHON:-python3}" -m unittest discover -s tests/tooling -v
 
-python3 -m unittest discover -s tests/artifact_tools -v
-python3 -m unittest discover -s tests/project_sync -v
+"${RULES_MSBUILD_PYTHON:-python3}" -m unittest discover -s tests/artifact_tools -v
+"${RULES_MSBUILD_PYTHON:-python3}" -m unittest discover -s tests/project_sync -v

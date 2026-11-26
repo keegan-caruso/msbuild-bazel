@@ -11,7 +11,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 DOTNET_ROOT = Path(os.environ.get("RULES_MSBUILD_DOTNET_ROOT", ROOT / ".tools/dotnet")).resolve()
-DOTNET = DOTNET_ROOT / "dotnet"
+DOTNET = DOTNET_ROOT / ("dotnet.exe" if os.name == "nt" else "dotnet")
 
 PROJECT = """<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
