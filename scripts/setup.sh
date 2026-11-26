@@ -34,7 +34,10 @@ install_tool() {
         curl --fail --location --silent --show-error --retry 3 --connect-timeout 20 --max-time 300 "$url" --output "$archive.partial"
         mv "$archive.partial" "$archive"
     fi
-    if [[ "$("${checksum[@]}" "$archive")" != "$hash  $archive" ]]; then
+    local digest checksum_output
+    checksum_output="$("${checksum[@]}" "$archive")"
+    read -r digest _ <<< "$checksum_output"
+    if [[ "$digest" != "$hash" ]]; then
         rm -f "$archive"
         echo "Checksum mismatch for $name; removed download." >&2
         exit 1
