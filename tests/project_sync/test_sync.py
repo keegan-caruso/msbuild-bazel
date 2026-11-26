@@ -228,7 +228,7 @@ class GraphSyncTests(unittest.TestCase):
             (original / name).write_text('declared artifact')
             (projected / name).symlink_to(original / name)
         manifest = self.root / 'tree-stage.json'
-        manifest.write_text(json.dumps({'sources': [], 'runfiles': [{'path': 'producer', 'file': str(relative), 'tree': True},
+        manifest.write_text(json.dumps({'sources': [], 'runfiles': [{'path': 'producer', 'file': relative.as_posix(), 'tree': True},
             {'path': 'single.txt', 'file': str(original / 'nested/metadata.txt'), 'tree': True}]}))
 
         def stage():
