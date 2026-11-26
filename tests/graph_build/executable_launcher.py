@@ -1,8 +1,11 @@
 """Focused execution controls for the generated, SDK-independent launcher."""
 
+import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import signal
 import subprocess
 import tempfile
@@ -16,17 +19,110 @@ class Files(list):
         return self
 
 
+def pinned_runfiles_library(arguments):
+    if arguments.runfiles_library:
+        return Path(arguments.runfiles_library).resolve(strict=True)
+    command = [os.environ.get('RULES_MSBUILD_BAZEL', str(ROOT / 'scripts/bazel-launcher.sh')), '--batch']
+    if arguments.bazel_output_root:
+        command.append('--output_user_root=' + str(Path(arguments.bazel_output_root).resolve()))
+    def bazel(*args):
+        result = subprocess.run(command + list(args), cwd=ROOT, text=True, capture_output=True, timeout=120)
+        assert result.returncode == 0, result.stdout + result.stderr
+        return result.stdout.strip()
+    files = bazel('cquery', '@rules_shell//shell/runfiles:runfiles.bash', '--output=files', '--lockfile_mode=off').splitlines()
+    assert len(files) == 1, files
+    return (Path(bazel('info', 'output_base')) / files[0]).resolve(strict=True)
+
+
+def manifest_escape(value, key=False):
+    escaped = str(value).replace('\\', '\\b').replace('\n', '\\n')
+    return escaped.replace(' ', '\\s') if key else escaped
+
+
+def runfiles_controls(scope, root, library):
+    key = 'bazel_tools/tools/bash/runfiles/runfiles.bash'
+    directory = root / 'library tree'
+    (directory / key).parent.mkdir(parents=True)
+    shutil.copyfile(library, directory / key)
+    physical = root / 'payload space'
+    physical.write_text('payload')
+    logical = 'repo/escaped key'
+    (directory / 'repo').mkdir()
+    shutil.copyfile(physical, directory / logical)
+    script = root / 'lookup'
+    ctx = NS(actions=NS(write=lambda output, content, **kwargs: output.write_text(content)))
+    scope['write_shell_script'](ctx, script, 'resolve_runfile "$1"\nprintf "%s\\0%s\\0%s\\0" "$RULES_MSBUILD_RESOLVED_RUNFILE" "$RULES_MSBUILD_NATIVE_RUNFILE" "$runfiles_context"\n')
+    script.chmod(0o755)
+    environment = {key: value for key, value in os.environ.items() if not key.startswith(('RUNFILES_', 'TEST_SRCDIR'))}
+    def lookup(env, expected, context, name=logical):
+        result = subprocess.run([str(script), name], cwd=root, env=dict(environment, **env), capture_output=True)
+        assert result.returncode == 0, result.stderr
+        assert result.stdout.split(b'\0') == [os.fsencode(expected), os.fsencode(expected), os.fsencode(context), b''], result.stdout
+    lookup({'RUNFILES_DIR': str(directory)}, directory / logical, directory)
+    lookup({'TEST_SRCDIR': directory.name}, directory / logical, directory)
+    adjacent_tree = Path(str(script) + '.runfiles')
+    shutil.copytree(directory, adjacent_tree)
+    lookup({}, adjacent_tree / logical, adjacent_tree)
+    shutil.rmtree(adjacent_tree)
+    manifest = root / 'lookup manifest'
+    bootstrap = root / 'bootstrap library space\\name.bash'
+    shutil.copyfile(library, bootstrap)
+    def write_manifest(target, entry=physical):
+        manifest.write_text(' ' + key + ' ' + manifest_escape(target) + '\n ' + manifest_escape(logical, key=True) + ' ' + manifest_escape(entry) + '\n')
+    write_manifest(bootstrap)
+    lookup({'RUNFILES_MANIFEST_FILE': manifest.name, 'RUNFILES_MANIFEST_ONLY': '1'}, physical, manifest)
+    # Discover the manifest adjacent to the script without environment hints.
+    adjacent = Path(str(script) + '.runfiles_manifest')
+    shutil.copyfile(manifest, adjacent)
+    lookup({}, physical, adjacent)
+    adjacent.unlink()
+    missing = subprocess.run([str(script), 'repo/missing'], cwd=root, env=dict(environment, RUNFILES_MANIFEST_FILE=str(manifest)), capture_output=True)
+    assert missing.returncode != 0 and b'missing runfile' in missing.stderr, missing
+    if os.name != 'nt':
+        newline = root / 'payload ending\n'
+        newline.write_text('payload')
+        write_manifest(bootstrap, newline)
+        lookup({'RUNFILES_MANIFEST_FILE': str(manifest)}, newline, manifest)
+        trailing_library = root / 'library ending\n'
+        shutil.copyfile(library, trailing_library)
+        write_manifest(trailing_library, newline)
+        lookup({'RUNFILES_MANIFEST_FILE': str(manifest)}, newline, manifest)
+    write_manifest(bootstrap)
+    adjacent = Path(str(script) + '.exe.runfiles_manifest')
+    shutil.copyfile(manifest, adjacent)
+    lookup({}, physical, adjacent)
+    adjacent.unlink()
+    print('PASS: production Bash prelude with pinned runfiles library, directory/manifest lookup, escaped keys/bootstrap paths, trailing newlines and missing runfiles')
+
+
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--runfiles-library', help='Already resolved rules_shell0.6.1 runfiles.bash; defaults to a bounded Bazel cquery')
+    parser.add_argument('--bazel-output-root', help='Optional disposable Bazel output user root for library discovery')
+    arguments = parser.parse_args()
+    library = pinned_runfiles_library(arguments)
+    print("Using pinned runfiles library SHA256=" + hashlib.sha256(library.read_bytes()).hexdigest(), flush=True)
+    # Execute the production writer/prelude. Only PE/provider metadata is stubbed;
+    # manifest lookup always comes from the actual pinned rules_shell library.
+    shell_scope = {'Label': lambda label: label}
+    source = (ROOT / 'msbuild/private/shell_launcher.bzl').read_text()
+    exec('\n'.join(line for line in source.splitlines() if not line.startswith('load(')), shell_scope)
     source = (ROOT / 'msbuild/private/project_launch.bzl').read_text()
     scope = {}
     exec('\n'.join(line for line in source.splitlines() if not line.startswith('load(')), scope)
     scope.update(_quote=lambda s: "'" + s.replace("'", "'\"'\"'") + "'",
                  _runfile=lambda ctx, file: str(file),
                  depset=lambda files: files, DefaultInfo=lambda **kw: kw,
-                 RunEnvironmentInfo=lambda **kw: kw)
+                 RunEnvironmentInfo=lambda **kw: kw,
+                 shell_launcher=lambda ctx, script: script,
+                 shell_runfiles=lambda ctx, **kwargs: kwargs,
+                 write_shell_script=shell_scope['write_shell_script'])
     with tempfile.TemporaryDirectory(prefix='launcher-control-') as temporary:
-        root = Path(temporary)
+        root = Path(temporary).resolve()
         runfiles = root / 'runfiles space'
+        library_target = runfiles / 'bazel_tools/tools/bash/runfiles/runfiles.bash'
+        library_target.parent.mkdir(parents=True)
+        shutil.copyfile(library, library_target)
         app = runfiles / 'app'
         app.mkdir(parents=True)
         (app / 'App.dll').write_text('assembly')
@@ -63,7 +159,7 @@ sys.exit(7 if "seven" in sys.argv else 0)
             subprocess.run(['bash', '-n', str(script)], check=True)
 
         environment = dict(os.environ, RUNFILES_DIR=str(runfiles), CORE_ROOT='ambient')
-        for key in ('TESTBRIDGE_TEST_ONLY', 'TEST_TOTAL_SHARDS', 'TEST_SHARD_INDEX'):
+        for key in ('TESTBRIDGE_TEST_ONLY', 'TEST_TOTAL_SHARDS', 'TEST_SHARD_INDEX', 'RUNFILES_MANIFEST_FILE', 'RUNFILES_MANIFEST_ONLY', 'TEST_SRCDIR'):
             environment.pop(key, None)
 
         def run(args=(), code=0, extra=None):
@@ -166,6 +262,7 @@ sys.exit(7 if "seven" in sys.argv else 0)
         host.write_text(host.read_text().replace('os.environ["CUSTOM"]', 'os.environ.get("CUSTOM")'))
         generate()
         assert Path(json.loads(run().stdout)['cwd']).resolve() == root.resolve()
+        runfiles_controls(shell_scope, root, library)
     print('PASS: writable staging, hidden files, stdin, argv, host environment, dotnet/corerun, expected exits, output directories, collisions, cancellation, readonly')
 
 

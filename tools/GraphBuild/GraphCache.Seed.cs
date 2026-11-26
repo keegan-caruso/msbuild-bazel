@@ -30,7 +30,7 @@ internal sealed partial class GraphCache
             inputs.VerifyCompilerReferences(node, record.References);
             foreach (var path in SnapshotFiles(node).Concat(inputs.DeclaredOutputFiles(node)).Distinct())
             {
-                var relative = Path.GetRelativePath(inputs.Files.Root, path);
+                var relative = RelativePathComponents.LogicalRelative(inputs.Files.Root, path);
                 if (!seed.Outputs.TryGetValue(relative, out var digest) || BuildSeedProof.Digest(path) != digest)
                 {
                     throw new InvalidDataException("Qualification seed omits or changes an owned output: " + relative);

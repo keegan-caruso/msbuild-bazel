@@ -2,6 +2,7 @@
 
 load(":defaults.bzl", "stable_paths")
 load(":paths.bzl", "quote", "runfile")
+load(":shell_launcher.bzl", "shell_launcher", "shell_runfiles", "write_shell_script")
 
 def _qualification_resources(_os_name, _input_size):
     return {"cpu": 4, "memory": 4096}
@@ -93,16 +94,23 @@ cp "$scratch/workspace/graph.generated.json" "$scratch/workspace/graph.generated
         progress_message = "Qualifying declared MSBuild graph %s" % ctx.label,
     )
     launcher = ctx.actions.declare_file(ctx.label.name)
-    ctx.actions.write(launcher, """#!/usr/bin/env bash
+    write_shell_script(ctx, launcher, """#!/usr/bin/env bash
 set -euo pipefail
-runfiles="${RUNFILES_DIR:-$0.runfiles}"
-export DOTNET_ROOT="$runfiles/"%s
+resolve_runfile %s
+dotnet="$RULES_MSBUILD_RESOLVED_RUNFILE"
+resolve_runfile %s
+runner="$RULES_MSBUILD_NATIVE_RUNFILE"
+resolve_runfile %s
+prepared="$RULES_MSBUILD_NATIVE_RUNFILE"
+export DOTNET_ROOT="${dotnet%%/*}"
+case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) export DOTNET_ROOT="$(native_path "$DOTNET_ROOT")" ;; esac
 export DOTNET_NOLOGO=1 DOTNET_CLI_TELEMETRY_OPTOUT=1
-exec "$runfiles/"%s "$runfiles/"%s publish "$runfiles/"%s "${BUILD_WORKSPACE_DIRECTORY:?Run with bazel run}" "$@"
+workspace="${BUILD_WORKSPACE_DIRECTORY:?Run with bazel run}"
+case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) workspace="$(native_path "$workspace")" ;; esac
+exec "$dotnet" "$runner" publish "$prepared" "$workspace" "$@"
 """ % (
-        quote(runfile(ctx, tc.dotnet).rsplit("/", 1)[0]),
         quote(runfile(ctx, tc.dotnet)),
         quote(runfile(ctx, payload) + "/ProjectSync.dll"),
         quote(runfile(ctx, prepared)),
-    ), is_executable = True)
-    return DefaultInfo(files = depset([prepared]), executable = launcher, runfiles = ctx.runfiles(files = [payload, prepared, tc.dotnet], transitive_files = tc.sdk))
+    ))
+    return DefaultInfo(files = depset([prepared]), executable = shell_launcher(ctx, launcher), runfiles = shell_runfiles(ctx, files = [launcher, payload, prepared, tc.dotnet], transitive_files = tc.sdk))

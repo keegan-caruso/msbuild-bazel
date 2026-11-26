@@ -6,9 +6,9 @@ Graph/plugin is the sole backend. Current baseline: SDK **11.0.100**, Bazel **9.
 
 Inputs, packages, tool layouts, generated files, and output ownership must be explicit (sync does not trace arbitrary task reads or acquire missing packages).
 
-Native macOS ARM64 (SDK **11.0.100**, Bazel **9.3.2**) passes `scripts/check.sh`, analysis/execution-requirements/version controls, and `scripts/check-dotnet.sh` (all 4 owned projects compile/format cleanly; style, tooling, artifact, and 63 ProjectSync tests with 7 Linux-only skips). Graph evaluation and Restore bind the selected SDK's `Microsoft.NETCoreSdk.BundledVersions.props` explicitly so the SDK initializes `NetCoreSdkRoot` (supports SDK 11.0.100 earlier imports; authored properties cannot override either; macOS ProjectSync passes with SDK 10.0.400 and 11.0.100, 61 tests each / 7 skips). Owned SDK bootstrap and Restore disable the CLI MSBuild server ([enabled by default in SDK 11](https://github.com/dotnet/docs/blob/main/docs/core/whats-new/dotnet-11/sdk.md#msbuild-server-enabled-by-default); disabling Roslyn shared compilation alone is insufficient; ambient opt-in cannot override).
+Native macOS ARM64 (SDK **11.0.100**, Bazel **9.3.2**) passes `scripts/check.sh`, analysis/execution-requirements/version controls, and `scripts/check-dotnet.sh` (all 4 owned projects compile/format cleanly; style, tooling, artifact, and 72 ProjectSync tests with 7 Linux-only skips). Graph evaluation and Restore bind the selected SDK's `Microsoft.NETCoreSdk.BundledVersions.props` explicitly so the SDK initializes `NetCoreSdkRoot` (supports SDK 11.0.100 earlier imports; authored properties cannot override either; macOS ProjectSync passes with SDK 10.0.400 and 11.0.100, 61 tests each / 7 skips). Owned SDK bootstrap and Restore disable the CLI MSBuild server ([enabled by default in SDK 11](https://github.com/dotnet/docs/blob/main/docs/core/whats-new/dotnet-11/sdk.md#msbuild-server-enabled-by-default); disabling Roslyn shared compilation alone is insufficient; ambient opt-in cannot override).
 
-Full native graph acceptance passes all **17 slices** and quickstart (offline package SDKs, signed archives, MTP/VSTest, tool replay, independent publication; replay fixtures make copied roots writable for temp `NuGet.Config`; default HTTP-cache fixture isolates macOS LocalApplicationData).
+Full native graph acceptance passes all **22 slices** and quickstart (offline package SDKs, signed archives, MTP/VSTest, tool replay, independent publication; replay fixtures make copied roots writable for temp `NuGet.Config`; default HTTP-cache fixture isolates macOS LocalApplicationData).
 
 Historical 9.3.0 upgrade passed 29 analysis/integration checks on Linux ARM64 (8.8 compat, SDK facts, workers, compiler selections, recursive-source HTTP recovery, cached HTTPS SDK acquisition with downloader URLs blocked). Current-baseline gate:
 
@@ -184,7 +184,7 @@ SDK **11.0.100** / runtime **11.0.0** and Bazel **9.3.2**:
 
 | Environment | Observed scope |
 | --- | --- |
-| Native macOS ARM64 | Owned build/format/tests, all 17 graph acceptance slices, Bazel quickstart test. |
+| Native macOS ARM64 | Owned build/format/tests, all 22 graph acceptance slices, Bazel quickstart test. |
 | Ubuntu 26.04 ARM64, 4 CPUs / 6 GiB | Owned checks (all 61 ProjectSync controls at that rev), real broker lifetime/prep, cached/uncached workers, evaluation worker, quickstart, automatic worker defaults (body edit: 2 hits / 1 compile). |
 | Ubuntu 26.04 AMD64 under Rosetta, 4 CPUs / 6 GiB | Prebuilt toolchain image, public quickstart sync/check, greeting, forced executable test. |
 | Native Ubuntu 26.04 x64, 4 CPUs / 6 GiB | Full owned gate (0 skips), 9 broker/transfer/input controls, stopped-seed fresh-output HTTP graph recovery with forced test and 0 consumer PUTs. |
@@ -192,6 +192,26 @@ SDK **11.0.100** / runtime **11.0.0** and Bazel **9.3.2**:
 | Ubuntu 26.04 ARM64 VMR source producer, 4 CPUs / 8 GiB | Built SDK 11.0.100 + runtime 11.0.0, built/ran net11.0 app; separate ARM64 guest ran probe on SDK-derived and standalone runtimes ([VMR qualification](#net-11-vmr-on-ubuntu-arm64)). |
 
 Rosetta integration-test archive helper fails in GNU tar following Bazel symlinks (`Function not implemented`); direct quickstart passes without it (separate from `libarchive` extraction). Retained source-built SDK 10.0.100 and NativeAOT keep their own pins.
+
+## Windows x64 qualification in progress
+
+Native Windows Server 2025 x64 (10.0.26100, Azure Run Command/SYSTEM), SDK **11.0.100**, runtime **11.0.0**, MSBuild **18.12.2**, and Bazel **9.3.2** passed these scoped gates:
+
+| Gate | Observed scope |
+| --- | --- |
+| Declared downloaded SDK | ZIP SDK host staged all **5,480 files**; ArtifactTools bootstrap compiled without warnings. Windows SDK selection is opt-in with `platforms = ["win-x64"]` on `dotnet.sdk`. |
+| Bazel quickstart | Three-project graph build, `bazel run //:app` with expected greeting, forced `bazel test //:tests`, and sync/check. Passed with default manifest runfiles and separately with `--enable_runfiles`, without a direct Bash launch bypass. Sync regeneration reproduced the committed LF JSON/Starlark bytes, then a second check passed. |
+| Direct tooling | Two-project offline Restore/contract/build (**0 hits / 2 misses**), then recovery after clearing declared outputs (**2 hits / 0 misses**) and app execution. Native `tests/graph_build/{qualify,replay,configurations,design_time}.py` passed invalidation, undeclared imports, output overlap, multi-target replay, custom Restore layouts, and fresh design-time metadata. |
+| Path/ownership controls | Native device/stream rejection and case/separator ownership controls; the exact graph action shell also built with a stripped environment and an output path containing spaces. |
+| Runfiles consumers | Native parser, ProjectSync producer/tool-closure staging, and ArtifactTools MTP/VSTest launcher branches passed with directory and manifest inputs. The protocol fixture uses a reporting executable; real framework qualification remains separate. |
+
+The native gate used Git Bash **2.56.1** with `BAZEL_SH` pointing to `bash.exe`, plus Microsoft Visual C++ x64 Redistributable **14.52.37029.0** (Bazel otherwise exited `0xC0000135` for missing VC runtime DLLs). Fresh Windows setup remains blocked by checksum-output parsing; these gates used independently SHA-verified pinned archives staged privately. Full native acceptance, remote recovery, source-built SDK producers, and Windows ARM64 remain unqualified.
+
+Windows launchers use the pinned shell toolchain's native executable launcher and declared runfiles library. Bash and managed consumers accept manifest or directory runfiles; native .NET arguments are explicit Windows paths. Graph actions keep profile, AppData, temp, and NuGet machine-settings paths under scratch. An empty private `PROGRAMFILES` base avoids NuGet's `RestoreTask` failing with null `path1`. ProjectSync emits LF JSON so generated-file checks agree across hosts.
+
+Contract keys use `/`; native paths handle filesystem IO. Device names, alternate streams, invalid filename characters, trailing dots/spaces, and case/separator ownership aliases have controls. Windows 8.3 aliases and hardlinks remain outside these lexical checks. Run `python3 tests/graph_build/input_integrity.py` and `python3 tests/graph_build/output_ownership.py` after building GraphBuild for the portable source controls.
+
+A separate AppContainer prototype passed allowed-input/output and denied host-read/write/SDK-write controls, inherited managed-child tokens, SDK Restore/compilation, and cold/warm graph execution. Product filesystem isolation remains open: SDK `Exec` through `cmd.exe` fails in that prototype; cancellation, concurrent actions, cleanup, and general task compatibility are unqualified. Windows isolation is not enabled.
 
 ## Downloaded SDK platforms
 

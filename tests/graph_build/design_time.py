@@ -9,6 +9,7 @@ from pathlib import Path
 import tempfile
 
 from qualify import DOTNET, ROOT, RUNNER, SDK, fixture, run
+from fixture_host import assert_no_host_paths
 
 
 def bazel_control(base, root):
@@ -90,7 +91,7 @@ def main():
             assert all(str(ancestor) not in item for item in project['compilerArguments']), project['compilerArguments']
             assert any('System.Runtime.dll' in item for item in project['references']), project
         assert result['projects'][2]['projectReferences'] == ['P0/P0.csproj', 'P1/P1.csproj'], result['projects'][2]['projectReferences']
-        assert str(root) not in report.read_text() and str(SDK) not in report.read_text()
+        assert_no_host_paths(result, root, SDK)
         project_outputs = {p[key] for p in result['projects'] for key in ('targetPath', 'targetRefPath')}
         for project in result['projects']:
             for source in project['compile']:

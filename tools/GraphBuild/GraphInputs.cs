@@ -177,10 +177,10 @@ internal sealed class GraphInputs : IDisposable
                 throw new InvalidDataException("Evaluation reuse inputs require graph contract version 9, 10, 11, 12 or 13");
             }
             var compiler = Graph.ProjectNodes.SelectMany(node => node.ProjectInstance.GetItems("Compile")
-                .Select(item => Path.GetRelativePath(Files.Root, Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!))))
+                .Select(item => RelativePathComponents.LogicalRelative(Files.Root, Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!))))
                 .ToHashSet(StringComparer.Ordinal);
             var other = Graph.ProjectNodes.SelectMany(node => new[] { "EmbeddedResource", "Content", "None", "AdditionalFiles", "Analyzer", "EditorConfigFiles", "GlobalAnalyzerConfigFiles", "RazorGenerate" }
-                .SelectMany(node.ProjectInstance.GetItems).Select(item => Path.GetRelativePath(Files.Root, Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!))))
+                .SelectMany(node.ProjectInstance.GetItems).Select(item => RelativePathComponents.LogicalRelative(Files.Root, Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!))))
                 .ToHashSet(StringComparer.Ordinal);
             if (contract.EvaluationReuseInputs!.Any(path => !compiler.Contains(path) || other.Contains(path)))
             {
@@ -273,7 +273,7 @@ internal sealed class GraphInputs : IDisposable
             Path.Combine(Path.GetFullPath(extensions, directory), Path.GetFileName(instance.FullPath) + ".nuget.g.props"),
             Path.Combine(Path.GetFullPath(extensions, directory), Path.GetFileName(instance.FullPath) + ".nuget.g.targets"),
         };
-        var relative = generated.Select(path => Path.GetRelativePath(Files.Root, path)).ToArray();
+        var relative = generated.Select(path => RelativePathComponents.LogicalRelative(Files.Root, path)).ToArray();
         foreach (var path in relative)
         {
             if (!File.Exists(Files.Resolve(path)))
@@ -283,9 +283,9 @@ internal sealed class GraphInputs : IDisposable
         }
         var diagnostics = new[] { Path.GetFileName(instance.FullPath) + ".nuget.dgspec.json", "project.nuget.cache" }
             .Select(name => Path.Combine(Path.GetFullPath(extensions, directory), name))
-            .Where(File.Exists).Select(path => Path.GetRelativePath(Files.Root, path));
+            .Where(File.Exists).Select(path => RelativePathComponents.LogicalRelative(Files.Root, path));
         var declaredRestore = (contract.Restore?.Outputs ?? []).ToHashSet(StringComparer.Ordinal);
-        var sharedImports = imports[ConfiguredProjectKey.Create(instance)].Select(path => Path.GetRelativePath(Files.Root, path))
+        var sharedImports = imports[ConfiguredProjectKey.Create(instance)].Select(path => RelativePathComponents.LogicalRelative(Files.Root, path))
             .Where(declaredRestore.Contains);
         return project with
         {
@@ -293,7 +293,7 @@ internal sealed class GraphInputs : IDisposable
         };
     }
 
-    internal string Relative(ProjectGraphNode node) => Path.GetRelativePath(Files.Root, node.ProjectInstance.FullPath);
+    internal string Relative(ProjectGraphNode node) => RelativePathComponents.LogicalRelative(Files.Root, node.ProjectInstance.FullPath);
     internal IEnumerable<string> OutputDirectories(ProjectGraphNode node) => For(node).OutputDirectories.Select(Files.Resolve);
     internal IEnumerable<string> DeclaredOutputFiles(ProjectGraphNode node) => (For(node).OutputFiles ?? []).Select(Files.Resolve);
     private IEnumerable<string> CompilerProducts(ProjectGraphNode node) =>
@@ -529,7 +529,7 @@ internal sealed class GraphInputs : IDisposable
                 {
                     return;
                 }
-                throw new InvalidDataException("Undeclared graph input for " + Relative(node) + ": " + Path.GetRelativePath(Files.Root, path));
+                throw new InvalidDataException("Undeclared graph input for " + Relative(node) + ": " + RelativePathComponents.LogicalRelative(Files.Root, path));
             }
         }
     }

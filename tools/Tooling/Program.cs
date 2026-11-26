@@ -27,10 +27,10 @@ internal static class Program
             throw new InvalidDataException("Toolchain pins differ");
         }
 
-        var shellPins = File.ReadAllText(Path.Combine(root, "scripts/toolchain-pins.sh"));
+        var shellPins = File.ReadAllText(Path.Combine(root, "scripts/toolchain-pins.sh")).ReplaceLineEndings("\n");
         foreach (var name in new[] { "dotnet", "bazelisk" })
         {
-            foreach (var arch in new[] { "linux-x64", "linux-arm64", "osx-arm64" })
+            foreach (var arch in new[] { "linux-x64", "linux-arm64", "osx-arm64", "win-x64" })
             {
                 var pin = pins[name]!;
                 var platform = pin["platforms"]?[arch];

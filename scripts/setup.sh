@@ -2,11 +2,16 @@
 set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/env.sh"
 cd "$REPO_ROOT"
+archive_tar="${RULES_MSBUILD_TAR:-tar}"
+exe_suffix=
 case "$(uname -s):$(uname -m)" in
     Linux:x86_64|Linux:aarch64|Linux:arm64|Darwin:arm64) ;;
-    *) echo 'The bootstrap supports Linux x86-64/ARM64 and macOS ARM64.' >&2; exit 1 ;;
+    MINGW*:x86_64|MSYS_NT*:x86_64)
+        archive_tar="${RULES_MSBUILD_TAR:-$(cygpath -u "$WINDIR")/System32/tar.exe}"
+        exe_suffix=.exe
+        ;;
+    *) echo 'The bootstrap supports Linux x86-64/ARM64, macOS ARM64 and Windows x64 with Git Bash.' >&2; exit 1 ;;
 esac
-archive_tar="${RULES_MSBUILD_TAR:-tar}"
 for prerequisite in curl "$archive_tar"; do
     command -v "$prerequisite" >/dev/null || { echo "Missing prerequisite: $prerequisite" >&2; exit 1; }
 done
@@ -37,7 +42,7 @@ install_tool() {
     if [[ "$name" == dotnet ]]; then
         local temporary
         temporary="$(mktemp -d "$REPO_ROOT/.tools/dotnet.XXXXXX")"
-        "$archive_tar" --no-same-owner -xzf "$archive" -C "$temporary"
+        "$archive_tar" --no-same-owner -xf "$archive" -C "$temporary"
         rm -rf "$REPO_ROOT/.tools/dotnet"
         mv "$temporary" "$REPO_ROOT/.tools/dotnet"
     else
@@ -46,7 +51,7 @@ install_tool() {
     fi
     printf '%s\n' "$hash" > "$stamp"
 }
-install_tool dotnet "$dotnet_version" "$dotnet_url" "$dotnet_sha256" "$REPO_ROOT/.tools/dotnet/dotnet"
-install_tool bazelisk "$bazelisk_version" "$bazelisk_url" "$bazelisk_sha256" "$REPO_ROOT/.tools/bin/bazelisk"
+install_tool dotnet "$dotnet_version" "$dotnet_url" "$dotnet_sha256" "$REPO_ROOT/.tools/dotnet/dotnet$exe_suffix"
+install_tool bazelisk "$bazelisk_version" "$bazelisk_url" "$bazelisk_sha256" "$REPO_ROOT/.tools/bin/bazelisk$exe_suffix"
 bash scripts/tooling.sh setup-starlark
 bash scripts/check.sh "$@"

@@ -39,13 +39,13 @@ internal static class PreparedRestore
             throw new InvalidDataException("Restore preparation requires absent outputs and an empty package directory");
         }
         var original = Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
-            .Select(path => Path.GetRelativePath(root, path)).ToDictionary(path => path, path => ContractFiles.InputDigest(files.Resolve(path)), StringComparer.Ordinal);
+            .Select(path => RelativePathComponents.LogicalRelative(root, path)).ToDictionary(path => path, path => ContractFiles.InputDigest(files.Resolve(path)), StringComparer.Ordinal);
         Restore.Run(contract, root, sdk);
         var generated = contract.Restore!.Outputs.Append(".package-source/NuGet.Config").Concat(Directory.Exists(Path.Combine(root, ".nuget"))
-            ? Directory.EnumerateFiles(Path.Combine(root, ".nuget"), "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(root, path)) : [])
+            ? Directory.EnumerateFiles(Path.Combine(root, ".nuget"), "*", SearchOption.AllDirectories).Select(path => RelativePathComponents.LogicalRelative(root, path)) : [])
             .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
         var allowed = generated.ToHashSet(StringComparer.Ordinal);
-        foreach (var path in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(root, path)))
+        foreach (var path in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories).Select(path => RelativePathComponents.LogicalRelative(root, path)))
         {
             if (!original.ContainsKey(path) && !allowed.Contains(path) && path != ".package-source/NuGet.Config")
             {

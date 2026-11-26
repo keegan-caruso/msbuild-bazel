@@ -80,7 +80,7 @@ internal static class DesignTimeBuild
                 compile = Items("Compile"),
                 references = Items("ReferencePath"),
                 projectReferences = state.GetItems("ProjectReference").Select(item =>
-                    Path.GetRelativePath(root, item.GetMetadataValue("FullPath")).Replace('\\', '/')).Distinct().Order(StringComparer.Ordinal).ToArray(),
+                    RelativePathComponents.LogicalRelative(root, item.GetMetadataValue("FullPath")).Replace('\\', '/')).Distinct().Order(StringComparer.Ordinal).ToArray(),
                 defineConstants = state.GetPropertyValue("DefineConstants"),
                 compilerArguments = Items("CscCommandLineArgs"),
             };

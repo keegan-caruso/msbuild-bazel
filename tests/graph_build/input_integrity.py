@@ -66,10 +66,30 @@ foreach (var path in new[] { "", ".", "..", "/", "/absolute", "a/", "a//b", "a/.
 {
     if (RelativePathComponents.IsSafeRelative(path)) throw new Exception("Unsafe path components accepted");
 }
-foreach (var path in new[] { "a", "a/b", "a/.hidden", "...", "a/..name", "a/dot./b" })
+foreach (var path in new[] { "a", "a/b", "a/.hidden", "a/..name" })
 {
     if (!RelativePathComponents.IsSafeRelative(path)) throw new Exception("Safe path components rejected");
 }
+foreach (var path in new[] { "C:outside", "C:/outside", "a/file:stream", "a/NUL", "con.txt", "COM1.log", "lpt9", "COM\\u00b9", "LPT\\u00b2.txt", "COM\\u00b3.log", "NUL .txt", "CONIN$", "CONOUT$", "a/dot.", "a/space ", "a/.. /b", "a/has?wildcard", "a/has*wildcard", "a/has<angle", "a/has|pipe", "a/has\\\"quote", "a/control\\u0001" })
+{
+    if (RelativePathComponents.IsSafeRelative(path, windows: true)) throw new Exception("Windows path alias accepted: " + path);
+}
+foreach (var path in new[] { "a", "a/b", "a/.hidden", "a/..name", "COM0", "COM10", "NUL-more", "auxiliary.cs" })
+{
+    if (!RelativePathComponents.IsSafeRelative(path, windows: true)) throw new Exception("Safe Windows path rejected: " + path);
+}
+foreach (var path in new[] { "...", "a/dot./b", "a/space ", "a/file:stream", "NUL.txt" })
+{
+    if (!RelativePathComponents.IsSafeRelative(path, windows: false)) throw new Exception("Unix path behavior changed: " + path);
+}
+var logicalRoot = Path.Combine(Path.GetTempPath(), "logical-relative-root");
+var physicalChild = Path.Combine(logicalRoot, "dir", "child.cs");
+if (RelativePathComponents.LogicalRelative(logicalRoot, physicalChild) != "dir/child.cs")
+    throw new Exception("Logical contract path has native separators");
+var normalizedFiles = new ContractFiles(logicalRoot, logicalRoot + "-sdk");
+if (normalizedFiles.Resolve("dir/child.cs") != physicalChild ||
+    normalizedFiles.ResolveInputs(["dir/child.cs"])["dir/child.cs"] != physicalChild)
+    throw new Exception("Contract resolution did not produce native absolute paths");
 string LegacyHash(IEnumerable<string> records) => Convert.ToHexStringLower(
     SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(records))));
 foreach (var records in new[] {

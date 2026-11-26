@@ -140,7 +140,7 @@ internal static class GraphWorker
                     {
                         foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
                         {
-                            var relative = Path.GetRelativePath(path, file);
+                            var relative = RelativePathComponents.LogicalRelative(path, file);
                             Copy(InputPath(source.Path + "/" + relative), Path.Combine(destination, Safe(relative)));
                         }
                     }

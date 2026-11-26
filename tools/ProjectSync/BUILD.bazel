@@ -10,6 +10,7 @@ filegroup(
     srcs = glob(["*.cs"]) + [
         "ProjectSync.csproj",
         "//:.editorconfig",
+        "//tools:Runfiles.cs",
         "//tools:msbuild_adapter_sources",
     ],
 )

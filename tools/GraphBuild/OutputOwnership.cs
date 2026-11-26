@@ -15,8 +15,8 @@ internal sealed class OutputOwnership<TOwner> where TOwner : class
     {
         ownership = new OutputOwnershipIndex<TOwner>(directories, files);
         // Keep execution's fail-fast diagnostics and exact-path restrictions.
-        this.root = root;
-        this.inputs = inputs.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+        this.root = OutputOwnershipIndex<TOwner>.CanonicalPath(root);
+        this.inputs = inputs.Select(OutputOwnershipIndex<TOwner>.CanonicalPath).Distinct(OutputOwnershipIndex<TOwner>.PathComparer).Order(OutputOwnershipIndex<TOwner>.PathComparer).ToArray();
         this.directories = SingleOwners(ownership.Directories, "Overlapping output directories: ");
         this.files = SingleOwners(ownership.Files, "Overlapping output file ownership: ");
     }
@@ -30,7 +30,7 @@ internal sealed class OutputOwnership<TOwner> where TOwner : class
             {
                 throw new InvalidDataException("Overlapping output file ownership: " + path);
             }
-            if (Array.BinarySearch(inputs, path, StringComparer.Ordinal) >= 0 || ContainsInput(path))
+            if (Array.BinarySearch(inputs, path, OutputOwnershipIndex<TOwner>.PathComparer) >= 0 || ContainsInput(path))
             {
                 throw new InvalidDataException("Output file overlaps a declared input: " + path);
             }
@@ -59,19 +59,19 @@ internal sealed class OutputOwnership<TOwner> where TOwner : class
 
     private bool ContainsInput(string directory)
     {
-        // Descendants form one ordinal range beginning at directory + "/".
+        // Descendants form one range beginning at directory + "/".
         // Searching that boundary avoids scanning every input for each output.
         var prefix = directory + "/";
-        var index = Array.BinarySearch(inputs, prefix, StringComparer.Ordinal);
+        var index = Array.BinarySearch(inputs, prefix, OutputOwnershipIndex<TOwner>.PathComparer);
         if (index < 0)
         {
             index = ~index;
         }
-        return index < inputs.Length && inputs[index].StartsWith(prefix, StringComparison.Ordinal);
+        return index < inputs.Length && inputs[index].StartsWith(prefix, OutputOwnershipIndex<TOwner>.PathComparison);
     }
 
     private IEnumerable<string> Parents(string path) => OutputOwnershipIndex<TOwner>.Parents(path, root);
 
     private static Dictionary<string, TOwner> SingleOwners(IReadOnlyDictionary<string, IReadOnlySet<TOwner>> index, string message) =>
-        index.ToDictionary(pair => pair.Key, pair => pair.Value.Count == 1 ? pair.Value.Single() : throw new InvalidDataException(message + pair.Key), StringComparer.Ordinal);
+        index.ToDictionary(pair => pair.Key, pair => pair.Value.Count == 1 ? pair.Value.Single() : throw new InvalidDataException(message + pair.Key), OutputOwnershipIndex<TOwner>.PathComparer);
 }

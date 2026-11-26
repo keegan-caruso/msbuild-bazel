@@ -53,7 +53,7 @@ internal static class Restore
             }
         }
         var packageFiles = Directory.Exists(packages) ? Directory.GetFiles(packages, "*", SearchOption.AllDirectories)
-            .Select(path => Path.GetRelativePath(root, path)) : [];
+            .Select(path => RelativePathComponents.LogicalRelative(root, path)) : [];
         return contract with
         {
             SharedInputs = contract.SharedInputs.Concat(packageFiles).ToArray()

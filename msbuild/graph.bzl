@@ -5,6 +5,7 @@ load("//msbuild/private:paths.bzl", _RUNTIME_TOOLCHAIN = "RUNTIME_TOOLCHAIN", _T
 load("//msbuild/private:project_launch.bzl", _create_executable_launcher = "create_executable_launcher", _create_test_protocol_launcher = "create_test_protocol_launcher")
 load("//msbuild/private:providers.bzl", "MSBuildBindingInfo", "MSBuildLayoutInfo", "MSBuildPackageLockInfo", "MSBuildRuntimeInfo")
 load("//msbuild/private:sdk_bootstrap.bzl", "bootstrap_project")
+load("//msbuild/private:shell_launcher.bzl", _SHELL_TOOLCHAIN = "SHELL_TOOLCHAIN", _shell_launcher_attrs = "shell_launcher_attrs")
 load("//msbuild/private:test_options.bzl", _TEST_OPTIONS_ATTRS = "TEST_OPTIONS_ATTRS", _validate_test = "validate_test")
 
 MSBuildGraphInfo = provider("A declared MSBuild graph workspace and its execution SDK.", fields = {"directory": "Graph output workspace", "contract": "Declared graph output ownership", "dotnet": "Execution host", "sdk": "Declared SDK files", "projects": "Configured project runtime outputs"})
@@ -179,13 +180,35 @@ def _graph_action(ctx, prepare = False):
     export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_NOLOGO=1
     export DOTNET_CLI_USE_MSBUILD_SERVER=false MSBUILDUSESERVER=0
     export MSBUILDDISABLENODEREUSE=1
+    native_path() {
+        case "$(uname -s)" in
+            MINGW*|MSYS*|CYGWIN*) cygpath -am "$1" ;;
+            *) printf '%s\\n' "$1" ;;
+        esac
+    }
+    case "$(uname -s)" in
+        MINGW*|MSYS*|CYGWIN*)
+            export MSYS2_ARG_CONV_EXCL='*'
+            native_scratch="$(native_path "$scratch")"
+            mkdir -p "$scratch/appdata" "$scratch/localappdata" "$scratch/programfiles"
+            export DOTNET_ROOT="$(native_path "$(dirname "$dotnet")")"
+            export DOTNET_CLI_HOME="$native_scratch" HOME="$native_scratch"
+            export USERPROFILE="$native_scratch" APPDATA="$native_scratch/appdata" LOCALAPPDATA="$native_scratch/localappdata"
+            export TEMP="$native_scratch" TMP="$native_scratch" SystemTemp="$native_scratch"
+            export NUGET_PACKAGES="$native_scratch/packages"
+            # NuGet constructs machine-wide settings even with an explicit config.
+            export PROGRAMFILES="$native_scratch/programfiles"
+            export DOTNET_ADD_GLOBAL_TOOLS_TO_PATH=false DOTNET_GENERATE_ASPNET_CERTIFICATE=false
+            export DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=true
+            ;;
+    esac
     if test "$isolated" = 1; then
         bash "$sandbox" "$(dirname "$dotnet")" "$runner" "$output" "$contract" "$scratch" "$target" "$mode" "$prepared" - 0 "$profile"
         if test "$mode" = prepare; then rm -rf "$workspace"; rm -f "$output/report.json"; fi
         exit 0
     fi
     if test "$profile" = 1; then export RULES_MSBUILD_GRAPH_PROFILE=1; fi
-    "$dotnet" exec "$runner/GraphBuild.dll" action "$workspace" "$contract" "$output/report.json" "$scratch/cache" "$target"
+    "$dotnet" exec "$(native_path "$runner/GraphBuild.dll")" action "$(native_path "$workspace")" "$(native_path "$contract")" "$(native_path "$output/report.json")" "$(native_path "$scratch/cache")" "$target"
     """,
             mnemonic = "MSBuildGraphRestore" if prepare else "MSBuildGraph",
         )
@@ -296,19 +319,19 @@ _RUNTIME_ATTRS = {
     "assembly": attr.string(),
     "runtime_host": attr.label(providers = [MSBuildRuntimeInfo]),
     "data_paths": attr.label_keyed_string_dict(allow_files = True),
-}
+} | _shell_launcher_attrs()
 
 msbuild_graph_binary = rule(
     implementation = _runtime,
     attrs = _RUNTIME_ATTRS,
     executable = True,
-    toolchains = [config_common.toolchain_type(_RUNTIME_TOOLCHAIN, mandatory = False)],
+    toolchains = [config_common.toolchain_type(_RUNTIME_TOOLCHAIN, mandatory = False), config_common.toolchain_type(_SHELL_TOOLCHAIN, mandatory = False)],
 )
 
 msbuild_graph_test = rule(
     implementation = _test,
     attrs = dict(_RUNTIME_ATTRS, direct_executable_smoke = attr.bool(doc = "Opt in to a restricted executable smoke launcher using only the selected runtime host."), **{key: value for key, value in _TEST_OPTIONS_ATTRS.items() if key != "test_output_type"}),
-    toolchains = [_TOOLCHAIN, config_common.toolchain_type(_RUNTIME_TOOLCHAIN, mandatory = False)],
+    toolchains = [_TOOLCHAIN, config_common.toolchain_type(_RUNTIME_TOOLCHAIN, mandatory = False), config_common.toolchain_type(_SHELL_TOOLCHAIN, mandatory = False)],
     test = True,
 )
 
