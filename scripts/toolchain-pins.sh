@@ -16,6 +16,14 @@ case "$(uname -s):$(uname -m)" in
         bazelisk_url=https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-linux-arm64
         bazelisk_sha256=e20e8b0f4f240091b7a55bf17b9398bd4f40ee70ae0208dff95dd4c445fb4010
         ;;
+    MINGW*:x86_64|MSYS_NT*:x86_64)
+        dotnet_version=11.0.100
+        dotnet_url=https://builds.dotnet.microsoft.com/dotnet/Sdk/11.0.100/dotnet-sdk-11.0.100-win-x64.zip
+        dotnet_sha256=ae800f1fa1a6428e0d7c740bb745d9414f15334118c51e246dab9850b738fadd
+        bazelisk_version=1.29.0
+        bazelisk_url=https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-windows-amd64.exe
+        bazelisk_sha256=092a8738d5b41aae7a85c42cc961b1034e3389aba43ffc20c0fabda7b43e095b
+        ;;
     Darwin:arm64)
         dotnet_version=11.0.100
         dotnet_url=https://builds.dotnet.microsoft.com/dotnet/Sdk/11.0.100/dotnet-sdk-11.0.100-osx-arm64.tar.gz

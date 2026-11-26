@@ -7,4 +7,7 @@
     <Compile Include="../RelativePathComponents.cs" />
     <Reference Include="NuGet.Versioning" HintPath="$(RulesMSBuildEngineRoot)/NuGet.Versioning.dll" Private="true" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../Runfiles.cs" />
+  </ItemGroup>
 </Project>

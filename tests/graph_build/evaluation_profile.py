@@ -21,7 +21,7 @@ def input_view(destination, workspace, prepared, contract):
         paths.add('.graph-tools/bindings.json')
         for entry in contract['ToolProperties'].values():
             closure = workspace / '/'.join(entry.split('/')[:2])
-            paths.update(str(path.relative_to(workspace)) for path in closure.rglob('*') if path.is_file())
+            paths.update(path.relative_to(workspace).as_posix() for path in closure.rglob('*') if path.is_file())
 
     def copy(source, relative):
         path = Path(relative)

@@ -142,7 +142,7 @@ internal sealed class LocalGraphState : IDisposable
             .Concat(inputs.DeclaredOutputFiles(node).Where(File.Exists));
         foreach (var path in existing.ToArray())
         {
-            var relative = Path.GetRelativePath(files.Root, path);
+            var relative = RelativePathComponents.LogicalRelative(files.Root, path);
             files.Resolve(relative);
             if (!keep.Contains(relative))
             {

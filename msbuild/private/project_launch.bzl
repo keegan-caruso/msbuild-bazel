@@ -2,6 +2,7 @@
 
 load(":paths.bzl", _RUNTIME_TOOLCHAIN = "RUNTIME_TOOLCHAIN", _quote = "quote", _runfile = "runfile")
 load(":providers.bzl", "MSBuildRuntimeInfo", "MSBuildTestToolInfo")
+load(":shell_launcher.bzl", "shell_launcher", "shell_runfiles", "write_shell_script")
 
 def _runtime_host(ctx):
     host = ctx.attr.runtime_host[MSBuildRuntimeInfo] if ctx.attr.runtime_host else None
@@ -42,18 +43,22 @@ def create_executable_launcher(ctx, assembly, runtime, runtime_data, test):
         if not path or path.startswith("/") or "\\" in path or any([part in ["", ".", ".."] for part in path.split("/")]) or any([char in path for char in ["\n", "\r"]]):
             fail("Runtime destinations must be safe relative paths: " + path)
     launcher = ctx.actions.declare_file(ctx.label.name)
-    setup = ["copy_input \"$runfiles/\"" + _quote(_runfile(ctx, row.file)) + " \"$temporary/\"" + _quote(row.destination) for row in runtime_data.to_list()]
+    setup = ["resolve_runfile " + _quote(_runfile(ctx, row.file)) + "; copy_input \"$RULES_MSBUILD_RESOLVED_RUNFILE\" \"$temporary/\"" + _quote(row.destination) for row in runtime_data.to_list()]
     outputs = ["output_directory " + _quote(path) for path in ctx.attr.test_output_dirs] if test else []
     owned_environment = ["CORE_ROOT", "DOTNET_ROOT", "DOTNET_HOST_PATH", "DOTNET_MULTILEVEL_LOOKUP"] + ["DOTNET_ROOT_" + architecture for architecture in ["X64", "X86", "ARM", "ARM64"]]
     host_environment = " ".join([_quote(name + "=" + value) for name, value in host.environment.items() if name not in owned_environment])
     script = """#!/usr/bin/env bash
 set -euo pipefail
 fail() { echo "msbuild launcher: $*" >&2; exit 1; }
-runfiles="${RUNFILES_DIR:-${TEST_SRCDIR:-$0.runfiles}}"
-[[ "$runfiles" = /* ]] || runfiles="$PWD/$runfiles"
-host_root="$runfiles/"%s
-host="$host_root/"%s
-input="$runfiles/"%s
+resolve_runfile %s || fail 'declared runtime host is missing or not executable'
+host_root="$RULES_MSBUILD_RESOLVED_RUNFILE"
+native_host_root="$RULES_MSBUILD_NATIVE_RUNFILE"
+entry=%s
+host="$host_root/$entry"
+native_host="$native_host_root/$entry"
+resolve_runfile %s
+input="$RULES_MSBUILD_RESOLVED_RUNFILE"
+native_input="$RULES_MSBUILD_NATIVE_RUNFILE"
 temporary=''
 child=''
 private_group=0
@@ -112,18 +117,25 @@ else
   chmod -R u+w "$runtime"
 fi
 %s
+native_runtime="$runtime"
+if [[ "$readonly" = 1 ]]; then
+  native_runtime="$native_input"
+else
+  case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) native_runtime="$(native_path "$runtime")" ;; esac
+fi
 unset CORE_ROOT
 %s
-export DOTNET_ROOT="$host_root" DOTNET_HOST_PATH="$host" DOTNET_MULTILEVEL_LOOKUP=0
-export DOTNET_ROOT_X64="$host_root" DOTNET_ROOT_X86="$host_root"
-export DOTNET_ROOT_ARM="$host_root" DOTNET_ROOT_ARM64="$host_root"
+export DOTNET_ROOT="$native_host_root" DOTNET_HOST_PATH="$native_host" DOTNET_MULTILEVEL_LOOKUP=0
+export DOTNET_ROOT_X64="$DOTNET_ROOT" DOTNET_ROOT_X86="$DOTNET_ROOT"
+export DOTNET_ROOT_ARM="$DOTNET_ROOT" DOTNET_ROOT_ARM64="$DOTNET_ROOT"
 if [[ "$is_test" = 1 && "$readonly" != 1 ]]; then
   output="${TEST_UNDECLARED_OUTPUTS_DIR:-$temporary/test-results}"
+  case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) output="$(cygpath -au "$output")" ;; esac
   [[ "$output" = /* ]] || output="$PWD/$output"
   mkdir -p -- "$output"
 %s
 fi
-launch=(env %s "$host" "$runtime/"%s "$@")
+launch=(env %s "$host" "$native_runtime/"%s "$@")
 if [[ "$readonly" = 1 ]]; then exec "${launch[@]}"; fi
 cd -- "$runtime"
 # Keep terminal readers in the inherited foreground process group. Other
@@ -151,18 +163,18 @@ exit "$status"
         _quote(assembly),
         _quote(ctx.attr.test_working_directory if test else ""),
         "\n".join(setup),
-        'export CORE_ROOT="$host_root"' if host.launch_mode == "corerun" else "",
+        'export CORE_ROOT="$native_host_root"' if host.launch_mode == "corerun" else "",
         "\n".join(outputs),
         host_environment,
         _quote(assembly),
         ctx.attr.expected_exit_code if test else 0,
         ctx.attr.expected_exit_code if test else 0,
     )
-    ctx.actions.write(launcher, script, is_executable = True)
+    write_shell_script(ctx, launcher, script)
     return ([RunEnvironmentInfo(environment = ctx.attr.env)] if test else []) + [DefaultInfo(
-        executable = launcher,
+        executable = shell_launcher(ctx, launcher),
         files = depset([runtime]),
-        runfiles = ctx.runfiles(files = [runtime, host.directory] + [row.file for row in runtime_data.to_list()], transitive_files = host.files),
+        runfiles = shell_runfiles(ctx, files = [launcher, runtime, host.directory] + [row.file for row in runtime_data.to_list()], transitive_files = host.files),
     )]
 
 def create_test_protocol_launcher(ctx, tc, name, runtime, runtime_data):
@@ -207,14 +219,21 @@ def create_test_protocol_launcher(ctx, tc, name, runtime, runtime_data):
     launcher = ctx.actions.declare_file(ctx.label.name)
     script = """#!/usr/bin/env bash
 set -euo pipefail
-runfiles="${RUNFILES_DIR:-${TEST_SRCDIR:-$0.runfiles}}"
-[[ "$runfiles" = /* ]] || runfiles="$PWD/$runfiles"
-export RULES_MSBUILD_RUNFILES="$runfiles"
-exec "$runfiles/"%s "$runfiles/"%s test-protocol "$runfiles/"%s "$@"
+export RULES_MSBUILD_RUNFILES="$runfiles_context"
+resolve_runfile %s
+dotnet="$RULES_MSBUILD_RESOLVED_RUNFILE"
+resolve_runfile %s
+runner="$RULES_MSBUILD_NATIVE_RUNFILE"
+resolve_runfile %s
+request="$RULES_MSBUILD_NATIVE_RUNFILE"
+export DOTNET_ROOT="${dotnet%%/*}"
+case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) export DOTNET_ROOT="$(native_path "$DOTNET_ROOT")" ;; esac
+exec "$dotnet" "$runner" test-protocol "$request" "$@"
 """ % (_quote(_runfile(ctx, tc.dotnet)), _quote(_runfile(ctx, tc.runner)), _quote(_runfile(ctx, launch_request)))
-    ctx.actions.write(launcher, script, is_executable = True)
-    runfiles = ctx.runfiles(
-        files = [tc.dotnet, tc.runner, runtime, launch_request] + [host.directory] + [row.file for row in runtime_data.to_list()] + ([ctx.file.test_settings] if ctx.file.test_settings else []),
+    write_shell_script(ctx, launcher, script)
+    runfiles = shell_runfiles(
+        ctx,
+        files = [launcher, tc.dotnet, tc.runner, runtime, launch_request] + [host.directory] + [row.file for row in runtime_data.to_list()] + ([ctx.file.test_settings] if ctx.file.test_settings else []),
         transitive_files = depset(transitive = [host.files] + [tc.runtime, tc.runner_support] + [tool[MSBuildTestToolInfo].files for tool in test_tools]),
     )
-    return [RunEnvironmentInfo(environment = ctx.attr.env)] + [DefaultInfo(executable = launcher, files = depset([runtime]), runfiles = runfiles)]
+    return [RunEnvironmentInfo(environment = ctx.attr.env)] + [DefaultInfo(executable = shell_launcher(ctx, launcher), files = depset([runtime]), runfiles = runfiles)]

@@ -9,6 +9,7 @@ _PLATFORMS = {
     "linux-x64": ["@platforms//os:linux", "@platforms//cpu:x86_64"],
     "osx-arm64": ["@platforms//os:osx", "@platforms//cpu:aarch64"],
     "osx-x64": ["@platforms//os:osx", "@platforms//cpu:x86_64"],
+    "win-x64": ["@platforms//os:windows", "@platforms//cpu:x86_64"],
 }
 
 def _archive(ctx):
@@ -20,8 +21,9 @@ def _archive(ctx):
         output = "runtime",
         canonical_id = ctx.attr.integrity,
     )
-    if not ctx.path("runtime/dotnet").exists:
-        fail("Runtime archive must contain dotnet at its root")
+    dotnet = "dotnet.exe" if ctx.attr.platform.startswith("win-") else "dotnet"
+    if not ctx.path("runtime/" + dotnet).exists:
+        fail("Runtime archive must contain %s at its root" % dotnet)
     if ctx.attr.kind == "aspnetcore":
         for path in ["shared/Microsoft.NETCore.App", "shared/Microsoft.AspNetCore.App/" + ctx.attr.version]:
             if not ctx.path("runtime/" + path).exists:
@@ -35,12 +37,12 @@ msbuild_layout(
 msbuild_runtime(
     name = "runtime",
     layout = ":layout",
-    entry_point = "dotnet",
+    entry_point = %s,
     runtime_identifier = %s,
     version = %s,
     target_compatible_with = %s,
 )
-""" % (json.encode(str(ctx.attr._defs)), json.encode(ctx.attr.platform), json.encode(ctx.attr.version), json.encode(_PLATFORMS[ctx.attr.platform])))
+""" % (json.encode(str(ctx.attr._defs)), json.encode(dotnet), json.encode(ctx.attr.platform), json.encode(ctx.attr.version), json.encode(_PLATFORMS[ctx.attr.platform])))
 
 _runtime_archive = repository_rule(
     implementation = _archive,

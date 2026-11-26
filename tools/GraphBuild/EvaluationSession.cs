@@ -32,12 +32,12 @@ internal sealed class EvaluationSession : IDisposable
         }
         // All bytes were verified for this request. Only the explicit reviewed
         // inventory omits content from the evaluation identity, never from build keys.
-        var membership = Directory.EnumerateFiles(files.Root, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(files.Root, path)).Order(StringComparer.Ordinal).ToArray();
+        var membership = Directory.EnumerateFiles(files.Root, "*", SearchOption.AllDirectories).Select(path => RelativePathComponents.LogicalRelative(files.Root, path)).Order(StringComparer.Ordinal).ToArray();
         var records = new[] { sdkDigest, ContractFiles.TreeDigest(AppContext.BaseDirectory), System.Text.Json.JsonSerializer.Serialize(contract) }
             .Concat(digests.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => pair.Key + ":" + (compilerOnly.Contains(pair.Key) ? "compiler-only" : pair.Value)))
             .Concat(membership.Select(path => "member:" + path))
             .Concat(membership.Except(digests.Keys, StringComparer.Ordinal).Select(path => "extra:" + path + ":" + ContractFiles.InputDigest(files.Resolve(path))))
-            .Concat(Directory.EnumerateDirectories(files.Root, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(files.Root, path)).Order(StringComparer.Ordinal).Select(path => "directory:" + path))
+            .Concat(Directory.EnumerateDirectories(files.Root, "*", SearchOption.AllDirectories).Select(path => RelativePathComponents.LogicalRelative(files.Root, path)).Order(StringComparer.Ordinal).Select(path => "directory:" + path))
             .Concat(digests.Keys.Where(path => !compilerOnly.Contains(path))
                 .Order(StringComparer.Ordinal).Select(path => "definition-time:" + path + ":" + File.GetLastWriteTimeUtc(files.Resolve(path)).Ticks))
             .Concat(Directory.EnumerateFiles(files.Sdk, "*", SearchOption.AllDirectories).Where(path => path.EndsWith(".props", StringComparison.Ordinal) || path.EndsWith(".targets", StringComparison.Ordinal))

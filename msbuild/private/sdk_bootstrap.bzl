@@ -22,13 +22,13 @@ def bootstrap_project(ctx, dotnet, project, inputs, outputs, mnemonic, private_h
         private_home: Set HOME to the action's scratch directory.
         path_map: Preserve portable debug symbols with mapped source paths.
     """
-    home = 'export HOME="$scratch"' if private_home else ""
+    home = 'export HOME="$native_scratch"' if private_home else ""
     if path_map:
-        setup = 'repository="$(dirname "$(dirname "$(dirname "$project")")")"'
-        debug = '-p:PathMap="$repository=/_/rules_msbuild%2C$scratch=/_/bootstrap"'
+        setup = 'repository="$(native_path "$(dirname "$(dirname "$(dirname "$project")")")")"'
+        debug = '-p:PathMap="$repository=/_/rules_msbuild%2C$native_scratch=/_/bootstrap"'
     else:
         setup = """export DOTNET_GENERATE_ASPNET_CERTIFICATE=false
-export DOTNET_MULTILEVEL_LOOKUP=0 NUGET_PACKAGES="$scratch/packages"
+export DOTNET_MULTILEVEL_LOOKUP=0 NUGET_PACKAGES="$native_scratch/packages"
 cd "$scratch"
 """
         debug = "-p:DebugType=None"
@@ -44,14 +44,34 @@ output="$PWD/$3"
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 mkdir -p "$scratch/empty"
-export DOTNET_ROOT="$(dirname "$dotnet")" DOTNET_CLI_HOME="$scratch"
+printf '%%s\\n' '<configuration><packageSources><clear/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>' > "$scratch/NuGet.Config"
+native_path() {
+    case "$(uname -s)" in
+        MINGW*|MSYS*|CYGWIN*) cygpath -am "$1" ;;
+        *) printf '%%s\\n' "$1" ;;
+    esac
+}
+case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) export MSYS2_ARG_CONV_EXCL='*' ;; esac
+native_scratch="$(native_path "$scratch")"
+case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*)
+        mkdir -p "$scratch/appdata" "$scratch/localappdata" "$scratch/programfiles"
+        export USERPROFILE="$native_scratch" APPDATA="$native_scratch/appdata" LOCALAPPDATA="$native_scratch/localappdata"
+        export PROGRAMFILES="$native_scratch/programfiles"
+        export TEMP="$native_scratch" TMP="$native_scratch" SystemTemp="$native_scratch"
+        export NUGET_PACKAGES="$native_scratch/packages"
+        ;;
+esac
+export DOTNET_ROOT="$(native_path "$(dirname "$dotnet")")" DOTNET_CLI_HOME="$native_scratch"
 export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
 export DOTNET_CLI_USE_MSBUILD_SERVER=false MSBUILDUSESERVER=0
+export DOTNET_ADD_GLOBAL_TOOLS_TO_PATH=false DOTNET_GENERATE_ASPNET_CERTIFICATE=false
+export DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=true
 %s
 %s
-"$dotnet" build "$project" -c Release -o "$output" --nologo \\
-    -p:BaseIntermediateOutputPath="$scratch/obj/" -p:UseSharedCompilation=false \\
-    -p:RestoreSources="$scratch/empty" -p:NuGetAudit=false %s
+"$dotnet" build "$(native_path "$project")" -c Release -o "$(native_path "$output")" --nologo \\
+    -p:BaseIntermediateOutputPath="$native_scratch/obj/" -p:UseSharedCompilation=false \\
+    -p:RestoreSources="$native_scratch/empty" -p:RestoreConfigFile="$native_scratch/NuGet.Config" -p:NuGetAudit=false %s
 """ % (home, setup, debug),
         mnemonic = mnemonic,
     )
@@ -81,14 +101,21 @@ def _runtime(ctx):
     args.add(output.path)
     files = [file for file in ctx.files.files if not ctx.attr.runtime_only or file == ctx.executable.dotnet or file.path[len(ctx.executable.dotnet.dirname) + 1:].split("/")[0] in ["host", "shared"]]
     args.add_all(files)
+    args.set_param_file_format("multiline")
+    args.use_param_file("%s", use_always = True)
     ctx.actions.run_shell(
         inputs = files,
         outputs = [output],
         arguments = [args],
         command = """set -eu
-root="$1/"; output="$2"; shift 2
+exec 3< "$1"
+IFS= read -r root <&3
+IFS= read -r output <&3
+root="${root%$'\\r'}/"
+output="${output%$'\\r'}"
 mkdir -p "$output"
-for file in "$@"; do
+while IFS= read -r file <&3; do
+    file="${file%$'\\r'}"
     relative="${file#"$root"}"
     test "$relative" != "$file"
     mkdir -p "$output/$(dirname "$relative")"
@@ -99,7 +126,7 @@ done
     )
     return [DefaultInfo(files = depset([output])), MSBuildRuntimeInfo(
         directory = output,
-        entry_point = "dotnet",
+        entry_point = ctx.executable.dotnet.basename,
         launch_mode = "dotnet",
         runtime_identifier = ctx.attr.runtime_identifier,
         version = ctx.attr.version,

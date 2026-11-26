@@ -77,11 +77,13 @@ def _integrity(hex_digest, kind = "SDK"):
 def _archives(component, version, platforms, kind):
     archives = {}
     for platform in sorted(platforms):
-        # ASP.NET metadata also lists composite runtimes and targeting packs.
+        # Windows publishes installers and ZIPs. ASP.NET also lists composite
+        # runtimes and targeting packs, so select that complete archive exactly.
+        suffix = ".zip" if platform.startswith("win-") else ".tar.gz"
         if kind == "aspnetcore":
-            candidates = [file for file in component.get("files", []) if file.get("rid") == platform and file.get("name") == "aspnetcore-runtime-%s.tar.gz" % platform]
+            candidates = [file for file in component.get("files", []) if file.get("rid") == platform and file.get("name") == "aspnetcore-runtime-" + platform + suffix]
         else:
-            candidates = [file for file in component.get("files", []) if file.get("rid") == platform and file.get("name", "").startswith("dotnet-%s-" % kind.lower()) and file.get("name", "").endswith(".tar.gz")]
+            candidates = [file for file in component.get("files", []) if file.get("rid") == platform and file.get("name", "").startswith("dotnet-%s-" % kind.lower()) and file.get("name", "").endswith(suffix)]
         if len(candidates) != 1:
             fail("Release metadata must identify one %s archive for %s / %s" % (kind, version, platform))
         file = candidates[0]

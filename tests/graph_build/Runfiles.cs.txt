@@ -1,0 +1,39 @@
+using RulesMSBuild;
+
+static void Check(bool condition) { if (!condition) throw new Exception("Runfiles assertion failed"); }
+static void Reject(Action operation) { try { operation(); } catch (InvalidDataException) { return; } catch (FileNotFoundException) { return; } throw new Exception("Expected rejection"); }
+static string Escape(string value) => value.Replace("\\", "\\b").Replace(" ", "\\s").Replace("\n", "\\n");
+var root = Path.GetFullPath(args[0]);
+Directory.CreateDirectory(root);
+var tree = Path.Combine(root, "physical tree");
+Directory.CreateDirectory(tree);
+File.WriteAllText(Path.Combine(tree, "child.txt"), "tree");
+var alternate = Path.Combine(root, "alternate.txt");
+File.WriteAllText(alternate, "override");
+var manifest = Path.Combine(root, "MANIFEST");
+File.WriteAllText(manifest, $"repo/tree {tree}\nrepo/tree/child.txt {alternate}\nrepo/tree/child.txt {alternate}\n repo/space\\skey {Escape(alternate)}\n");
+var runfiles = new Runfiles(manifest);
+Check(runfiles.Resolve("repo/tree") == tree);
+Check(runfiles.Resolve("repo/tree/child.txt") == alternate);
+Check(runfiles.Resolve("repo/space key") == alternate);
+Check(new Runfiles(root).Resolve("not-created/file.txt") == Path.GetFullPath("not-created/file.txt", root));
+Reject(() => runfiles.Resolve("repo/absent"));
+foreach (var path in new[] { "", "../outside", "repo/../outside", "/absolute", "repo\\child", "repo//child", "repo/./child", "repo/zero\0" })
+{
+    Reject(() => runfiles.Resolve(path));
+    Reject(() => new Runfiles(root).Resolve(path));
+}
+foreach (var value in new[] { $"repo/key {alternate}\nrepo/key {tree}\n", "../outside /tmp/file\n", " repo/key\\x /tmp/file\n", " repo/key /tmp/end\\\n", "repo/key \n", "\n" })
+{
+    File.WriteAllText(manifest, value);
+    Reject(() => new Runfiles(manifest));
+}
+// Escaped physical paths may contain backslashes and newlines; no files need
+// exist at parser time. On Windows a backslash remains a native separator.
+var physical = Path.Combine(root, "back\\slash\nline");
+File.WriteAllText(manifest, $" repo/escaped {Escape(physical)}\n");
+Check(new Runfiles(manifest).Resolve("repo/escaped") == Path.GetFullPath(physical));
+File.WriteAllText(manifest, $"repo/tree {tree}\n");
+Check(new Runfiles(manifest).Resolve("repo/tree/child.txt") == Path.Combine(tree, "child.txt"));
+Reject(() => new Runfiles(Path.Combine(root, "missing-manifest")));
+Console.WriteLine("PASS: directory and manifest lookup, prefix and exact overrides, escapes, duplicates, missing and unsafe controls");

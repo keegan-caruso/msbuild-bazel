@@ -7,20 +7,22 @@ SDK_PLATFORMS = {
     "linux-x64": ["@platforms//os:linux", "@platforms//cpu:x86_64"],
     "osx-arm64": ["@platforms//os:osx", "@platforms//cpu:aarch64"],
     "osx-x64": ["@platforms//os:osx", "@platforms//cpu:x86_64"],
+    "win-x64": ["@platforms//os:windows", "@platforms//cpu:x86_64"],
 }
 
 def _sdk_archive(ctx):
     if not ctx.attr.integrity:
         fail("SDK archives require integrity")
     ctx.download_and_extract(url = ctx.attr.urls, integrity = ctx.attr.integrity, output = "sdk", type = ctx.attr.type, canonical_id = ctx.attr.integrity)
-    for path in ["dotnet", "sdk/" + ctx.attr.version, "shared/Microsoft.NETCore.App/" + ctx.attr.runtime_version]:
+    dotnet = "dotnet.exe" if ctx.attr.platform.startswith("win-") else "dotnet"
+    for path in [dotnet, "sdk/" + ctx.attr.version, "shared/Microsoft.NETCore.App/" + ctx.attr.runtime_version]:
         if not ctx.path("sdk/" + path).exists:
             fail("SDK archive is missing declared layout component: " + path)
     ctx.file("BUILD.bazel", """load(%s, "msbuild_sdk")
 package(default_visibility = ["//visibility:public"])
 filegroup(name = "files", srcs = glob(["sdk/**"], exclude = ["sdk/**/BUILD", "sdk/**/BUILD.bazel"]))
-msbuild_sdk(name = "sdk", dotnet = "sdk/dotnet", files = [":files"], sdk_version = %s, runtime_identifier = %s, runtime_version = %s)
-""" % (json.encode(str(ctx.attr._declarations)), json.encode(ctx.attr.version), json.encode(ctx.attr.platform), json.encode(ctx.attr.runtime_version)))
+msbuild_sdk(name = "sdk", dotnet = %s, files = [":files"], sdk_version = %s, runtime_identifier = %s, runtime_version = %s)
+""" % (json.encode(str(ctx.attr._declarations)), json.encode("sdk/" + dotnet), json.encode(ctx.attr.version), json.encode(ctx.attr.platform), json.encode(ctx.attr.runtime_version)))
     return ctx.repo_metadata(reproducible = True)
 
 sdk_archive = repository_rule(
@@ -55,7 +57,7 @@ def _sdk_toolchains(ctx):
         choices[":" + name] = "@" + repo + "//:sdk_runtime"
         sdk_hosts[":" + name] = "@" + repo + "//:sdk_host"
         sdk_files[":" + name] = "@" + repo + "//:files"
-        executables[":" + name] = "@" + repo + "//:sdk/dotnet"
+        executables[":" + name] = "@" + repo + "//:sdk/" + ("dotnet.exe" if platform.startswith("win-") else "dotnet")
     rows.append("alias(name=\"runtime\", actual=select(%s, no_match_error=\"No SDK runtime for the target platform\"))" % json.encode(choices))
     rows.append("alias(name=\"sdk_host\", actual=select(%s, no_match_error=\"No SDK host for the target platform\"))" % json.encode(sdk_hosts))
     rows.append("alias(name=\"files\", actual=select(%s))" % json.encode(sdk_files))

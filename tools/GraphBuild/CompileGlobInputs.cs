@@ -95,7 +95,7 @@ internal static class CompileGlobInputs
     {
         foreach (var pattern in contract.CompileGlobs ?? [])
         {
-            string Relative(string path) => Path.GetRelativePath(files.Root, Path.GetFullPath(path.Replace('\\', '/'), Path.GetDirectoryName(instance.FullPath)!)).Replace('\\', '/');
+            string Relative(string path) => RelativePathComponents.LogicalRelative(files.Root, Path.GetFullPath(path.Replace('\\', '/'), Path.GetDirectoryName(instance.FullPath)!)).Replace('\\', '/');
             var actual = instance.GetItems("Compile").Select(item => Relative(item.EvaluatedInclude))
                 .Where(path => GraphSourcePattern.Matches(pattern, path)).ToHashSet(StringComparer.Ordinal);
             var expected = contract.Inputs.Where(path => GraphSourcePattern.Matches(pattern, path)).ToHashSet(StringComparer.Ordinal);

@@ -8,7 +8,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 SDK = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']).resolve()
-DOTNET = SDK / 'dotnet'
+DOTNET = SDK / ('dotnet.exe' if os.name == 'nt' else 'dotnet')
 RUNNER = ROOT / 'tools/GraphBuild/bin/Release/net11.0/GraphBuild.dll'
 ENV = dict(os.environ, DOTNET_ROOT=str(SDK), DOTNET_CLI_TELEMETRY_OPTOUT='1')
 
@@ -37,7 +37,7 @@ def fixture(root, count=3):
         'Version': 1, 'Entry': f'P{count - 1}/P{count - 1}.csproj', 'SdkVersion': '11.0.100',
         'Properties': {'Configuration': 'Release'}, 'SharedInputs': ['Directory.Build.props'],
         'Projects': {f'P{i}/P{i}.csproj': {
-            'Inputs': sorted(str(p.relative_to(root)) for p in (root / f'P{i}').rglob('*') if p.is_file()),
+            'Inputs': sorted(p.relative_to(root).as_posix() for p in (root / f'P{i}').rglob('*') if p.is_file()),
             'OutputDirectories': [f'P{i}/bin/Release/net11.0', f'P{i}/obj/Release/net11.0'],
         } for i in range(count)},
     }

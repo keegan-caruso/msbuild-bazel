@@ -37,7 +37,7 @@ internal static class GraphSeed
         contract = contract with
         {
             SharedInputs = contract.SharedInputs.Concat(Directory.Exists(packages)
-                ? Directory.EnumerateFiles(packages, "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(root, path)) : []).ToArray()
+                ? Directory.EnumerateFiles(packages, "*", SearchOption.AllDirectories).Select(path => RelativePathComponents.LogicalRelative(root, path)) : []).ToArray()
         };
         foreach (var (relative, digest) in seed.Inputs)
         {

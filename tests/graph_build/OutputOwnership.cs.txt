@@ -36,7 +36,10 @@ void Check((string kind, int owner, string path)[] outputs, string[] inputs, boo
         {
             var owner = files.FirstOrDefault(entry => entry.path == path).owner;
             for (var parent = Path.GetDirectoryName(path); owner is null && parent is not null && parent != root; parent = Path.GetDirectoryName(parent))
-                owner = directories.FirstOrDefault(entry => entry.path == parent).owner;
+            {
+                var canonical = OperatingSystem.IsWindows() ? parent.Replace('\\', '/') : parent;
+                owner = directories.FirstOrDefault(entry => entry.path == canonical).owner;
+            }
             if (!ReferenceEquals(plan.Owner(path), owner)) throw new Exception("Changed ownership lookup");
         }
     }
@@ -68,5 +71,28 @@ for (var sample = 0; sample < 10000; sample++)
     var outputs = Enumerable.Range(0, random.Next(10)).Select(_ => (random.Next(2) == 0 ? "directory" : "file", random.Next(owners.Length), PathValue())).ToArray();
     var inputs = Enumerable.Range(0, random.Next(10)).Select(_ => PathValue()).ToArray();
     Check(outputs, inputs);
+}
+if (OperatingSystem.IsWindows())
+{
+    const string windowsRoot = @"C:\workspace";
+    var plan = new OutputOwnership<object>(windowsRoot, [(owners[0], @"C:\workspace\Out")], [], []);
+    plan.Validate();
+    if (!ReferenceEquals(plan.Owner("c:/WORKSPACE/out/child.dll"), owners[0]) || plan.Owner(@"C:\workspace\Out-other\child.dll") is not null)
+        throw new Exception("Windows ownership lookup changed across case/separators");
+    void Reject((object owner, string path)[] directories, (object owner, string path)[] files, string[] inputs)
+    {
+        try
+        {
+            new OutputOwnership<object>(windowsRoot, directories, files, inputs).Validate();
+        }
+        catch (InvalidDataException) { return; }
+        throw new Exception("Accepted a Windows ownership alias");
+    }
+    Reject([(owners[0], @"C:\workspace\Out"), (owners[1], "c:/WORKSPACE/out")], [], []);
+    Reject([(owners[0], @"C:\workspace\Out"), (owners[1], "c:/WORKSPACE/out/nested")], [], []);
+    Reject([(owners[0], @"C:\workspace\Out")], [(owners[1], "c:/WORKSPACE/out/child.dll")], []);
+    Reject([], [(owners[0], @"C:\workspace\Output.dll")], ["c:/WORKSPACE/output.DLL"]);
+    Reject([(owners[0], @"C:\workspace\Out")], [], ["c:/WORKSPACE/out/input.cs"]);
+    Console.WriteLine("PASS: native Windows case and separator ownership aliases");
 }
 Console.WriteLine("PASS: 18 named ownership boundaries and 10,000 generated legacy-policy/lookup comparisons");

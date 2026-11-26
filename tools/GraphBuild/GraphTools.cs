@@ -39,7 +39,7 @@ internal static class GraphTools
             var directory = files.Resolve(string.Join('/', path.Split('/').Take(2)));
             foreach (var file in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
             {
-                var relative = Path.GetRelativePath(root, file);
+                var relative = RelativePathComponents.LogicalRelative(root, file);
                 files.Resolve(relative);
                 inputs.Add(relative);
             }

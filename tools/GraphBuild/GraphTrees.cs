@@ -24,7 +24,7 @@ internal static class GraphTrees
             {
                 throw new InvalidDataException("Input tree requires declared members: " + root);
             }
-            var actual = Members(directory).Select(path => root + "/" + Path.GetRelativePath(directory, path).Replace('\\', '/'));
+            var actual = Members(directory).Select(path => root + "/" + RelativePathComponents.LogicalRelative(directory, path).Replace('\\', '/'));
             if (!actual.ToHashSet(StringComparer.Ordinal).SetEquals(expected) ||
                 tree.Directories.Any(path => !Directory.Exists(files.Resolve(path))) || tree.Files.Any(path => !File.Exists(files.Resolve(path))))
             {

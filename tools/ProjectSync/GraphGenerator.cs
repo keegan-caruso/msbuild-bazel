@@ -263,7 +263,7 @@ internal static class GraphGenerator
                     {
                         continue;
                     }
-                    if (Path.GetRelativePath(root, fullPath).StartsWith("../", StringComparison.Ordinal))
+                    if (RelativePathComponents.LogicalRelative(root, fullPath).StartsWith("../", StringComparison.Ordinal))
                     {
                         throw new InvalidDataException("Graph item outside workspace: " + item.ItemType + " " + fullPath + " from " + item.Xml.ContainingProject.FullPath);
                     }
@@ -584,7 +584,7 @@ internal static class GraphGenerator
                 }
             }
         }
-        var contract = contractData.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n";
+        var contract = contractData.ToJsonString(new JsonSerializerOptions { WriteIndented = true, NewLine = "\n" }) + "\n";
         var sources = inputs.Values.SelectMany(files => files).Concat(shared).Concat(restore?.Inputs ?? []).Distinct().Order(StringComparer.Ordinal).ToArray();
         var sourceGlobs = SourceGlobs.Create(outputRoot,
             sources.Where(path => view?.Labels.ContainsKey(path) != true && !path.StartsWith(".graph-tools/", StringComparison.Ordinal)).ToArray(), compilerSources.Keys, dynamicPatterns);

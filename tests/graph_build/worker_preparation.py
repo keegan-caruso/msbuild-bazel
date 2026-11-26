@@ -64,7 +64,7 @@ test "$(cat "$3/workspace/authored/tree/nested/file")" = 'directory input'
         try:
             def request(identity=True, success=True, omit=None):
                 shutil.rmtree(root / "output", ignore_errors=True)
-                inputs = [{'path': str(p.relative_to(root)), 'digest': hashlib.sha256(p.read_bytes()).hexdigest() if identity else ''}
+                inputs = [{'path': p.relative_to(root).as_posix(), 'digest': hashlib.sha256(p.read_bytes()).hexdigest() if identity else ''}
                           for p in [root / 'contract.json', root / 'request.json', manifest, payload,
                               *(root / ('source-' + str(i)) for i in range(12)), tree] if p != omit]
                 worker.stdin.write(json.dumps({'arguments': ['request.json'], 'inputs': inputs, 'requestId': 1}) + '\n')

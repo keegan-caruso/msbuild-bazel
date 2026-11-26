@@ -79,8 +79,8 @@ def main():
         workspace.mkdir()
         # Stage the authored Restore inputs only; no earlier build outputs.
         inputs = set(contract['Restore']['Inputs'])
-        inputs.update(str(path.relative_to(args.workspace)) for path in (args.workspace / '.package-source').glob('*.nupkg'))
-        inputs.update(str(path.relative_to(args.workspace)) for path in (args.workspace / '.graph-tools').rglob('*') if path.is_file())
+        inputs.update(path.relative_to(args.workspace).as_posix() for path in (args.workspace / '.package-source').glob('*.nupkg'))
+        inputs.update(path.relative_to(args.workspace).as_posix() for path in (args.workspace / '.graph-tools').rglob('*') if path.is_file())
         for relative in inputs:
             target = workspace / relative
             target.parent.mkdir(parents=True, exist_ok=True)

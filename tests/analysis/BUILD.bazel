@@ -4,6 +4,7 @@ load("//msbuild:toolchain.bzl", "msbuild_toolchain")
 # buildifier: disable=bzl-visibility
 load("//msbuild/private:sdk_bootstrap.bzl", "sdk_runtime", "sdk_runtime_toolchain")
 load(":graph.bzl", "graph_tests")
+load(":native_launcher.bzl", "native_launcher_tests")
 
 # Deliberately unusable at execution: analysis tests must not compile .NET.
 msbuild_toolchain(
@@ -63,3 +64,5 @@ filegroup(
     srcs = ["Runner.dll"],
     tags = ["manual"],
 )
+
+native_launcher_tests(name = "native_launcher")
