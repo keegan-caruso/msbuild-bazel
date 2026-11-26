@@ -16,7 +16,8 @@ import subprocess
 import sys
 import threading
 import time
-from urllib.parse import unquote, urlsplit
+from urllib.parse import urlsplit
+from urllib.request import url2pathname
 import uuid
 import zipfile
 
@@ -79,7 +80,7 @@ def runtime_proof(records, destination):
     def local_file(entry):
         uri = urlsplit(entry['uri'])
         assert uri.scheme == 'file' and uri.netloc in ('', 'localhost') and not uri.query and not uri.fragment
-        path = Path(unquote(uri.path))
+        path = Path(url2pathname(uri.path))
         assert path.is_absolute() and '..' not in path.parts and not path.is_symlink() and path.is_file()
         return path
 
