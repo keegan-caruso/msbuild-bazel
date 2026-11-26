@@ -188,6 +188,12 @@ class GraphSyncTests(unittest.TestCase):
                     capture_output=True, text=True)
 
             self.assertEqual(publish('--check').returncode, 0)
+            for name, content in expected.items():
+                (self.root / name).write_bytes(content.replace(b'\n', b'\r\n'))
+            self.assertNotEqual(publish('--check').returncode, 0)
+            self.assertEqual(publish().returncode, 0)
+            for name, content in expected.items():
+                self.assertEqual((self.root / name).read_bytes(), content)
             (self.root / 'graph.generated.bzl').write_text('# authored file\n')
             result = publish()
             self.assertNotEqual(result.returncode, 0)
