@@ -16,6 +16,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
 SDK = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])
+DOTNET = SDK / ("dotnet.exe" if os.name == "nt" else "dotnet")
 RUNNER = ROOT / 'tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll'
 
 
@@ -30,7 +31,7 @@ class NuGetUpdateCacheTests(unittest.TestCase):
 </PropertyGroup>{}</Project>"""
             (root / 'Library.fsproj').write_text(project.format(''))
             (root / 'App.fsproj').write_text(project.format('<ItemGroup><ProjectReference Include="Library.fsproj" /></ItemGroup>'))
-            result = subprocess.run([str(SDK / 'dotnet'), str(RUNNER), 'nuget-update', str(root), str(SDK),
+            result = subprocess.run([str(DOTNET), str(RUNNER), 'nuget-update', str(root), str(SDK),
                                      'App.fsproj', '--distdir', str(root / 'distdir')], text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertTrue((root / 'packages.App.lock.json').is_file())
@@ -43,7 +44,7 @@ class NuGetUpdateCacheTests(unittest.TestCase):
             (root / 'NuGet.Config').write_text('<configuration><packageSources><clear/></packageSources></configuration>')
             (root / 'App.csproj').write_text("""<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>""" + RUNNER.parent.name + """</TargetFramework></PropertyGroup>
 <Target Name="CheckServerIsolation" BeforeTargets="Restore"><Error Condition="'$(MSBUILDUSESERVER)' != '0'" Text="Restore must not use an ambient MSBuild server" /></Target></Project>""")
-            result = subprocess.run([str(SDK / 'dotnet'), str(RUNNER), 'nuget-update', str(root), str(SDK),
+            result = subprocess.run([str(DOTNET), str(RUNNER), 'nuget-update', str(root), str(SDK),
                                      'App.csproj', '--distdir', str(root / 'distdir')], text=True, capture_output=True,
                                     env=dict(os.environ, DOTNET_CLI_USE_MSBUILD_SERVER='true', MSBUILDUSESERVER='1'))
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -98,7 +99,7 @@ class NuGetUpdateCacheTests(unittest.TestCase):
             (source/'NuGet.Config').write_text('<configuration><packageSources><clear/><add key="fixture" value="'+address+'/index.json" allowInsecureConnections="true"/></packageSources></configuration>')
             (source/'App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup><ItemGroup><PackageReference Include="Fixture.Cache" Version="1.0.0"/></ItemGroup></Project>')
             (source/'Code.cs').write_text('public class C {}')
-            command=[str(SDK/'dotnet'),str(RUNNER),'nuget-update',str(source),str(SDK),'App.csproj','--distdir',str(base/'distdir')]
+            command=[str(DOTNET),str(RUNNER),'nuget-update',str(source),str(SDK),'App.csproj','--distdir',str(base/'distdir')]
             home=base/'home'
             home.mkdir()
             environment=dict(os.environ, HOME=str(home), XDG_DATA_HOME=str(base/'data'))
