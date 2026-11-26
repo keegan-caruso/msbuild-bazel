@@ -77,6 +77,21 @@ cp "$BOOTSTRAP_FIXTURE/$source" "$output"''')
         self.assertEqual(self.log.read_text().count('download'), 2)
         self.assertNotIn('forbidden', self.log.read_text())
 
+    def test_binary_checksum_marker_is_accepted(self):
+        command = self.root / 'commands' / 'shasum'
+        if command.exists():
+            command.unlink()
+        checksum = shutil.which('sha256sum')
+        checksum_command = f'"{checksum}"' if checksum else f'"{shutil.which("shasum")}" -a 256'
+        self.script(command, '\n'.join([
+            'shift 2',
+            f'digest=$({checksum_command} "$1")',
+            'printf "%s *%s\\n" "${digest%% *}" "$1"',
+        ]))
+        result = self.run_setup()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.log.read_text().count('download'), 2)
+
     def test_corrupt_download_is_rejected_before_install(self):
         extractor = self.root / 'must-not-extract'
         self.script(extractor, 'echo extractor >> "$BOOTSTRAP_LOG"; exit 99')
