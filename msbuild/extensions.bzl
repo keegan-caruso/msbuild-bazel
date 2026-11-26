@@ -2,15 +2,7 @@
 
 load("//msbuild/private:global_json.bzl", "global_json_sdk")
 load("//msbuild/private:sdk_metadata.bzl", "resolve_runtime", "resolve_sdk", "runtime_selection", "sdk_download", "sdk_platforms", "sdk_policy_version", "sdk_selection", "sdk_version", "select_sdk_version")
-load("//msbuild/private:sdk_repositories.bzl", "sdk_archive", "sdk_toolchains")
-
-_PLATFORMS = {
-    "linux-arm64": ["@platforms//os:linux", "@platforms//cpu:aarch64"],
-    "linux-x64": ["@platforms//os:linux", "@platforms//cpu:x86_64"],
-    "osx-arm64": ["@platforms//os:osx", "@platforms//cpu:aarch64"],
-    "osx-x64": ["@platforms//os:osx", "@platforms//cpu:x86_64"],
-    "win-x64": ["@platforms//os:windows", "@platforms//cpu:x86_64"],
-}
+load("//msbuild/private:sdk_repositories.bzl", "SDK_PLATFORMS", "sdk_archive", "sdk_toolchains")
 
 def _archive(ctx):
     if not ctx.attr.integrity:
@@ -42,7 +34,7 @@ msbuild_runtime(
     version = %s,
     target_compatible_with = %s,
 )
-""" % (json.encode(str(ctx.attr._defs)), json.encode(dotnet), json.encode(ctx.attr.platform), json.encode(ctx.attr.version), json.encode(_PLATFORMS[ctx.attr.platform])))
+""" % (json.encode(str(ctx.attr._defs)), json.encode(dotnet), json.encode(ctx.attr.platform), json.encode(ctx.attr.version), json.encode(SDK_PLATFORMS[ctx.attr.platform])))
 
 _runtime_archive = repository_rule(
     implementation = _archive,
@@ -60,7 +52,7 @@ def _aliases(ctx):
     declarations = ['package(default_visibility = ["//visibility:public"])']
     choices = {}
     for platform, repository in ctx.attr.repositories.items():
-        declarations.append("config_setting(name = %s, constraint_values = %s)" % (json.encode(platform), json.encode(_PLATFORMS[platform])))
+        declarations.append("config_setting(name = %s, constraint_values = %s)" % (json.encode(platform), json.encode(SDK_PLATFORMS[platform])))
         choices[":" + platform] = "@" + repository + "//:runtime"
     declarations.append("alias(name = \"runtime\", actual = select(%s, no_match_error = \"No downloaded runtime for the selected target platform\"))" % json.encode(choices))
     ctx.file("BUILD.bazel", "\n".join(declarations) + "\n")
@@ -165,7 +157,7 @@ def _runtimes(ctx):
             if not runtime.platforms or len(runtime.platforms) != len({p: True for p in runtime.platforms}):
                 fail("Runtime platforms must be nonempty and unique")
             for platform in runtime.platforms:
-                if platform not in _PLATFORMS:
+                if platform not in SDK_PLATFORMS:
                     fail("Unsupported runtime platform: " + platform)
             kind = "aspnetcore" if runtime.kind == "aspnetcore" else "runtime"
             locked = _selection(ctx, runtime, runtime.version, runtime_facts, kind)
@@ -179,7 +171,7 @@ def _runtimes(ctx):
             if archive.name in names:
                 fail("Duplicate runtime repository name: " + archive.name)
             names[archive.name] = True
-            if archive.platform not in _PLATFORMS:
+            if archive.platform not in SDK_PLATFORMS:
                 fail("Unsupported runtime platform: " + archive.platform)
             _runtime_archive(name = archive.name, version = archive.version, platform = archive.platform, urls = archive.urls, integrity = archive.integrity)
 

@@ -7,6 +7,7 @@ SDK_PLATFORMS = {
     "linux-x64": ["@platforms//os:linux", "@platforms//cpu:x86_64"],
     "osx-arm64": ["@platforms//os:osx", "@platforms//cpu:aarch64"],
     "osx-x64": ["@platforms//os:osx", "@platforms//cpu:x86_64"],
+    "win-arm64": ["@platforms//os:windows", "@platforms//cpu:aarch64"],
     "win-x64": ["@platforms//os:windows", "@platforms//cpu:x86_64"],
 }
 
