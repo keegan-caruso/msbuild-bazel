@@ -2,14 +2,7 @@
 
 load("//msbuild:toolchain.bzl", "msbuild_toolchain")
 load("//msbuild/private:sdk_bootstrap.bzl", "sdk_runner", "sdk_runtime", "sdk_runtime_toolchain")
-
-_PLATFORMS = {
-    "linux-arm64": ["@platforms//os:linux", "@platforms//cpu:aarch64"],
-    "linux-x64": ["@platforms//os:linux", "@platforms//cpu:x86_64"],
-    "osx-arm64": ["@platforms//os:osx", "@platforms//cpu:aarch64"],
-    "osx-x64": ["@platforms//os:osx", "@platforms//cpu:x86_64"],
-    "win-x64": ["@platforms//os:windows", "@platforms//cpu:x86_64"],
-}
+load("//msbuild/private:sdk_repositories.bzl", "SDK_PLATFORMS")
 
 def msbuild_sdk(name, dotnet, files, sdk_version, runtime_version, runtime_identifier, visibility = None):
     """Describe a complete SDK rooted beside its declared dotnet executable.
@@ -24,7 +17,7 @@ def msbuild_sdk(name, dotnet, files, sdk_version, runtime_version, runtime_ident
         runtime_identifier: SDK execution platform (and bundled runtime platform).
         visibility: Visibility of the generated targets.
     """
-    if runtime_identifier not in _PLATFORMS:
+    if runtime_identifier not in SDK_PLATFORMS:
         fail("Unsupported SDK platform: " + runtime_identifier)
     if not sdk_version or not runtime_version:
         fail("SDK and runtime versions must be explicit")
@@ -51,5 +44,5 @@ def msbuild_sdk(name, dotnet, files, sdk_version, runtime_version, runtime_ident
     sdk_runtime(name = name + "_runtime", dotnet = dotnet, files = ":" + name + "_files", runtime_identifier = runtime_identifier, version = runtime_version, runtime_only = True, **common)
     sdk_runtime(name = name + "_host", dotnet = dotnet, files = ":" + name + "_files", runtime_identifier = runtime_identifier, version = runtime_version, **common)
     sdk_runtime_toolchain(name = name + "_runtime_toolchain", runtime = ":" + name + "_runtime", **common)
-    native.toolchain(name = name + "_registered", toolchain = ":" + name + "_toolchain", toolchain_type = Label("//msbuild:toolchain_type"), exec_compatible_with = [Label(value) for value in _PLATFORMS[runtime_identifier]], **common)
-    native.toolchain(name = name + "_runtime_registered", toolchain = ":" + name + "_runtime_toolchain", toolchain_type = Label("//msbuild:runtime_toolchain_type"), target_compatible_with = [Label(value) for value in _PLATFORMS[runtime_identifier]], **common)
+    native.toolchain(name = name + "_registered", toolchain = ":" + name + "_toolchain", toolchain_type = Label("//msbuild:toolchain_type"), exec_compatible_with = [Label(value) for value in SDK_PLATFORMS[runtime_identifier]], **common)
+    native.toolchain(name = name + "_runtime_registered", toolchain = ":" + name + "_runtime_toolchain", toolchain_type = Label("//msbuild:runtime_toolchain_type"), target_compatible_with = [Label(value) for value in SDK_PLATFORMS[runtime_identifier]], **common)

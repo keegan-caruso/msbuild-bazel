@@ -6,11 +6,11 @@ archive_tar="${RULES_MSBUILD_TAR:-tar}"
 exe_suffix=
 case "$(uname -s):$(uname -m)" in
     Linux:x86_64|Linux:aarch64|Linux:arm64|Darwin:arm64) ;;
-    MINGW*:x86_64|MSYS_NT*:x86_64)
+    MINGW*:x86_64|MSYS_NT*:x86_64|MINGW*:aarch64|MINGW*:arm64|MSYS_NT*:aarch64|MSYS_NT*:arm64)
         archive_tar="${RULES_MSBUILD_TAR:-$(cygpath -u "$WINDIR")/System32/tar.exe}"
         exe_suffix=.exe
         ;;
-    *) echo 'The bootstrap supports Linux x86-64/ARM64, macOS ARM64 and Windows x64 with Git Bash.' >&2; exit 1 ;;
+    *) echo 'The bootstrap supports Linux x86-64/ARM64, macOS ARM64 and Windows x64/ARM64 with Git Bash.' >&2; exit 1 ;;
 esac
 for prerequisite in curl "$archive_tar"; do
     command -v "$prerequisite" >/dev/null || { echo "Missing prerequisite: $prerequisite" >&2; exit 1; }
