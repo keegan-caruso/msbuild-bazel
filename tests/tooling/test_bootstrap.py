@@ -16,6 +16,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 
 
+@unittest.skipIf(os.name == 'nt', 'POSIX fake-tool fixture; real Windows setup has a separate native gate')
 class Bootstrap(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()

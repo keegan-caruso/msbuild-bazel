@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import os
 import unittest
 import urllib.error
 import urllib.request
@@ -31,6 +32,7 @@ class RuntimeHttpRecovery(unittest.TestCase):
         self.addCleanup(self.server.shutdown)
         self.url = 'http://127.0.0.1:' + str(self.server.server_port)
 
+    @unittest.skipUnless(hasattr(os, 'killpg'), 'Linux recovery guard requires POSIX process groups')
     def test_cache_misses_stop_process_group_before_fallback(self):
         for method in ['GET', 'HEAD']:
             with self.subTest(method=method):
@@ -97,7 +99,12 @@ class RuntimeHttpRecovery(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Unexpected local'):
             recovery.validate_recovery(remote + [unpack, dict(mnemonic='UnexpectedProducer')],
                                        [unpack], producer, consumer)
-        (consumer / 'bazel-bin/native/tools.root/usr/bin/tool').chmod(0o644)
+        if os.name == 'nt':
+            # Windows chmod cannot remove Unix execute bits. Corrupt the bytes
+            # instead so this portable control still proves fail-closed parity.
+            (consumer / 'bazel-bin/native/tools.root/usr/bin/tool').write_bytes(b'changed')
+        else:
+            (consumer / 'bazel-bin/native/tools.root/usr/bin/tool').chmod(0o644)
         with self.assertRaisesRegex(ValueError, 'bytes, modes or links'):
             recovery.validate_recovery(remote + [unpack], [unpack], producer, consumer)
 

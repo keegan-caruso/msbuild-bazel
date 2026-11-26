@@ -27,7 +27,7 @@ class NativeAssemblyTests(unittest.TestCase):
             output = Path(temporary)
             command = assembly.probe(output, 'x64', sdk=True, system_bwrap=True)
             select.assert_called_once_with(output / 'bwrap', system_bwrap=True)
-            self.assertEqual(command[0], '/usr/bin/bwrap')
+            self.assertEqual(command[0], str(Path('/usr/bin/bwrap')))
             self.assertIn('--unshare-all', command)
 
 

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+import os
 import unittest
 from unittest.mock import patch
 
@@ -51,6 +52,7 @@ class JitHandoff(unittest.TestCase):
                 return_value={'Extra.props', 'task.sh'}):
             handoff.main()
 
+    @unittest.skipIf(os.name == 'nt', 'Linux handoff verifies Unix permission bits')
     def test_preparation_retains_membership_modes_locks_and_omits_outputs(self):
         self.run_handoff(True)
         for name in ['workspace', 'bootstrap']:

@@ -8,6 +8,9 @@ import tarfile
 import subprocess
 import tempfile
 import unittest
+
+if os.name == 'nt':
+    raise unittest.SkipTest('Linux runtime demo and fcntl locks require POSIX')
 import urllib.error
 from unittest.mock import patch
 

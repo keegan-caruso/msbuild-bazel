@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+import os
 import unittest
 from unittest.mock import patch
 
@@ -42,6 +43,7 @@ class ProductRecovery(unittest.TestCase):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(b'producer output must stay behind')
 
+    @unittest.skipIf(os.name == 'nt', 'Linux producer closure verifies Unix permission bits')
     def test_closure_omits_outputs_and_retains_source_modes(self):
         target = self.base/'consumer'
         recovery.close(self.root, target)
@@ -53,6 +55,7 @@ class ProductRecovery(unittest.TestCase):
         self.assertNotIn('/producer/', (target/'MODULE.bazel').read_text())
         self.assertIn('https://example.invalid/source.tar.gz', (target/'MODULE.bazel').read_text())
 
+    @unittest.skipIf(os.name == 'nt', 'Linux producer closure verifies Unix permission bits')
     def test_sync_closure_uses_authored_query_membership(self):
         target = self.base/'sync-consumer'
         with patch.object(recovery, 'preparation_sources', return_value={'Code.cs', 'native/coreclr.sh'}):

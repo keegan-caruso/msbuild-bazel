@@ -24,6 +24,7 @@ class AppleContainerTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, '/opt/rules_msbuild-toolchain/.tools/bin/bazelisk')
 
+    @unittest.skipIf(os.name == 'nt', 'macOS container forwarding uses POSIX shell paths')
     def test_forwarding_and_guest_cache(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
