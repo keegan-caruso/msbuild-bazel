@@ -11,6 +11,7 @@ import subprocess
 import tempfile
 
 from qualify import DOTNET, ROOT, RUNNER, run
+from fixture_host import bazel_environment, bazel_startup, sdk_declaration
 
 
 def main():
@@ -36,7 +37,7 @@ def main():
         put('MODULE.bazel', 'module(name="graph_tools")\nbazel_dep(name="rules_msbuild",version="0.0.0")\n'
             f'local_path_override(module_name="rules_msbuild",path={json.dumps(str(ROOT))})\n'
             'dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\n'
-            'dotnet.sdk(name="dotnet",global_json="//:global.json")\nuse_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
+            + sdk_declaration(global_json='//:global.json') + 'use_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
         project = '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework>{}</PropertyGroup>{}</Project>'
         put('Helper/Helper.csproj', project.format('', '<ItemGroup><PackageReference Include="Number" Version="1.0.0" /></ItemGroup>'))
         put('Helper/Code.cs', 'public static class Helper { public static int Value() => Number.Value; }')
@@ -74,12 +75,12 @@ public class Generate : ITask {
         if args.graph_worker:
             authored = authored.replace('name="tasks",runner=":tool_runner"', 'name="tasks",linux_stable_paths=True,linux_worker=True,runner=":tool_runner"')
         put('BUILD.bazel', authored)
-        prefix = [str(ROOT / 'scripts/bazel-launcher.sh'), f'--output_base={base / "bazel"}']
+        prefix = bazel_startup(f'--output_base={base / "bazel"}')
         worker_mode = args.graph_worker
         def bazel(*args, success=True):
             if worker_mode and args[0] in ("run", "build"):
                 args = args[:1] + ("--strategy=MSBuildGraph=worker", "--worker_sandboxing", "--worker_max_instances=MSBuildGraph=1") + args[1:]
-            result = subprocess.run(prefix + list(args), cwd=root, env=os.environ, text=True, capture_output=True)
+            result = subprocess.run(prefix + list(args), cwd=root, env=bazel_environment(), text=True, capture_output=True)
             assert (result.returncode == 0) == success, result.stdout + result.stderr
             return result.stdout + result.stderr
         try:

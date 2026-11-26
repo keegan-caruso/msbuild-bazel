@@ -6,6 +6,8 @@ from pathlib import Path
 import subprocess
 import sys
 
+from fixture_host import bazel_environment, bazel_startup
+
 ROOT = Path(__file__).resolve().parents[2]
 SLICES = ["qualify", "runfiles", "design_time", "replay", "reviewed_dependencies", "source_groups", "output_ownership", "payload_concurrency", "shared_payloads", "worker_supervision", "publication_queue", "remote_streaming", "remote", "remote_publication", "signing", "package_sdks", "private_assets", "tools", "native_tools", "protocols", "direct_executable_smoke", "executable_launcher"]
 
@@ -20,7 +22,7 @@ def main():
     args.directory.mkdir(parents=True, exist_ok=False)
     # These controls compare cold/warm local caches. Ambient HTTP project
     # recovery can turn their fresh-cache correctness controls into hits.
-    local_env = dict(os.environ)
+    local_env = bazel_environment()
     for key in ("RULES_MSBUILD_PROJECT_CACHE_URL", "RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN", "RULES_MSBUILD_PROJECT_CACHE_READ_ONLY"):
         local_env.pop(key, None)
     slices = [(name, []) for name in SLICES]
@@ -35,7 +37,7 @@ def main():
         print(f"PASS {name}", flush=True)
     for name, target in [("quickstart", "//tests/integration:quickstart")] + ([("workers", "//tests/integration:workers"), ("evaluation_worker", "//tests/integration:evaluation_worker"), ("worker_defaults", "//tests/integration:worker_defaults")] if args.linux_workers else []):
         with (args.directory / (name + ".log")).open("w") as log:
-            result = subprocess.run(["bash", str(ROOT / "scripts/bazel.sh"), "test", target, "--test_output=errors"], cwd=ROOT, env=os.environ, stdout=log, stderr=subprocess.STDOUT)
+            result = subprocess.run(bazel_startup("test", target, "--test_output=errors"), cwd=ROOT, env=local_env, stdout=log, stderr=subprocess.STDOUT)
         if result.returncode:
             raise SystemExit(f"{name} failed; see {args.directory}")
         print(f"PASS native Bazel integration {name}", flush=True)

@@ -9,7 +9,7 @@ from pathlib import Path
 import tempfile
 
 from qualify import DOTNET, ROOT, RUNNER, SDK, fixture, run
-from fixture_host import assert_no_host_paths
+from fixture_host import assert_no_host_paths, bazel_environment, bazel_startup, sdk_declaration
 
 
 def bazel_control(base, root):
@@ -21,14 +21,14 @@ def bazel_control(base, root):
         'bazel_dep(name="rules_msbuild",version="0.0.0")\n'
         f'local_path_override(module_name="rules_msbuild",path={json.dumps(str(ROOT))})\n'
         'dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\n'
-        'dotnet.sdk(name="dotnet",global_json="//:global.json")\n'
-        'use_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
+        + sdk_declaration(global_json='//:global.json')
+        + 'use_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
     build_file = root / 'BUILD.bazel'
     declarations = ('load("@rules_msbuild//msbuild:sync.bzl","msbuild_sync")\n'
                     'msbuild_sync(name="sync",projects=["P2/P2.csproj"])\n')
     build_file.write_text(declarations)
-    startup = [str(ROOT / 'scripts/bazel-launcher.sh'), f'--output_base={base / "bazel"}']
-    env = dict(os.environ, RULES_MSBUILD_BAZELISK=os.environ.get(
+    startup = bazel_startup(f'--output_base={base / "bazel"}')
+    env = bazel_environment(RULES_MSBUILD_BAZELISK=os.environ.get(
         'RULES_MSBUILD_BAZELISK', str(SDK.parent / 'bin/bazelisk')))
 
     def bazel(*arguments):

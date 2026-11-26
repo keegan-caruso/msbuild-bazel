@@ -7,7 +7,7 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 
-from protocol import RULES, SDK, BAZEL, command, packages
+from protocol import RULES, SDK, DOTNET, BAZEL, command, packages
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
 from fixture_sdk import sdk_declarations
@@ -22,7 +22,7 @@ def setup(folder):
     def project(names):
         return '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework><IsTestProject>true</IsTestProject><GenerateProgramFile>false</GenerateProgramFile></PropertyGroup><ItemGroup>'+''.join('<PackageReference Include="'+n+'" Version="'+versions[n]+'"/>' for n in names)+'</ItemGroup></Project>'
     (lock/'Lock.csproj').write_text(project(versions))
-    p=command([SDK/'dotnet','restore',lock/'Lock.csproj','--packages',lock/'packages','-p:NuGetAudit=false'],folder,folder/'vstest-restore.log');assert p.returncode==0,p.stdout+p.stderr
+    p=command([DOTNET,'restore',lock/'Lock.csproj','--packages',lock/'packages','-p:NuGetAudit=false'],folder,folder/'vstest-restore.log');assert p.returncode==0,p.stdout+p.stderr
     # packages() writes a self-contained package BUILD; place it in a separate subtree.
     tree=workspace/'Vstest';tree.mkdir(exist_ok=True);packages(lock,tree)
     common=['Microsoft.NET.Test.Sdk']

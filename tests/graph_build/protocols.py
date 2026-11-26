@@ -10,6 +10,8 @@ import tempfile
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[2]
+from fixture_host import bazel_environment, bazel_startup, sdk_declaration
+
 sys.path.insert(0, str(ROOT / 'tests/fixtures'))
 from protocol import setup as mtp_setup
 from vstest import setup as vstest_setup
@@ -26,6 +28,9 @@ def main():
             workspace = setup(folder)
             shutil.copy(ROOT / 'global.json', workspace / 'global.json')
             module = (ROOT / 'examples/quickstart/MODULE.bazel').read_text().replace('"../msbuild-bazel"', json.dumps(str(ROOT)))
+            declaration = 'dotnet.sdk(\n    name = "dotnet",\n    global_json = "//:global.json",\n)'
+            assert module.count(declaration) == 1, 'Update the fixture SDK declaration for the current quickstart'
+            module = module.replace(declaration, sdk_declaration(global_json='//:global.json').strip())
             (workspace / 'MODULE.bazel').write_text(module)
             if protocol == 'mtp':
                 projects = ['Mtp/Mtp.csproj']
@@ -65,12 +70,12 @@ def main():
                         'msbuild_package_lock(name="packages",packages=' + json.dumps(roots) + ')\n'
                         'msbuild_sync(name="sync",package_build=True,mappings="mapping.json",package_lock=":packages",projects=' + json.dumps(projects) + ')\n')
             (workspace / 'BUILD.bazel').write_text(authored)
-            command = [str(ROOT / 'scripts/bazel-launcher.sh'), f'--output_base={folder / "base"}']
+            command = bazel_startup(f'--output_base={folder / "base"}')
 
             def bazel(*args, success=True):
                 if options.graph_worker and args[0] in ('run', 'build', 'test'):
                     args = args[:1] + ('--strategy=MSBuildGraph=worker', '--worker_sandboxing') + args[1:]
-                result = subprocess.run(command + list(args), cwd=workspace, env=os.environ, text=True, capture_output=True)
+                result = subprocess.run(command + list(args), cwd=workspace, env=bazel_environment(), text=True, capture_output=True)
                 assert (result.returncode == 0) == success, result.stdout + result.stderr
                 return result.stdout + result.stderr
 

@@ -14,6 +14,7 @@ from fixture_sdk import sdk_declarations
 
 RULES = Path(__file__).resolve().parents[2]
 SDK = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])
+DOTNET = SDK / ('dotnet.exe' if os.name == 'nt' else 'dotnet')
 BAZEL = Path(os.environ['RULES_MSBUILD_BAZEL'])
 
 
@@ -51,7 +52,7 @@ local_path_override(module_name="rules_msbuild", path={json.dumps(str(RULES))})
     project = '''<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType><UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner></PropertyGroup><ItemGroup><PackageReference Include="xunit.v3.mtp-v2" Version="4.0.0"/><PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.3.3"/></ItemGroup></Project>'''
     (test/'Mtp.csproj').write_text(project)
     lock = folder/'lock'; lock.mkdir(exist_ok=True); (lock/'Lock.csproj').write_text(project)
-    p = command([SDK/'dotnet', 'restore', lock/'Lock.csproj', '--packages', lock/'packages', '-p:NuGetAudit=false'], folder, folder/'restore.log')
+    p = command([DOTNET, 'restore', lock/'Lock.csproj', '--packages', lock/'packages', '-p:NuGetAudit=false'], folder, folder/'restore.log')
     assert p.returncode == 0, p.stdout+p.stderr
     packages(lock, workspace)
     (test/'Tests.cs').write_text('''using System; using System.IO; using Xunit;

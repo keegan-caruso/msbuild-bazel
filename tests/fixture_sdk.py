@@ -5,8 +5,8 @@ import platform
 
 def sdk_declarations(name="dotnet", version="10.0.400", extra_toolchains=()):
     """Acquire the fixture platform's verified SDK and register its toolchains."""
-    system = {"Darwin": "osx", "Linux": "linux"}.get(platform.system())
-    cpu = {"arm64": "arm64", "aarch64": "arm64", "x86_64": "x64", "AMD64": "x64"}.get(platform.machine())
+    system = {"Darwin": "osx", "Linux": "linux", "Windows": "win"}.get(platform.system())
+    cpu = {"arm64": "arm64", "aarch64": "arm64", "x86_64": "x64", "amd64": "x64"}.get(platform.machine().lower())
     if not system or not cpu:
         raise ValueError("Unsupported fixture SDK platform")
     return '\n'.join([
