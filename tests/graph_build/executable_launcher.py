@@ -25,14 +25,30 @@ def bash_executable():
     return executable
 
 
+def bash_command(*arguments):
+    values = [bash_executable(), *map(str, arguments)]
+    if not WINDOWS:
+        return values
+    # MSYS parses bare apostrophes when launched by a native process. Force
+    # Windows double quotes for every argv element, preserving empty arguments.
+    quoted = []
+    for value in values:
+        argument = subprocess.list2cmdline([value])
+        if not (argument.startswith('"') and argument.endswith('"')):
+            trailing = len(argument) - len(argument.rstrip('\\'))
+            argument = '"' + argument + '\\' * trailing + '"'
+        quoted.append(argument)
+    return ' '.join(quoted)
+
+
 def bash_path(path):
     if not WINDOWS:
         return str(path)
-    return subprocess.check_output([bash_executable(), '-c', 'cygpath -au "$1"', '--', str(path)], text=True).strip()
+    return subprocess.check_output(bash_command('-c', 'cygpath -au "$1"', '--', path), text=True).strip()
 
 
 def shell_command(script, *arguments):
-    return ([bash_executable()] if WINDOWS else []) + [str(script), *arguments]
+    return bash_command(script, *arguments) if WINDOWS else [str(script), *arguments]
 
 
 class Files(list):
@@ -186,7 +202,7 @@ sys.exit(7 if "seven" in sys.argv else 0)
             ctx = NS(attr=NS(**attrs), label=NS(name='launcher'), actions=actions, runfiles=lambda **kw: kw)
             scope['create_executable_launcher'](ctx, 'App.dll', 'app', Files(data), test)
             script.chmod(0o755)
-            subprocess.run([bash_executable(), '-n', str(script)], check=True)
+            subprocess.run(bash_command('-n', script), check=True)
 
         environment = dict(os.environ, RUNFILES_DIR=str(runfiles), CORE_ROOT='ambient')
         for key in ('TESTBRIDGE_TEST_ONLY', 'TEST_TOTAL_SHARDS', 'TEST_SHARD_INDEX', 'RUNFILES_MANIFEST_FILE', 'RUNFILES_MANIFEST_ONLY', 'TEST_SRCDIR'):
@@ -229,7 +245,7 @@ sys.exit(7 if "seven" in sys.argv else 0)
         if WINDOWS:
             wrapper = root / 'signal-wrapper'
             wrapper.write_text('printf "%s" "$$" > "$CONTROL_PID_FILE"\nexec "$@"\n')
-            command = [bash_executable(), str(wrapper), *command]
+            command = bash_command(wrapper, bash_executable(), script, 'hang')
         process = subprocess.Popen(command, env=dict(environment, PID_FILE=str(pid_file), CONTROL_PID_FILE=str(signal_pid), HOST_PID_FILE=str(host_pid)), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         import time
         deadline = time.monotonic() + 5
@@ -248,7 +264,7 @@ sys.exit(7 if "seven" in sys.argv else 0)
             children = [kernel.OpenProcess(0x100001, False, int(file.read_text())) for file in (host_pid, pid_file)]
             try:
                 assert all(children), 'Cannot observe native host and child processes'
-                subprocess.run([bash_executable(), '-c', 'kill -TERM "$1"', '--', signal_pid.read_text()], check=True)
+                subprocess.run(bash_command('-c', 'kill -TERM "$1"', '--', signal_pid.read_text()), check=True)
                 stdout, stderr = process.communicate(timeout=5)
                 assert process.returncode == 143, (process.returncode, stdout, stderr)
                 assert all(kernel.WaitForSingleObject(child, 5000) == 0 for child in children), 'Native host or child survived launcher cancellation'
