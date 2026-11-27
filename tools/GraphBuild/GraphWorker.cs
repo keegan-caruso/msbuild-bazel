@@ -26,10 +26,11 @@ internal static class GraphWorker
         var cacheBudget = (long)megabytes * 1024 * 1024;
         var execroot = Environment.CurrentDirectory;
         using var directory = new WorkerDirectory();
-        using var engine = new WorkerEngine(directory.Root);
-        var cache = Path.Combine(directory.Root, "cache");
+        var workerRoot = directory.Root;
+        using var engine = new WorkerEngine(workerRoot);
+        var cache = Path.Combine(workerRoot, "cache");
         Directory.CreateDirectory(cache);
-        var preparationCache = Path.Combine(directory.Root, "preparations");
+        var preparationCache = Path.Combine(workerRoot, "preparations");
         Directory.CreateDirectory(preparationCache);
         var persistent = args[2] == "--persistent_worker";
         if (!persistent)
@@ -107,15 +108,17 @@ internal static class GraphWorker
             {
                 throw new InvalidDataException("Evaluation cache budget must be between zero and 4096 MiB");
             }
-            var reuse = request.EvaluationCacheMb > 0 && persistent && prepared != "-" && declaration.EvaluationReuseInputs is not null && ReadOnlyPackageTree.SameVolume(directory.Root, output);
+            var reuse = request.EvaluationCacheMb > 0 && persistent && prepared != "-" && declaration.EvaluationReuseInputs is not null && ReadOnlyPackageTree.SameVolume(workerRoot, output);
             if (!reuse)
             {
                 engine.Stop();
             }
-            var staging = Directory.CreateDirectory(reuse ? engine.Output : Path.Combine(output, ".staging")).FullName;
+            var stagingName = OperatingSystem.IsMacOS() ? ".staging-" + Guid.NewGuid().ToString("N") : ".staging";
+            var staging = Directory.CreateDirectory(reuse ? engine.Output : Path.Combine(output, stagingName)).FullName;
+            string? privateCopy = null;
             var workspace = Path.Combine(staging, "workspace");
             Directory.CreateDirectory(workspace);
-            var scratch = Directory.CreateDirectory(Path.Combine(directory.Root, "request-" + Guid.NewGuid().ToString("N"))).FullName;
+            var scratch = Directory.CreateDirectory(Path.Combine(workerRoot, "request-" + Guid.NewGuid().ToString("N"))).FullName;
             try
             {
                 if (request.Prepared is not null)
@@ -172,7 +175,17 @@ internal static class GraphWorker
                 var verificationTimer = request.ProfileBuild ? Stopwatch.StartNew() : null;
                 if (child.ExitCode == 0)
                 {
-                    foreach (var path in Directory.EnumerateFileSystemEntries(staging, "*", SearchOption.AllDirectories))
+                    if (OperatingSystem.IsMacOS())
+                    {
+                        privateCopy = Path.Combine(output, ".publish-" + Guid.NewGuid().ToString("N"));
+                        RulesMSBuild.ProjectCache.FileMaterializer.CloneMacDirectory(staging, privateCopy);
+                    }
+                    var published = privateCopy ?? staging;
+                    if ((File.GetAttributes(published) & FileAttributes.ReparsePoint) != 0)
+                    {
+                        throw new InvalidDataException("Graph worker output root contains a link");
+                    }
+                    foreach (var path in Directory.EnumerateFileSystemEntries(published, "*", SearchOption.AllDirectories))
                     {
                         if (File.GetAttributes(path).HasFlag(FileAttributes.ReparsePoint))
                         {
@@ -184,7 +197,7 @@ internal static class GraphWorker
                 if (child.ExitCode == 0)
                 {
                     var publicationTimer = request.ProfileBuild ? Stopwatch.StartNew() : null;
-                    GraphPublication.Publish(contract, staging, output);
+                    GraphPublication.Publish(contract, privateCopy ?? staging, output);
                     publicationSeconds = publicationTimer?.Elapsed.TotalSeconds ?? 0;
                 }
                 succeeded = child.ExitCode == 0;
@@ -193,6 +206,10 @@ internal static class GraphWorker
             finally
             {
                 var cleanupTimer = request.ProfileBuild ? Stopwatch.StartNew() : null;
+                if (privateCopy is not null && Directory.Exists(privateCopy))
+                {
+                    Directory.Delete(privateCopy, recursive: true);
+                }
                 Directory.Delete(scratch, recursive: true);
                 if (!succeeded)
                 {

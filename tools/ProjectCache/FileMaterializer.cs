@@ -106,6 +106,17 @@ internal sealed class FileMaterializer(bool clone, bool profile)
         }
     }
 
+    // APFS gives the broker independent files, including when an input still has an open handle.
+    internal static void CloneMacDirectory(string source, string destination)
+    {
+        const int noFollow = 1;
+        if (CloneFile(source, destination, noFollow) != 0)
+        {
+            throw new IOException("macOS workers require a clone-capable output volume",
+                new System.ComponentModel.Win32Exception(Marshal.GetLastPInvokeError()));
+        }
+    }
+
     private bool TryClone(string source, string destination)
     {
         if (OperatingSystem.IsMacOS())

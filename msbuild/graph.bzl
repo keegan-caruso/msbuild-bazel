@@ -123,6 +123,8 @@ def _graph_action(ctx, prepare = False):
         worker_sources.append({"path": file.path, "destination": ".package-source/" + file.basename})
     action_inputs = depset(ctx.files.srcs + [file for target in ctx.attr.input_paths for file in target[DefaultInfo].files.to_list()] + packages + closures + ([prepared.directory] if prepared else []) + [ctx.file.contract, runner[0], ctx.file._linux_stable_paths], transitive = [tc.sdk] + ([ctx.attr.package_lock[MSBuildPackageLockInfo].validations] if ctx.attr.package_lock else []))
     cache_env = {key: value for key, value in ctx.configuration.default_shell_env.items() if key.startswith("RULES_MSBUILD_PROJECT_CACHE_")}
+    if ctx.attr.macos_worker and cache_env.get("RULES_MSBUILD_PROJECT_CACHE_URL"):
+        fail("macos_worker supports fresh local qualification; an external project cache is unsupported")
     if ctx.attr.macos_worker and (prepare or prepared or linux_stable_paths or linux_worker or ctx.attr.windows_isolation or ctx.attr.target != "Build"):
         fail("macos_worker requires an ordinary Build with fresh Restore on native macOS")
     if linux_worker or ctx.attr.macos_worker:

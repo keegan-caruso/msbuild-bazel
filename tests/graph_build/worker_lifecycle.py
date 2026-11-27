@@ -34,6 +34,7 @@ printf authored > "$3/workspace/private-input"
 printf '%s\\n' "$5" > scratch-path
 case "$(cat mode)" in
 hang) printf '%s' "$$" > child-pid; touch ready; sleep 1000 ;;
+clone) printf '%s' "$3/workspace/owned/product" > handle-path; while [[ ! -f release ]]; do sleep .02; done ;;
 link) ln -s /etc/passwd "$3/workspace/owned/hostile" ;;
 fail) printf 'controlled failure' >&2; exit 17 ;;
 esac
@@ -60,7 +61,7 @@ esac
             return json.loads(worker.stdout.readline())
 
         def clean():
-            assert not (root / 'output/.staging').exists(), 'Staging leaked'
+            assert not list((root / 'output').glob('.staging*')) and not list((root / 'output').glob('.publish-*')), 'Staging leaked'
             scratch = Path((root / 'scratch-path').read_text().strip())
             assert not scratch.exists(), 'Request scratch leaked'
 
@@ -92,6 +93,19 @@ esac
             clean()
             assert (root / 'output/workspace/owned/product').read_text() == 'product'
             assert not (root / 'output/workspace/private-input').exists(), 'Private input published'
+            if os.uname().sysname == 'Darwin':
+                request(worker, 6, 'clone')
+                limit = time.monotonic() + 10
+                while not (root / 'handle-path').is_file():
+                    assert time.monotonic() < limit, 'Clone control did not stage the product'
+                    time.sleep(.02)
+                with Path((root / 'handle-path').read_text()).open('r+b') as original:
+                    (root / 'release').touch()
+                    assert reply(worker)['exitCode'] == 0
+                    original.write(b'changed')
+                    original.flush()
+                    assert (root / 'output/workspace/owned/product').read_bytes() == b'product'
+                clean()
             leases = root / 'tmp' / ('rules-msbuild-workers-' + str(os.geteuid()))
             assert len(list(leases.glob('*.lease'))) == 1
             # Kill an idle broker: no active child remains. Startup must reclaim
