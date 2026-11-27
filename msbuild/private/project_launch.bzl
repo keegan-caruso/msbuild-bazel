@@ -45,6 +45,7 @@ def create_executable_launcher(ctx, assembly, runtime, runtime_data, test):
     launcher = ctx.actions.declare_file(ctx.label.name)
     setup = ["resolve_runfile " + _quote(_runfile(ctx, row.file)) + "; copy_input \"$RULES_MSBUILD_RESOLVED_RUNFILE\" \"$temporary/\"" + _quote(row.destination) for row in runtime_data.to_list()]
     outputs = ["output_directory " + _quote(path) for path in ctx.attr.test_output_dirs] if test else []
+    collection = ["copy_output " + _quote(path) + " || copy_status=1" for path in ctx.attr.test_output_dirs] if test else []
     owned_environment = ["CORE_ROOT", "DOTNET_ROOT", "DOTNET_HOST_PATH", "DOTNET_MULTILEVEL_LOOKUP"] + ["DOTNET_ROOT_" + architecture for architecture in ["X64", "X86", "ARM", "ARM64"]]
     host_environment = " ".join([_quote(name + "=" + value) for name, value in host.environment.items() if name not in owned_environment])
     script = """#!/usr/bin/env bash
@@ -62,6 +63,12 @@ native_input="$RULES_MSBUILD_NATIVE_RUNFILE"
 temporary=''
 child=''
 private_group=0
+output=''
+copy_output() {
+  local source="$temporary/$1" target="$output/files/$1"
+  [[ -d "$source" ]] || return 0
+  mkdir -p -- "$target" && cp -R -- "$source/." "$target/"
+}
 kill_tree() {
   local descendant
   for descendant in $(ps -axo pid=,ppid= | awk -v parent="$1" '$2 == parent { print $1 }'); do
@@ -69,15 +76,48 @@ kill_tree() {
   done
   kill -KILL "$1" 2>/dev/null || true
 }
+kill_windows_tree() {
+  local native_pid system
+  native_pid="$(ps -p "$1" | awk -v owned="$1" 'NR == 1 { for (i = 1; i <= NF; i++) if ($i == "WINPID") column = i } NR > 1 && $1 == owned && column { print $column }' || true)"
+  case "$native_pid" in ''|*[!0-9]*) return 1 ;; esac
+  system="${SYSTEMROOT:-${SystemRoot:-${WINDIR:-${windir:-}}}}"
+  [[ -n "$system" ]] || return 1
+  system="$(cygpath -au "$system")"
+  "$system/System32/taskkill.exe" /F /T /PID "$native_pid" >/dev/null
+}
 cleanup() {
+  local copy_status=0 kill_status=0
   if [[ -n "$child" ]]; then
-    if [[ "$private_group" = 1 ]]; then
-      kill -KILL -- "-$child" 2>/dev/null || true
-    else
-      kill_tree "$child"
-    fi
+    case "$(uname -s)" in
+      MINGW*|MSYS*|CYGWIN*)
+        if kill_windows_tree "$child"; then
+          wait "$child" 2>/dev/null || true
+        else
+          kill_status=1
+          kill -KILL "$child" 2>/dev/null || true
+        fi
+        ;;
+      *)
+        if [[ "$private_group" = 1 ]]; then
+          kill -KILL -- "-$child" 2>/dev/null || true
+        else
+          kill_tree "$child"
+        fi
+        ;;
+    esac
   fi
-  if [[ -n "$temporary" ]]; then rm -rf -- "$temporary"; fi
+  if [[ -n "$temporary" ]]; then
+    case "$(uname -s)" in
+      MINGW*|MSYS*|CYGWIN*)
+        if [[ -n "$output" ]]; then
+%s
+        fi
+        ;;
+    esac
+    rm -rf -- "$temporary"
+  fi
+  [[ "$kill_status" = 0 ]] || fail 'Failed to terminate the owned Windows process tree'
+  [[ "$copy_status" = 0 ]] || fail 'Failed to collect test output directories'
 }
 trap cleanup EXIT
 cancel() { trap '' TERM INT; exit "$1"; }
@@ -96,7 +136,10 @@ output_directory() {
   local link="$temporary/$1" target="$output/files/$1"
   [[ ! -e "$link" && ! -L "$link" ]] || fail "Test output directory collides with a runtime input: $1"
   mkdir -p -- "$target" "$(dirname -- "$link")"
-  ln -s -- "$target" "$link"
+  case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*) mkdir -p -- "$link" ;;
+    *) ln -s -- "$target" "$link" ;;
+  esac
 }
 is_test=%s
 readonly=%s
@@ -158,6 +201,7 @@ exit "$status"
         _quote(_runfile(ctx, host.directory)),
         _quote(host.entry_point),
         _quote(_runfile(ctx, runtime)),
+        "\n".join(collection) or ":",
         "1" if test else "0",
         "1" if readonly else "0",
         _quote(assembly),

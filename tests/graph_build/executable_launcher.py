@@ -107,7 +107,7 @@ def runfiles_controls(scope, root, library):
     bootstrap = root / ('bootstrap library space.bash' if WINDOWS else 'bootstrap library space\\name.bash')
     shutil.copyfile(library, bootstrap)
     def write_manifest(target, entry=physical):
-        manifest.write_text(' ' + key + ' ' + manifest_escape(target) + '\n ' + manifest_escape(logical, key=True) + ' ' + manifest_escape(entry) + '\n')
+        manifest.write_bytes((' ' + key + ' ' + manifest_escape(target) + '\n ' + manifest_escape(logical, key=True) + ' ' + manifest_escape(entry) + '\n').encode())
     write_manifest(bootstrap)
     lookup({'RUNFILES_MANIFEST_FILE': manifest.name, 'RUNFILES_MANIFEST_ONLY': '1'}, physical, manifest)
     # Discover the manifest adjacent to the script without environment hints.
@@ -185,7 +185,11 @@ if "hang" in sys.argv:
 if "write" in sys.argv:
     pathlib.Path("App.dll").write_text("changed")
     pathlib.Path(".hidden").write_text("changed")
-    pathlib.Path("../results/file").write_text("output")
+    pathlib.Path("../results with space/nested/file").write_text("output")
+if "copyfail" in sys.argv:
+    target = pathlib.Path(os.environ["TEST_UNDECLARED_OUTPUTS_DIR"]) / "files/results with space/nested"
+    target.rmdir()
+    target.write_text("collision")
 print(json.dumps(dict(args=sys.argv[1:], cwd=os.getcwd(), stdin=sys.stdin.read(), executable=os.access(".hidden", os.X_OK), root=os.environ["DOTNET_ROOT"], core=os.environ.get("CORE_ROOT"), custom=os.environ["CUSTOM"])))
 sys.exit(7 if "seven" in sys.argv else 0)
 ''')
@@ -223,12 +227,19 @@ sys.exit(7 if "seven" in sys.argv else 0)
         assert observed['stdin'] == 'stdin payload' and observed['core'] is None and observed['custom'] == "space ' $value", observed
         assert not Path(observed['cwd']).exists()
         run(['seven'], 7)
-        attrs.update(test_working_directory='work', test_output_dirs=['results'], expected_exit_code=7)
+        attrs.update(test_working_directory='work', test_output_dirs=['results with space/nested'], expected_exit_code=7)
         generate()
         output = root / 'outputs'
         run(['write', 'seven'], extra={'TEST_UNDECLARED_OUTPUTS_DIR': str(output)})
-        assert (output / 'files/results/file').read_text() == 'output'
+        assert (output / 'files/results with space/nested/file').read_text() == 'output'
         assert (app / 'App.dll').read_text() == 'assembly'
+        if WINDOWS:
+            failure = run(['write', 'seven', 'copyfail'], code=1,
+                          extra={'TEST_UNDECLARED_OUTPUTS_DIR': str(root / 'failed-outputs')})
+            assert 'Failed to collect test output directories' in failure.stderr, failure
+            assert not Path(json.loads(failure.stdout)['cwd']).exists(), failure
+            assert (root / 'failed-outputs/files/results with space/nested').read_text() == 'collision'
+            print('PASS: Windows copy-out failure preserves failure status and removes private runtime')
         run(code=1)
         run(extra={'TESTBRIDGE_TEST_ONLY': 'filter'}, code=1)
         declared.launch_mode = 'corerun'
@@ -262,22 +273,30 @@ sys.exit(7 if "seven" in sys.argv else 0)
             kernel.CloseHandle.argtypes = [ctypes.c_void_p]
             kernel.TerminateProcess.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
             children = [kernel.OpenProcess(0x100001, False, int(file.read_text())) for file in (host_pid, pid_file)]
+            sibling = None
             try:
                 assert all(children), 'Cannot observe native host and child processes'
+                sibling = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'],
+                                           stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 subprocess.run(bash_command('-c', 'kill -TERM "$1"', '--', signal_pid.read_text()), check=True)
                 stdout, stderr = process.communicate(timeout=5)
                 assert process.returncode == 143, (process.returncode, stdout, stderr)
                 assert all(kernel.WaitForSingleObject(child, 5000) == 0 for child in children), 'Native host or child survived launcher cancellation'
+                assert sibling.poll() is None, 'Cancellation terminated an unrelated native sibling'
+                print('PASS: native cancellation reaps owned host/child and leaves unrelated sibling alive')
             finally:
                 if process.poll() is None:
                     process.kill()
-                    process.communicate(timeout=5)
                 for child in children:
                     if child:
                         if kernel.WaitForSingleObject(child, 0) != 0:
                             kernel.TerminateProcess(child, 125)
                             kernel.WaitForSingleObject(child, 5000)
                         kernel.CloseHandle(child)
+                if sibling is not None:
+                    sibling.kill()
+                    sibling.wait(timeout=5)
+                process.communicate(timeout=5)
         else:
             process.send_signal(signal.SIGTERM)
             process.communicate(timeout=5)
