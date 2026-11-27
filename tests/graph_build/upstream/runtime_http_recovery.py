@@ -154,15 +154,15 @@ def main():
     server.get_bytes, server.misses, server.active = collections.Counter(), [], None
     threading.Thread(target=server.serve_forever, daemon=True).start()
     url = 'http://127.0.0.1:' + str(server.server_port)
-    environment = dict(os.environ, USE_BAZEL_VERSION='9.3.2', DOTNET_CLI_USE_MSBUILD_SERVER='false',
+    environment = dict(os.environ, USE_BAZEL_VERSION='9.3.3', DOTNET_CLI_USE_MSBUILD_SERVER='false',
                        MSBUILDUSESERVER='0', RULES_MSBUILD_PROJECT_CACHE_READ_ONLY='1')
     environment.pop('RULES_MSBUILD_PROJECT_CACHE_URL', None)
     environment.pop('RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN', None)
     version = subprocess.run([str(bazel), '--version'], cwd=source, env=environment, capture_output=True, text=True, timeout=120)
-    if version.returncode or version.stdout.strip() != 'bazel 9.3.2':
+    if version.returncode or version.stdout.strip() != 'bazel 9.3.3':
         server.shutdown()
-        raise ValueError('Expected Bazel 9.3.2: ' + version.stdout + version.stderr)
-    report = dict(scope='same-host native Linux x64', rulesRevision=revision, bazel='9.3.2',
+        raise ValueError('Expected Bazel 9.3.3: ' + version.stdout + version.stderr)
+    report = dict(scope='same-host native Linux x64', rulesRevision=revision, bazel='9.3.3',
                   source=str(source), phases={}, inputFileCount=sum('sha256' in v for v in manifest.values()))
 
     def save():

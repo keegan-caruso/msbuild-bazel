@@ -29,7 +29,7 @@ def main():
     parser.add_argument('--output-base', type=Path, required=True, help='unused base; no local graph results')
     parser.add_argument('--slice', choices=['pipelines', 'loaded-common', 'runtime-suites'], default='pipelines')
     parser.add_argument('--phase', choices=['producer', 'consumer'], required=True)
-    parser.add_argument('--version', choices=['9.3.2'])
+    parser.add_argument('--version', choices=['9.3.3'])
     parser.add_argument('--resume-producer', action='store_true', help='resume suite setup from an existing producer seed; verify every output and runner before reuse')
     parser.add_argument('--reuse-producer-base', action='store_true', help='retain producer repository/native setup; shutdown clears project snapshots before seed')
     parser.add_argument('--reuse-consumer-base', action='store_true', help='retain consumer repository/preparation setup; require a fresh broker namespace and abandoned-state reclamation')
@@ -82,7 +82,7 @@ def main():
     files = {p for _, n in nodes for p in n.get('OutputFiles', [])}
     states = {d + '/' + Path(p).name + '.GenerateResource.cache' for p, n in nodes
               for d in n['OutputDirectories'] if d.startswith('artifacts/obj/')}
-    environment = dict(os.environ, USE_BAZEL_VERSION=args.version or '9.3.2')
+    environment = dict(os.environ, USE_BAZEL_VERSION=args.version or '9.3.3')
     endpoint = environment.pop('RULES_MSBUILD_PROJECT_CACHE_URL')
     environment.pop('RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN', None)
     environment.pop('RULES_MSBUILD_GRAPH_PROFILE', None)

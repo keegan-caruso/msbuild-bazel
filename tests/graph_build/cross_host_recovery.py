@@ -170,7 +170,7 @@ def main():
     proxy.lock = threading.Lock()
     threading.Thread(target=proxy.serve_forever, daemon=True).start()
     url = 'http://127.0.0.1:18723'
-    env = dict(os.environ, USE_BAZEL_VERSION='9.3.2', RULES_MSBUILD_PROJECT_CACHE_URL=url,
+    env = dict(os.environ, USE_BAZEL_VERSION='9.3.3', RULES_MSBUILD_PROJECT_CACHE_URL=url,
                RULES_MSBUILD_PROJECT_CACHE_READ_ONLY='0' if args.phase == 'seed' else '1')
     # Keep declared action environment identical between seed and consumers;
     # the counting proxy enforces read-only access for both cache protocols.

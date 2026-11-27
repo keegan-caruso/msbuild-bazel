@@ -1,8 +1,8 @@
 # Support and limits
 
-Graph/plugin is the sole backend. Current baseline: SDK **11.0.100**, Bazel **9.3.2** only (Bazel 8.x dropped). Adapter compilation requires MSBuild 18+ and its stable `Microsoft.Build.ProjectCache` API (SDK 10+; SDK 8/9 unsupported; repository resolution controls may still use synthetic older names without compiling adapters).
+Graph/plugin is the sole backend. Current baseline: SDK **11.0.100**, Bazel **9.3.3** only (Bazel 8.x dropped). Adapter compilation requires MSBuild 18+ and its stable `Microsoft.Build.ProjectCache` API (SDK 10+; SDK 8/9 unsupported; repository resolution controls may still use synthetic older names without compiling adapters).
 
-`USE_BAZEL_VERSION` overrides `.bazelversion`; source-runtime setup records it and rejects resume with a different version. Historical pins below describe their original runs, not 9.3.2 qualification; release gates are tracked in [the work queue](../WORK_QUEUE.md). Distribution is a reviewed Git commit via `git_override` (no BCR release or cross-revision API/cache guarantee; see [pinning and rollback](api.md#pin-update-and-roll-back-the-rules)).
+`USE_BAZEL_VERSION` overrides `.bazelversion`; source-runtime setup records it and rejects resume with a different version. Native macOS ARM64 passed all 54 Bazel analysis tests and the execution-requirements checks on 9.3.3. Historical measurements below retain the Bazel version used for each run; release gates are tracked in [the work queue](../WORK_QUEUE.md). Distribution is a reviewed Git commit via `git_override` (no BCR release or cross-revision API/cache guarantee; see [pinning and rollback](api.md#pin-update-and-roll-back-the-rules)).
 
 Inputs, packages, tool layouts, generated files, and output ownership must be explicit (sync does not trace arbitrary task reads or acquire missing packages).
 
@@ -51,7 +51,7 @@ Optional benchmark env pins GitPython **3.2.1** (replacing 3.1.62, which had 7 G
 
 ## Shared cache on two Macs
 
-General Apple Container wrapper defaults to pinned Ubuntu 26.04 ARM64 (`RULES_MSBUILD_CONTAINER_ARCH=amd64` for Rosetta; SDK 11.0.100 and Bazel 9.3.2 pinned independently). Extraction uses pinned `libarchive-tools` 3.8.5-1ubuntu2.3 because GNU tar fails nested extraction under Rosetta on `openat2`/`ENOSYS` ([Ubuntu bug 2166326](https://bugs.launchpad.net/ubuntu/+source/tar/+bug/2166326)); source archive creation keeps GNU tar; outside container `RULES_MSBUILD_TAR` overrides `tar` (SDK archives hash-verified first).
+General Apple Container wrapper defaults to pinned Ubuntu 26.04 ARM64 (`RULES_MSBUILD_CONTAINER_ARCH=amd64` for Rosetta; SDK 11.0.100 and Bazel 9.3.3 pinned independently). Extraction uses pinned `libarchive-tools` 3.8.5-1ubuntu2.3 because GNU tar fails nested extraction under Rosetta on `openat2`/`ENOSYS` ([Ubuntu bug 2166326](https://bugs.launchpad.net/ubuntu/+source/tar/+bug/2166326)); source archive creation keeps GNU tar; outside container `RULES_MSBUILD_TAR` overrides `tar` (SDK archives hash-verified first).
 
 Fresh Ubuntu 26.04 ARM64 and AMD64 Rosetta containers passed public downloaded-SDK quickstart (sandboxed Build, test, `RuntimeInformation.ProcessArchitecture` `Arm64`/`X64`, sync `--check`; does not qualify x64 source-runtime producer or Linux workers/recovery).
 

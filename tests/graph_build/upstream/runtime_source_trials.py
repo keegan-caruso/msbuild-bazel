@@ -172,7 +172,7 @@ Console.WriteLine("PIPELINES_PROBE=1048576/524288");
 Console.WriteLine("PIPELINES_SHA256=" + Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(typeof(System.IO.Pipelines.PipeOptions).Assembly.Location))));
 '''
     assert original['app/Program.cs'].count(b'var message = ') == 1
-    env = dict(os.environ, USE_BAZEL_VERSION='9.3.2', RULES_MSBUILD_PROJECT_CACHE_READ_ONLY='1',
+    env = dict(os.environ, USE_BAZEL_VERSION='9.3.3', RULES_MSBUILD_PROJECT_CACHE_READ_ONLY='1',
                DOTNET_CLI_USE_MSBUILD_SERVER='false', MSBUILDUSESERVER='0')
     endpoint = env['RULES_MSBUILD_PROJECT_CACHE_URL']
     command = [str(rules / 'scripts/bazel-launcher.sh'), '--nosystem_rc', '--nohome_rc',
@@ -262,7 +262,7 @@ Console.WriteLine("PIPELINES_SHA256=" + Convert.ToHexString(SHA256.HashData(File
             allocatedOwnedWorkspaceAndOutputBaseBytes=allocated_bytes([root, base]),
             sourceAction=source, restoreActions=[r for r in actions if r['mnemonic'] == 'MSBuildGraphRestore']))
         (results / 'summary.json').write_text(json.dumps(dict(revision=a.revision, rows=rows,
-            sdkVersion=contract['SdkVersion'], bazelVersion='9.3.2',
+            sdkVersion=contract['SdkVersion'], bazelVersion='9.3.3',
             machine=os.uname().machine, onlineCpus=os.cpu_count(),
             policy=dict(projectCacheReadOnly=True, bazelUploads=False, jobs=1, localTestJobs=1,
                         graphWorkerInstances=1, remoteMaxConnections=8, remoteTimeoutSeconds=60,

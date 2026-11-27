@@ -35,7 +35,7 @@ class ProducerLifecycle(unittest.TestCase):
         self.addCleanup(patch.stopall)
 
     def test_demo_config_and_rehearsal_retain_project_cache_policy(self):
-        state = dict(self.state, projectCacheReadOnly='1', bazelVersion='9.3.2',
+        state = dict(self.state, projectCacheReadOnly='1', bazelVersion='9.3.3',
             cacheUrl='http://cache', options={'testCache': 'yes'})
         with patch.dict(os.environ, {}, clear=True):
             config = setup.demo_config(state, None)

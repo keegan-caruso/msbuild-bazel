@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--versions', nargs='+', choices=['9.3.2'], default=['9.3.2'])
+    parser.add_argument('--versions', nargs='+', choices=['9.3.3'], default=['9.3.3'])
     args = parser.parse_args()
     output = args.output.resolve()
     if output.is_relative_to(ROOT):
