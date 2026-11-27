@@ -1,0 +1,66 @@
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Security.Principal;
+using Microsoft.Win32.SafeHandles;
+
+var assembly = Assembly.LoadFrom(Path.GetFullPath(args[0]));
+var platform = assembly.GetType("RulesMSBuild.GraphBuild.WindowsPlatform", throwOnError: true)!;
+var supports = platform.GetMethod("Supports", BindingFlags.Static | BindingFlags.NonPublic)!;
+var allowed = new HashSet<(Architecture, Architecture)> { (Architecture.X64, Architecture.X64), (Architecture.Arm64, Architecture.Arm64) };
+foreach (var os in Enum.GetValues<Architecture>())
+{
+    foreach (var process in Enum.GetValues<Architecture>())
+    {
+        var expected = allowed.Contains((os, process));
+        if ((bool)supports.Invoke(null, [os, process])! != expected)
+            throw new Exception($"Architecture selection mismatch: {os}/{process}");
+    }
+}
+var native = (bool)platform.GetProperty("IsNative", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
+var expectedNative = OperatingSystem.IsWindows() && allowed.Contains((RuntimeInformation.OSArchitecture, RuntimeInformation.ProcessArchitecture));
+if (native != expectedNative || IntPtr.Size != 8)
+    throw new Exception("Native host/word size mismatch");
+var sizes = new Dictionary<string, int>();
+foreach (var (name, expected) in new (string, int)[] {
+    ("StartupInfo", 104), ("StartupInfoEx", 112), ("ProcessInformation", 24), ("SecurityCapabilities", 24),
+    ("SecurityAttributes", 24), ("BasicLimits", 64), ("IoCounters", 48), ("ExtendedLimits", 144), ("JobAccounting", 48) })
+{
+    var type = assembly.GetType("RulesMSBuild.GraphBuild.WindowsProcess+" + name, throwOnError: true)!;
+    sizes[name] = Marshal.SizeOf(type);
+    if (sizes[name] != expected) throw new Exception($"ABI size mismatch: {name}={sizes[name]}, expected {expected}");
+}
+var file = assembly.GetType("RulesMSBuild.GraphBuild.WindowsStorage+FileInformation", throwOnError: true)!;
+sizes["FileInformation"] = Marshal.SizeOf(file);
+if (sizes["FileInformation"] != 52 || Marshal.OffsetOf(file, "Links").ToInt32() != 40)
+    throw new Exception("File information ABI mismatch");
+sizes["TokenStatistics"] = Marshal.SizeOf<TokenStatistics>();
+if (sizes["TokenStatistics"] != 56 || Marshal.OffsetOf<TokenStatistics>(nameof(TokenStatistics.Authentication)).ToInt32() != 8)
+    throw new Exception("Token statistics ABI mismatch");
+if (OperatingSystem.IsWindows())
+{
+    using var identity = WindowsIdentity.GetCurrent();
+    if (!Native.GetTokenInformation(identity.AccessToken, 10, new byte[56], 56, out var returned) || returned != 56)
+        throw new Exception("Native token statistics size mismatch: " + returned);
+}
+var storage = native ? (string)assembly.GetType("RulesMSBuild.GraphBuild.WindowsSandboxLease", throwOnError: true)!
+    .GetMethod("Storage", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, null)! : null;
+Console.WriteLine(JsonSerializer.Serialize(new { storage, os = RuntimeInformation.OSArchitecture.ToString(), process = RuntimeInformation.ProcessArchitecture.ToString(), native, sizes }));
+
+[StructLayout(LayoutKind.Sequential)]
+struct Luid { public uint Low; public int High; }
+[StructLayout(LayoutKind.Sequential)]
+struct TokenStatistics
+{
+    public Luid Token, Authentication;
+    public long Expiration;
+    public int Type, Impersonation;
+    public uint Charged, Available, Groups, Privileges;
+    public Luid Modified;
+}
+static class Native
+{
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [DllImport("advapi32.dll", SetLastError = true)]
+    internal static extern bool GetTokenInformation(SafeAccessTokenHandle token, int kind, [Out] byte[] data, int size, out int returned);
+}
