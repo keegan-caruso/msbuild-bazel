@@ -36,7 +36,7 @@ internal static class WindowsSync
         var environment = WindowsExecution.Prepare(lease);
         var root = lease.Root;
         var workspace = root + @"inputs\workspace";
-        var command = new List<string> { "exec", root + @"runner\ProjectSync.dll", "windows-prepared", root + "output", workspace,
+        var command = new List<string> { "exec", root + @"runner\ProjectSync.dll", "windows-prepared", root + "output", root + "scratch", workspace,
             root + @"sdk\sdk\" + args[3], "--inputs", root + "manifest.json", "--runfiles", root + @"inputs\runfiles" };
         if (args[6] != "-")
         {

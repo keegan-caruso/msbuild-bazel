@@ -15,7 +15,10 @@ internal sealed record SyncInputs(SyncInput[] Inputs, SyncPackage[] Packages, st
 internal sealed class WorkspaceView : IDisposable
 {
     private readonly string? temporary;
-    private readonly bool copyInputs;
+    internal string? ParentScratch
+    {
+        get;
+    }
     private readonly Dictionary<string, string> packageSources = new(StringComparer.Ordinal);
     private readonly Dictionary<string, (string Label, HashSet<string> Packages)> packageLocks = new(StringComparer.Ordinal);
     private readonly HashSet<string> visiblePackages = new(StringComparer.Ordinal);
@@ -46,11 +49,11 @@ internal sealed class WorkspaceView : IDisposable
     private readonly HashSet<string> treeRoots = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> producerRoots = new(StringComparer.Ordinal);
 
-    private WorkspaceView(string root, string? temporary, string? packageLock, bool copyInputs = false)
+    private WorkspaceView(string root, string? temporary, string? packageLock, string? parentScratch = null)
     {
         Root = root;
         this.temporary = temporary;
-        this.copyInputs = copyInputs;
+        ParentScratch = parentScratch;
         DefaultPackageLock = packageLock;
     }
 
@@ -78,6 +81,16 @@ internal sealed class WorkspaceView : IDisposable
         return current;
     }
 
+    internal static string CreatePrivateDirectory(string parent, string name)
+    {
+        var directory = Path.Combine(parent, name);
+        if (Path.Exists(directory))
+        {
+            throw new IOException("Expected a fresh private sync directory: " + directory);
+        }
+        return Directory.CreateDirectory(directory).FullName;
+    }
+
     internal static string Safe(string path)
     {
         if (!RelativePathComponents.IsSafeRelative(path))
@@ -87,7 +100,7 @@ internal sealed class WorkspaceView : IDisposable
         return path;
     }
 
-    internal static WorkspaceView Create(string root, string? manifest, string? runfiles, bool copyInputs = false)
+    internal static WorkspaceView Create(string root, string? manifest, string? runfiles, string? parentScratch = null)
     {
         if (manifest is null)
         {
@@ -99,8 +112,8 @@ internal sealed class WorkspaceView : IDisposable
         }
         var resolver = new Runfiles(runfiles);
         var inputs = JsonSerializer.Deserialize<SyncInputs>(File.ReadAllText(manifest), new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }) ?? throw new InvalidDataException("Empty sync input manifest");
-        var temporary = PhysicalPath(Directory.CreateTempSubdirectory("msbuild-sync-").FullName);
-        var view = new WorkspaceView(temporary, temporary, inputs.PackageLock, copyInputs);
+        var temporary = parentScratch is null ? PhysicalPath(Directory.CreateTempSubdirectory("msbuild-sync-").FullName) : CreatePrivateDirectory(parentScratch, "view");
+        var view = new WorkspaceView(temporary, parentScratch is null ? temporary : null, inputs.PackageLock, parentScratch);
         try
         {
             view.CopySources(root, temporary);
@@ -290,7 +303,7 @@ internal sealed class WorkspaceView : IDisposable
         foreach (var identity in visiblePackages.Except(wanted, StringComparer.Ordinal).ToArray())
         {
             var path = Path.Combine(packageRoot, identity);
-            Directory.Delete(path, recursive: copyInputs);
+            Directory.Delete(path, recursive: ParentScratch is not null);
             var parent = Path.GetDirectoryName(path)!;
             if (!Directory.EnumerateFileSystemEntries(parent).Any())
             {
@@ -302,7 +315,7 @@ internal sealed class WorkspaceView : IDisposable
         {
             var path = Path.Combine(packageRoot, identity);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            if (copyInputs)
+            if (ParentScratch is not null)
             {
                 var source = packageSources[identity];
                 Directory.CreateDirectory(path);
@@ -330,7 +343,7 @@ internal sealed class WorkspaceView : IDisposable
 
     private void StageFile(string source, string destination)
     {
-        if (copyInputs)
+        if (ParentScratch is not null)
         {
             SyncFiles.Copy(source, destination);
         }
