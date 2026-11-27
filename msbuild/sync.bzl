@@ -240,7 +240,7 @@ def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = No
         name: Runnable target name, conventionally sync.
         projects: Workspace-relative project paths or a single .sln/.slnx, not labels. References are discovered at run time.
         srcs: Optional complete authored workspace snapshot. Bazel caches preparation; use inputs for generated producers. Exclude generated declarations and build outputs.
-        windows_isolation: Run declared-source preparation in a native Windows x64 AppContainer.
+        windows_isolation: Run declared-source preparation in a native Windows x64 or ARM64 AppContainer with a matching SDK.
         configuration: Graph configuration, default Release.
         framework: Optional graph target framework; empty builds declared frameworks.
         package_build: Offline Restore/package evaluation. Defaults on with closed package inventories or complete srcs; False disables it.

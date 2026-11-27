@@ -263,7 +263,7 @@ _GRAPH_ATTRS = {
     "automatic_stable_paths": attr.bool(default = True),
     "optional_restore": attr.bool(default = False),
     "linux_stable_paths": attr.bool(default = False, doc = "Use bubblewrap on Linux for stable graph paths; cache transport retains network access."),
-    "windows_isolation": attr.bool(default = False, doc = "Opt in to native Windows x64 AppContainer filesystem isolation for a fresh graph. Requires local NTFS control storage; prepared Restore and external project caches are unsupported."),
+    "windows_isolation": attr.bool(default = False, doc = "Opt in to native Windows x64 or ARM64 AppContainer filesystem isolation for a fresh graph. Requires a matching native SDK and local NTFS control storage; prepared Restore and external project caches are unsupported."),
     "_linux_stable_paths": attr.label(default = "//msbuild:graph-sandbox.sh", allow_single_file = True),
     "target": attr.string(default = "Build", values = ["Build", "Pack", "Publish", "DesignTimeBuild"]),
 }
