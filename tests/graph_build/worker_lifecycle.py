@@ -1,4 +1,4 @@
-"""Linux production broker cancellation, publication failure/retry and lease cleanup.
+"""Unix production broker cancellation, publication failure/retry and lease cleanup.
 
 A controlled child replaces MSBuild, while the real broker, process supervisor,
 request pump, staging, publication and lease implementation execute unchanged.
@@ -19,7 +19,7 @@ from qualify import DOTNET, RUNNER
 
 
 def main():
-    assert os.uname().sysname == 'Linux'
+    assert os.uname().sysname in ('Linux', 'Darwin')
     with tempfile.TemporaryDirectory(prefix='worker-lifecycle-') as temporary:
         root = Path(temporary)
         (root / 'tmp').mkdir()

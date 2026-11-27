@@ -14,9 +14,9 @@ internal static class GraphWorker
 
     internal static async Task<int> Run(string[] args)
     {
-        if (!OperatingSystem.IsLinux() || args.Length != 3)
+        if ((!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS()) || args.Length != 3)
         {
-            throw new InvalidDataException("Graph worker requires Linux, sandbox tool, cache budget and one request parameter file");
+            throw new InvalidDataException("Graph worker requires Linux or macOS, sandbox tool, cache budget and one request parameter file");
         }
         var sandbox = Path.GetFullPath(args[0]);
         if (!int.TryParse(args[1], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var megabytes) || megabytes < 0)
@@ -160,7 +160,7 @@ internal static class GraphWorker
                 }
                 else
                 {
-                    var start = new ProcessStartInfo("/bin/bash") { RedirectStandardOutput = true, RedirectStandardError = true };
+                    var start = new ProcessStartInfo("/bin/bash") { RedirectStandardInput = OperatingSystem.IsMacOS(), RedirectStandardOutput = true, RedirectStandardError = true };
                     foreach (var argument in new[] { sandbox, sdk, AppContext.BaseDirectory, staging, contract, scratch, request.Target, "action", prepared, cache, prepared == "-" ? "0" : "1", request.ProfileBuild ? "1" : "0" })
                     {
                         start.ArgumentList.Add(argument);

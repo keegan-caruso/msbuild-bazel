@@ -12,6 +12,7 @@ exports_files([
     "defs.bzl",
     "graph.bzl",
     "graph-sandbox.sh",
+    "macos-worker.sh",
     "extensions.bzl",
     "sync.bzl",
     "nuget.bzl",
