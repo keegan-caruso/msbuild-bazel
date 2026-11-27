@@ -1,0 +1,255 @@
+{
+  "generatedBy": "RulesMSBuild.NuGetUpdate",
+  "version": 1,
+  "sdkVersion": "11.0.100",
+  "projects": [
+    "App/App.csproj"
+  ],
+  "configuration": "Release",
+  "properties": {
+    "Configuration": "Release"
+  },
+  "entryProperties": {},
+  "configDigests": {
+    "NuGet.Config": "288E7EA6A4E6262902D19228109822B09383DFC751D9B182B4EB67B08089C3FC"
+  },
+  "lockFiles": [
+    "App/packages.lock.json"
+  ],
+  "packages": [
+    {
+      "id": "Microsoft.AspNetCore.App.Internal.Assets",
+      "version": "11.0.0",
+      "sha256": "1a918b5f5ed0122736b51f2357453f7d4b6ccaa75e8a7a8711a2919466c3e237",
+      "archiveSha512": "OSIHbLWOZLU9jSSEKDsGD36pHyqIAybehalwYddzO5MYAMR9yKGwKGWOFzPYvS/15zS3YsTqygJTkHYs1jNg0A==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.app.internal.assets/11.0.0/microsoft.aspnetcore.app.internal.assets.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.AspNetCore.Authorization",
+      "version": "11.0.0",
+      "sha256": "52d46485f9a0a9726e888d18735d50f6cc23f08bd651a37a3c8852e9a5af6774",
+      "archiveSha512": "2RXeyQTpV4EVZ8EZn3gDBGYcCq85697LBiRHvvBXFH/OLAGRN3/uAYIENt7VZ1XZtbFT5kHbuXlUp7Y/LHWn1A==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.authorization/11.0.0/microsoft.aspnetcore.authorization.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.AspNetCore.Components.Analyzers",
+      "version": "11.0.0",
+      "sha256": "e6fc020346c3dab08fe67fa76b95443fa09dce0f79d83ed91b299f512bc72f37",
+      "archiveSha512": "uggWHBAimn\u002Bm50kkB24nOgqTW1vBsfcGgDAL7ogtl7y3ZY2K6XoJmBsSqPRj29JjAHPEJvyOChABicuxeTxROw==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.components.analyzers/11.0.0/microsoft.aspnetcore.components.analyzers.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.AspNetCore.Components.Forms",
+      "version": "11.0.0",
+      "sha256": "a6838fa88d7ddf6409aa075eb4914d967e8f098e1efaf4ed530ad66d2dc23916",
+      "archiveSha512": "wwvntM3zMXscdhiR8d7xDnY4L\u002BnTOcbe1W6gNKFt1PKZsn/HJ1W/wVNbxdZyxffWuirZdBXbcB\u002B7PXVe\u002BxIaWA==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.components.forms/11.0.0/microsoft.aspnetcore.components.forms.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.AspNetCore.Components.Web",
+      "version": "11.0.0",
+      "sha256": "91c07cee28a8eae7da5416880c15149b132edecc89864325feeff902517eb99b",
+      "archiveSha512": "F18J/3NhdkxFmIQ\u002BSB8fWkB/Kr4axanoZ1lUINy6Cx/HkKlTxUeWI/JL6VK\u002BcbS1PsQkUKRv9nNSs9q5K2BMNQ==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.components.web/11.0.0/microsoft.aspnetcore.components.web.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.AspNetCore.Components.WebAssembly",
+      "version": "11.0.0",
+      "sha256": "0c89cdc754a3646a235ea542d7f4f2a93f15860bffb017c7336fd6f4f585dcb5",
+      "archiveSha512": "3j\u002Bnz0hyY6zcp6aNzMWYXwjkqZ1bhW8e4yGBQ39CSc/eFwzp/Lb8TR8B50fTrHNNN0L1N9TiEohSXZx6yAg/4A==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.components.webassembly/11.0.0/microsoft.aspnetcore.components.webassembly.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.AspNetCore.Components",
+      "version": "11.0.0",
+      "sha256": "6763bb15a5bcd05bf94b57cd7188e5286345d928d106b8693d2880bd9b26921c",
+      "archiveSha512": "jciWVxXmTAVEtMDtmvcuJcDnLdv4ZQo4D1VU9g9aizxOxaRFY90y5S376lYjmkH3zG0jZqy\u002BD3L1cnK0xPHFCw==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.components/11.0.0/microsoft.aspnetcore.components.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.AspNetCore.Metadata",
+      "version": "11.0.0",
+      "sha256": "dc165cf0df2830e0cc78ea6ddd99ff7ef62fe48dd1f991169e6662e7fe8d4a36",
+      "archiveSha512": "ttp7UfPLoSoZmv4EPHvM\u002BHQ/q68Xvhj3EXuWMLE0vqCqC24omMMlvX8dvrk/PQ/5kufhXiP/8pNOuwlx5WQ8ww==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.metadata/11.0.0/microsoft.aspnetcore.metadata.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.Extensions.Configuration.Binder",
+      "version": "11.0.0",
+      "sha256": "26412d74b95c74fd56f79669d46f941858345f4caf1ab9b1db8a42a6b68c2dc9",
+      "archiveSha512": "fzQzZ5idTHaOvIm7g/xq6g9ijtWA2Gg0a6WH5GHfX8jo1c51D9HmFMc2nG8dUBTdRvBcL\u002BUFkUuA8BCmkGHHAg==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.configuration.binder/11.0.0/microsoft.extensions.configuration.binder.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.Extensions.Configuration.EnvironmentVariables",
+      "version": "11.0.0",
+      "sha256": "0e6d76ffd99bc82debf2c91060f6a053d3d6a101258683cd62be6ae411f70e1a",
+      "archiveSha512": "BxLQb7\u002BxvjQPa3HquOQCsoAEL7MfdGnWObV/SdCiLVSfJIEosCVSWfbsFvz9r2vP/\u002BToQ4cC8w/zxLxgW72HCQ==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.configuration.environmentvariables/11.0.0/microsoft.extensions.configuration.environmentvariables.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.Extensions.Configuration.FileExtensions",
+      "version": "11.0.0",
+      "sha256": "64db4d36fdcd3b3765116b922eb29e5face0f5b0e83dfb93a8ea27ade5fdc4f8",
+      "archiveSha512": "USiKGFLfskjVVDzfe3NP8i7FzuLSusw7\u002BR0bUIno/PBn0ws58u0gM2/1rpvPGCmZ7Ei9D6X\u002Bebww/HHiGnLe3Q==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.configuration.fileextensions/11.0.0/microsoft.extensions.configuration.fileextensions.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.Extensions.Configuration.Json",
+      "version": "11.0.0",
+      "sha256": "6f8daadcabb8aaabe904163032aa0acca700fa09f25506ea64514ea8dd529406",
+      "archiveSha512": "ojVhXUCHyyjK9Bas4y5UrQObVQxBrN4PI7tu7IyOJDzxA/jBHx/yrcnKAfHUxiRDWasYu5rxWlLCR9bN4bb0GA==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.configuration.json/11.0.0/microsoft.extensions.configuration.json.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.Extensions.Configuration",
+      "version": "11.0.0",
+      "sha256": "ebbd6d1496707e76ec87ef53661d65416e93d152bbaf0afdc6e125b9056eea2f",
+      "archiveSha512": "tz414I3ANlwNsFY2ZZV8aMTu6Aqp2GideeUpiZmReDaGQ5\u002Bkjh9gYKpHoKCJpg\u002B7PJqsdbe/Ps7ZeNMD4gMzNA==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.configuration/11.0.0/microsoft.extensions.configuration.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.Extensions.DependencyInjection",
+      "version": "11.0.0",
+      "sha256": "4c595155e5023f3704647db061665dbd9354c4edd09883f7748ec19f244363f5",
+      "archiveSha512": "POnQFmviiXwv/l49wGveiTLyQzAmkV\u002B1MuViidTSxFCBRvAOZ0y13XO1R158fSp7BwuQ0hr/8c9cxDnUbEjaqg==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.dependencyinjection/11.0.0/microsoft.extensions.dependencyinjection.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.Extensions.Diagnostics",
+      "version": "11.0.0",
+      "sha256": "6d83692e5f443e3359a4a10a5892c9566bc1228540024fa70089840a703f85f6",
+      "archiveSha512": "NSZAUdg3chuz7GiXAu3O8sA/goFYBaqHQWT\u002BjD90kKD6E77g/3UnGz\u002Bu/JUVCIjuSFMJ7u/MxdOYsl44QZ2JEQ==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.diagnostics/11.0.0/microsoft.extensions.diagnostics.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.Extensions.FileProviders.Physical",
+      "version": "11.0.0",
+      "sha256": "ddea7788afac7ba58730b1fc908f3bbadea380b169e7b1c29ae8d7b624f1a996",
+      "archiveSha512": "YQrr9FzxZZ1c8SsOGVJ7fyCPNwKvZLr7nfEwNnbN/FvizQ50GzfPRJ36mOlaogHcP\u002BpAn9xnXtV3oRb5mY1MjQ==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.fileproviders.physical/11.0.0/microsoft.extensions.fileproviders.physical.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.Extensions.FileSystemGlobbing",
+      "version": "11.0.0",
+      "sha256": "30bcc2204d9c27756662058e940c6e665d47e86b46deccaa5ad844791fede548",
+      "archiveSha512": "NehbQ9zetvJyA/j45JYC\u002BfKxfREA0ro8EYor/55iEm7y4RS5SZBwTBwR0jwBkOKg3dz49hqHmVCVrBX6eASyNA==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.filesystemglobbing/11.0.0/microsoft.extensions.filesystemglobbing.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.Extensions.Localization.Abstractions",
+      "version": "11.0.0",
+      "sha256": "f7d5fd413dc8df817e03ff39ebe1698e37967bdbafe14054435cb2f260265f93",
+      "archiveSha512": "5APr4m1CXZ/aBSU\u002BITZobKZAQXwZslKg\u002BAkka1GBlmcp\u002B4PymLtrMiHXVkrZRdv7MKKUJoZ0uTF7JOtXiSsEMQ==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.localization.abstractions/11.0.0/microsoft.extensions.localization.abstractions.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.Extensions.Logging",
+      "version": "11.0.0",
+      "sha256": "a13d55cefd6b2578b8c5c40d59d8eda7b838c6e91e03f9fbbad775a6314586da",
+      "archiveSha512": "Q\u002BnHF6Bi9YD5tkA3yLj1Pipj0RVMMGN\u002B3\u002BCGPICg1AqQFcN31QgZsK3SRLWPmB39eNN9f0w6EoViVGBjXAGVXQ==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.logging/11.0.0/microsoft.extensions.logging.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.Extensions.Options.ConfigurationExtensions",
+      "version": "11.0.0",
+      "sha256": "fc12f796c30e883a261c81fc03c6f7b754e4c8b8f278be977c59d07391217b75",
+      "archiveSha512": "mKXJ7fcDiMpzm24hPDuD2Qz05vAZo8Yosk7Yv50MIyJBRt0DVoGc6asGJM12on2skKqSCweml9oN\u002BscHaTLeOA==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.options.configurationextensions/11.0.0/microsoft.extensions.options.configurationextensions.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.Extensions.Validation",
+      "version": "11.0.0",
+      "sha256": "df301df2b952e0c52b9384cc22754c5307c67604029faed6e51a6b36d855d989",
+      "archiveSha512": "Y3gOQ5PGY23bIgCxCzehsdcTHMY/Tf8uN3VKo0US/E3BBchds54moUa5qkq1zDSRJ4n2DRxuiQjafH5uBstK0w==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.validation/11.0.0/microsoft.extensions.validation.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.JSInterop.WebAssembly",
+      "version": "11.0.0",
+      "sha256": "b40c91d10c152d151e77ea8f9004cb2b818e0713d5a1dd4973dc7cfff95b99d6",
+      "archiveSha512": "r97Vbv4yPYbxx1ipL4Idjm2Y1uEOYjpA1JiPW80pxIIYi0fonYkWr3LUNhdfk/o4Nj0\u002BcfRvqJ2RkhvLiVS3/A==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.jsinterop.webassembly/11.0.0/microsoft.jsinterop.webassembly.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.JSInterop",
+      "version": "11.0.0",
+      "sha256": "b684c54b10c69e1da17163fc451b9dc45a7ebbe7a95f2baa5948f68f14628e84",
+      "archiveSha512": "ccJ2wZi69krUf1pub9z\u002BbplU26Ew/lE/u8xep7QM1y3O8jopdFZ8\u002BuOZDwocc6Oqq14O\u002BGzi7ePr/pzNnUv8Bg==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.jsinterop/11.0.0/microsoft.jsinterop.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.NET.ILLink.Tasks",
+      "version": "11.0.0",
+      "sha256": "5222303e533aa1e27baf757e65e8af3a67463b85bf8aef69c70d9af75e41422f",
+      "archiveSha512": "RkPFHxgjzoPhOne9ujHLjGj1PnxtWTUbuntGPA0tRp4mXzvTamWNqO5h5JUj2FmPsPWlj73wY5JBUVWtWi13/A==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.net.illink.tasks/11.0.0/microsoft.net.illink.tasks.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.NET.Sdk.WebAssembly.Pack",
+      "version": "11.0.0",
+      "sha256": "49e77d1bc5f24ed532a8983b55a58f69eff5b08fbb2487efc4ddb55508caf5d6",
+      "archiveSha512": "ZhyMyJhJzuPhm9\u002B4YIzpSsTIZ\u002BWQ\u002BtX8PKLog5e8ITg9809Kkurqu25mwLU4cY7AoxT/JxBrfbFECTI\u002BhGAz6g==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.net.sdk.webassembly.pack/11.0.0/microsoft.net.sdk.webassembly.pack.11.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.NETCore.App.Runtime.Mono.browser-wasm",
+      "version": "11.0.0",
+      "sha256": "e4d9fbb8f47640d47775f3260891947f5bf52a4ca2372f5c98df313025f36f60",
+      "archiveSha512": "lvhs7AGJBQBsMXiNhkpcAD2FDQoUSknlqz8mIqWNYkyfdN2joern056lfoKBV1nsAjeMkFJ6DJ8oy/6ifDTRlA==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.netcore.app.runtime.mono.browser-wasm/11.0.0/microsoft.netcore.app.runtime.mono.browser-wasm.11.0.0.nupkg"
+      ]
+    }
+  ]
+}
