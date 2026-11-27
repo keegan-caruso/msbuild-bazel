@@ -80,7 +80,7 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
                 EnableNodeReuse = false,
                 // Task assemblies remain mapped in an in-process Windows node.
                 // Dispose worker nodes before deleting the private package tree.
-                DisableInProcNode = OperatingSystem.IsWindows(),
+                DisableInProcNode = OperatingSystem.IsWindows() && !singleNode,
                 ProjectCacheDescriptor = cache is null ? null : ProjectCacheDescriptor.FromInstance(cache),
                 Loggers = [new Microsoft.Build.Logging.ConsoleLogger(Microsoft.Build.Framework.LoggerVerbosity.Minimal)]
             };
