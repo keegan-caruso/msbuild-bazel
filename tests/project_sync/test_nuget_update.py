@@ -110,7 +110,29 @@ class NuGetUpdateCacheTests(unittest.TestCase):
             if automatic is None:
                 command+=['--no-http-cache']
             elif automatic:
-                application_data=home/'Library/Application Support' if sys.platform == 'darwin' else base/'data'
+                if os.name == 'nt':
+                    # Windows KnownFolders ignores HOME/XDG. Query the same
+                    # per-user default as .NET without redirecting product policy.
+                    import ctypes
+                    import uuid
+                    class Guid(ctypes.Structure):
+                        _fields_ = [('data1', ctypes.c_uint32), ('data2', ctypes.c_uint16),
+                                    ('data3', ctypes.c_uint16), ('data4', ctypes.c_ubyte * 8)]
+                    folder = Guid.from_buffer_copy(uuid.UUID('f1b32785-6fba-4fcf-9d55-7b8e7f157091').bytes_le)
+                    path = ctypes.c_void_p()
+                    get_folder = ctypes.windll.shell32.SHGetKnownFolderPath
+                    get_folder.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p)]
+                    get_folder.restype = ctypes.c_long
+                    self.assertEqual(get_folder(ctypes.byref(folder), 0x4000, None, ctypes.byref(path)), 0)
+                    try:
+                        application_data = Path(ctypes.wstring_at(path))
+                    finally:
+                        free = ctypes.windll.ole32.CoTaskMemFree
+                        free.argtypes = [ctypes.c_void_p]
+                        free.restype = None
+                        free(path)
+                else:
+                    application_data=home/'Library/Application Support' if sys.platform == 'darwin' else base/'data'
                 cache=application_data/'rules-msbuild/nuget-http'
             else:
                 command+=['--http-cache',str(cache)]
