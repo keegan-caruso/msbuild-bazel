@@ -15,6 +15,8 @@ python3 tests/graph_build/acceptance.py /tmp/fresh-graph-acceptance
 
 Setup acquires pinned contributor tools. Checks cover shell/Starlark/pins, owned .NET formatting/warnings/unit tests, and rule contracts. Use fresh fixture/report directories. Docs-only changes need link/path checks and `git diff --check`. Baseline: Bazel 9.3.2 (`USE_BAZEL_VERSION` overrides `.bazelversion` for experiments; other versions are unqualified). Use wrappers and explicit `RULES_MSBUILD_BAZELISK` / `RULES_MSBUILD_DOTNET_ROOT` overrides (the latter selects contributor tooling, not an application SDK repository).
 
+`scripts/check-dotnet.sh` uses `python3` by default. Set `RULES_MSBUILD_PYTHON` to another Python 3 executable when needed, including `python.exe` on Windows.
+
 ## Linux on Apple silicon
 
 ```sh

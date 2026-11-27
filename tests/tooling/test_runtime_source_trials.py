@@ -18,6 +18,7 @@ spec.loader.exec_module(trials)
 
 
 class RuntimeSourceTrialTests(unittest.TestCase):
+    @unittest.skipIf(os.name == 'nt', 'Linux runtime replacement verifies Unix permission bits')
     def test_replacement_breaks_hardlink_and_restores_mode_and_timestamps(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -75,7 +76,7 @@ class RuntimeSourceTrialTests(unittest.TestCase):
         proof = {'managed': 2, 'native': 1, 'sdkAbsentExecution': True, 'packageVerified': True}
         files = {'runtime.json': json.dumps(proof), 'runtime.launcher.log': 'launcher',
                  'runtime.sdk-absent.log': 'sdk absent', 'runtime.package-sdk-absent.log': 'package absent'}
-        with tempfile.TemporaryDirectory() as temporary:
+        with tempfile.TemporaryDirectory(prefix='runtime proof ') as temporary:
             root = Path(temporary)
             archive = root/'outputs.zip'
             with zipfile.ZipFile(archive, 'w') as zipped:

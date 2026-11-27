@@ -6,12 +6,49 @@ import json
 import os
 from pathlib import Path
 import shutil
+import shlex
 import signal
+import sys
 import subprocess
 import tempfile
 from types import SimpleNamespace as NS
 
+from fixture_host import WINDOWS, bazel_environment, bazel_startup
+
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def bash_executable():
+    executable = os.environ.get('RULES_MSBUILD_BASH') or os.environ.get('BAZEL_SH') or shutil.which('bash')
+    if not executable:
+        raise ValueError('Set RULES_MSBUILD_BASH or BAZEL_SH to the real Bash executable')
+    return executable
+
+
+def bash_command(*arguments):
+    values = [bash_executable(), *map(str, arguments)]
+    if not WINDOWS:
+        return values
+    # MSYS parses bare apostrophes when launched by a native process. Force
+    # Windows double quotes for every argv element, preserving empty arguments.
+    quoted = []
+    for value in values:
+        argument = subprocess.list2cmdline([value])
+        if not (argument.startswith('"') and argument.endswith('"')):
+            trailing = len(argument) - len(argument.rstrip('\\'))
+            argument = '"' + argument + '\\' * trailing + '"'
+        quoted.append(argument)
+    return ' '.join(quoted)
+
+
+def bash_path(path):
+    if not WINDOWS:
+        return str(path)
+    return subprocess.check_output(bash_command('-c', 'cygpath -au "$1"', '--', path), text=True).strip()
+
+
+def shell_command(script, *arguments):
+    return bash_command(script, *arguments) if WINDOWS else [str(script), *arguments]
 
 
 class Files(list):
@@ -22,11 +59,11 @@ class Files(list):
 def pinned_runfiles_library(arguments):
     if arguments.runfiles_library:
         return Path(arguments.runfiles_library).resolve(strict=True)
-    command = [os.environ.get('RULES_MSBUILD_BAZEL', str(ROOT / 'scripts/bazel-launcher.sh')), '--batch']
+    command = bazel_startup('--batch')
     if arguments.bazel_output_root:
         command.append('--output_user_root=' + str(Path(arguments.bazel_output_root).resolve()))
     def bazel(*args):
-        result = subprocess.run(command + list(args), cwd=ROOT, text=True, capture_output=True, timeout=120)
+        result = subprocess.run(command + list(args), cwd=ROOT, env=bazel_environment(), text=True, capture_output=True, timeout=120)
         assert result.returncode == 0, result.stdout + result.stderr
         return result.stdout.strip()
     files = bazel('cquery', '@rules_shell//shell/runfiles:runfiles.bash', '--output=files', '--lockfile_mode=off').splitlines()
@@ -55,9 +92,11 @@ def runfiles_controls(scope, root, library):
     script.chmod(0o755)
     environment = {key: value for key, value in os.environ.items() if not key.startswith(('RUNFILES_', 'TEST_SRCDIR'))}
     def lookup(env, expected, context, name=logical):
-        result = subprocess.run([str(script), name], cwd=root, env=dict(environment, **env), capture_output=True)
+        result = subprocess.run(shell_command(script, name), cwd=root, env=dict(environment, **env), capture_output=True)
         assert result.returncode == 0, result.stderr
-        assert result.stdout.split(b'\0') == [os.fsencode(expected), os.fsencode(expected), os.fsencode(context), b''], result.stdout
+        native = Path(expected).as_posix() if WINDOWS else str(expected)
+        native_context = Path(context).as_posix() if WINDOWS else str(context)
+        assert result.stdout.split(b'\0') == [os.fsencode(bash_path(expected)), os.fsencode(native), os.fsencode(native_context), b''], result.stdout
     lookup({'RUNFILES_DIR': str(directory)}, directory / logical, directory)
     lookup({'TEST_SRCDIR': directory.name}, directory / logical, directory)
     adjacent_tree = Path(str(script) + '.runfiles')
@@ -65,7 +104,7 @@ def runfiles_controls(scope, root, library):
     lookup({}, adjacent_tree / logical, adjacent_tree)
     shutil.rmtree(adjacent_tree)
     manifest = root / 'lookup manifest'
-    bootstrap = root / 'bootstrap library space\\name.bash'
+    bootstrap = root / ('bootstrap library space.bash' if WINDOWS else 'bootstrap library space\\name.bash')
     shutil.copyfile(library, bootstrap)
     def write_manifest(target, entry=physical):
         manifest.write_text(' ' + key + ' ' + manifest_escape(target) + '\n ' + manifest_escape(logical, key=True) + ' ' + manifest_escape(entry) + '\n')
@@ -76,7 +115,7 @@ def runfiles_controls(scope, root, library):
     shutil.copyfile(manifest, adjacent)
     lookup({}, physical, adjacent)
     adjacent.unlink()
-    missing = subprocess.run([str(script), 'repo/missing'], cwd=root, env=dict(environment, RUNFILES_MANIFEST_FILE=str(manifest)), capture_output=True)
+    missing = subprocess.run(shell_command(script, 'repo/missing'), cwd=root, env=dict(environment, RUNFILES_MANIFEST_FILE=str(manifest)), capture_output=True)
     assert missing.returncode != 0 and b'missing runfile' in missing.stderr, missing
     if os.name != 'nt':
         newline = root / 'payload ending\n'
@@ -92,7 +131,9 @@ def runfiles_controls(scope, root, library):
     shutil.copyfile(manifest, adjacent)
     lookup({}, physical, adjacent)
     adjacent.unlink()
-    print('PASS: production Bash prelude with pinned runfiles library, directory/manifest lookup, escaped keys/bootstrap paths, trailing newlines and missing runfiles')
+    if WINDOWS:
+        print('UNRUN: POSIX trailing-newline physical filename controls')
+    print('PASS: production Bash prelude with pinned runfiles library, directory/manifest lookup, escaped keys/bootstrap paths and missing runfiles')
 
 
 def main():
@@ -132,10 +173,13 @@ def main():
         host_root = runfiles / 'host'
         host_root.mkdir()
         host = host_root / 'host'
-        host.write_text('''#!/usr/bin/env python3
+        probe = host.with_suffix('.py') if WINDOWS else host
+        probe.write_text('''#!/usr/bin/env python3
 import json, os, pathlib, subprocess, sys, time
 if "hang" in sys.argv:
-    child = subprocess.Popen(["sleep", "60"])
+    if os.environ.get("HOST_PID_FILE"):
+        pathlib.Path(os.environ["HOST_PID_FILE"]).write_text(str(os.getpid()))
+    child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
     pathlib.Path(os.environ["PID_FILE"]).write_text(str(child.pid))
     time.sleep(60)
 if "write" in sys.argv:
@@ -145,8 +189,10 @@ if "write" in sys.argv:
 print(json.dumps(dict(args=sys.argv[1:], cwd=os.getcwd(), stdin=sys.stdin.read(), executable=os.access(".hidden", os.X_OK), root=os.environ["DOTNET_ROOT"], core=os.environ.get("CORE_ROOT"), custom=os.environ["CUSTOM"])))
 sys.exit(7 if "seven" in sys.argv else 0)
 ''')
+        if WINDOWS:
+            host.write_text('#!/usr/bin/env bash\nexec ' + shlex.quote(bash_path(sys.executable)) + ' ' + shlex.quote(probe.as_posix()) + ' "$@"\n')
         host.chmod(0o755)
-        declared = NS(directory='host', entry_point='host', launch_mode='dotnet', environment={'CUSTOM': "space ' $value"}, files=Files(['host']))
+        declared = NS(directory='host', entry_point='host', launch_mode='dotnet', environment={'CUSTOM': "space ' $value"}, files=Files(['host', 'host.py'] if WINDOWS else ['host']))
         scope['_runtime_host'] = lambda ctx: declared
         script = root / 'launcher'
         actions = NS(declare_file=lambda name: script, write=lambda file, content, **kw: file.write_text(content))
@@ -156,21 +202,24 @@ sys.exit(7 if "seven" in sys.argv else 0)
             ctx = NS(attr=NS(**attrs), label=NS(name='launcher'), actions=actions, runfiles=lambda **kw: kw)
             scope['create_executable_launcher'](ctx, 'App.dll', 'app', Files(data), test)
             script.chmod(0o755)
-            subprocess.run(['bash', '-n', str(script)], check=True)
+            subprocess.run(bash_command('-n', script), check=True)
 
         environment = dict(os.environ, RUNFILES_DIR=str(runfiles), CORE_ROOT='ambient')
         for key in ('TESTBRIDGE_TEST_ONLY', 'TEST_TOTAL_SHARDS', 'TEST_SHARD_INDEX', 'RUNFILES_MANIFEST_FILE', 'RUNFILES_MANIFEST_ONLY', 'TEST_SRCDIR'):
             environment.pop(key, None)
 
         def run(args=(), code=0, extra=None):
-            result = subprocess.run([str(script), *args], env=dict(environment, **(extra or {})), input='stdin payload', text=True, capture_output=True, cwd=root)
+            result = subprocess.run(shell_command(script, *args), env=dict(environment, **(extra or {})), input='stdin payload', text=True, capture_output=True, cwd=root)
             assert result.returncode == code, result.stdout + result.stderr
             return result
 
         generate(False)
         observed = json.loads(run(['space argument', '', '$HOME', "a'b"]).stdout)
         assert observed['args'][1:] == ['space argument', '', '$HOME', "a'b"], observed
-        assert observed['executable'], observed
+        if WINDOWS:
+            print('UNRUN: POSIX executable-bit control; Windows file mode does not express it')
+        else:
+            assert observed['executable'], observed
         assert observed['stdin'] == 'stdin payload' and observed['core'] is None and observed['custom'] == "space ' $value", observed
         assert not Path(observed['cwd']).exists()
         run(['seven'], 7)
@@ -185,81 +234,117 @@ sys.exit(7 if "seven" in sys.argv else 0)
         declared.launch_mode = 'corerun'
         attrs.update(test_working_directory='', test_output_dirs=[], expected_exit_code=0)
         generate()
-        assert json.loads(run().stdout)['core'] == str(host_root)
+        assert Path(json.loads(run().stdout)['core']).resolve() == host_root.resolve()
         generate(data=[NS(file='app/.hidden', destination='App.dll')])
         assert 'Conflicting' in run(code=1).stderr
         generate()
         pid_file = root / 'pid'
-        process = subprocess.Popen([str(script), 'hang'], env=dict(environment, PID_FILE=str(pid_file)), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        signal_pid = root / 'signal-pid'
+        host_pid = root / 'host-pid'
+        command = shell_command(script, 'hang')
+        if WINDOWS:
+            wrapper = root / 'signal-wrapper'
+            wrapper.write_text('printf "%s" "$$" > "$CONTROL_PID_FILE"\nexec "$@"\n')
+            command = bash_command(wrapper, bash_executable(), script, 'hang')
+        process = subprocess.Popen(command, env=dict(environment, PID_FILE=str(pid_file), CONTROL_PID_FILE=str(signal_pid), HOST_PID_FILE=str(host_pid)), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         import time
         deadline = time.monotonic() + 5
         while not pid_file.exists() and time.monotonic() < deadline:
             time.sleep(.02)
         assert pid_file.exists()
-        process.send_signal(signal.SIGTERM)
-        process.communicate(timeout=5)
-        assert process.returncode == 143
-        pid = pid_file.read_text()
-        state = subprocess.run(['ps', '-o', 'stat=', '-p', pid], text=True, capture_output=True).stdout.strip()
-        assert not state or state.startswith('Z'), state
-        # A real controlling TTY exercises foreground handoff and terminal stdin.
-        import pty
-        import select
-        generate(False)
-        tty_pid, terminal = pty.fork()
-        if tty_pid == 0:
-            os.execve(str(script), [str(script), 'tty'], environment)
-        os.write(terminal, b'terminal payload\n\x04')
-        transcript = b''
-        deadline = time.monotonic() + 5
-        while time.monotonic() < deadline:
-            if select.select([terminal], [], [], .1)[0]:
-                try:
-                    chunk = os.read(terminal, 65536)
-                except OSError:
-                    break
-                if not chunk:
-                    break
-                transcript += chunk
-        waited, status = os.waitpid(tty_pid, os.WNOHANG)
-        if not waited:
-            os.kill(tty_pid, signal.SIGKILL)
-            os.close(terminal)
-            os.waitpid(tty_pid, 0)
-            raise AssertionError('TTY launcher hung: ' + repr(transcript))
-        os.close(terminal)
-        assert os.waitstatus_to_exitcode(status) == 0, transcript
-        assert b'"stdin": "terminal payload\\n"' in transcript, transcript
-        pid_file.unlink()
-        tty_pid, terminal = pty.fork()
-        if tty_pid == 0:
-            os.execve(str(script), [str(script), 'hang'], dict(environment, PID_FILE=str(pid_file)))
-        deadline = time.monotonic() + 5
-        while not pid_file.exists() and time.monotonic() < deadline:
-            time.sleep(.02)
-        assert pid_file.exists()
-        os.kill(tty_pid, signal.SIGTERM)
-        while time.monotonic() < deadline:
-            if select.select([terminal], [], [], .1)[0]:
-                try:
-                    if not os.read(terminal, 65536):
+        if WINDOWS:
+            import ctypes
+            kernel = ctypes.windll.kernel32
+            kernel.OpenProcess.argtypes = [ctypes.c_uint32, ctypes.c_bool, ctypes.c_uint32]
+            kernel.OpenProcess.restype = ctypes.c_void_p
+            kernel.WaitForSingleObject.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+            kernel.WaitForSingleObject.restype = ctypes.c_uint32
+            kernel.CloseHandle.argtypes = [ctypes.c_void_p]
+            kernel.TerminateProcess.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+            children = [kernel.OpenProcess(0x100001, False, int(file.read_text())) for file in (host_pid, pid_file)]
+            try:
+                assert all(children), 'Cannot observe native host and child processes'
+                subprocess.run(bash_command('-c', 'kill -TERM "$1"', '--', signal_pid.read_text()), check=True)
+                stdout, stderr = process.communicate(timeout=5)
+                assert process.returncode == 143, (process.returncode, stdout, stderr)
+                assert all(kernel.WaitForSingleObject(child, 5000) == 0 for child in children), 'Native host or child survived launcher cancellation'
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                    process.communicate(timeout=5)
+                for child in children:
+                    if child:
+                        if kernel.WaitForSingleObject(child, 0) != 0:
+                            kernel.TerminateProcess(child, 125)
+                            kernel.WaitForSingleObject(child, 5000)
+                        kernel.CloseHandle(child)
+        else:
+            process.send_signal(signal.SIGTERM)
+            process.communicate(timeout=5)
+            assert process.returncode == 143
+            state = subprocess.run(['ps', '-o', 'stat=', '-p', pid_file.read_text()], text=True, capture_output=True).stdout.strip()
+            assert not state or state.startswith('Z'), state
+        if WINDOWS:
+            print('UNRUN: POSIX controlling-TTY and TTY-signal cases require pty.fork; native pipe/stdin and child cleanup are checked')
+        else:
+            # A real controlling TTY exercises foreground handoff and terminal stdin.
+            import pty
+            import select
+            generate(False)
+            tty_pid, terminal = pty.fork()
+            if tty_pid == 0:
+                os.execve(str(script), [str(script), 'tty'], environment)
+            os.write(terminal, b'terminal payload\n\x04')
+            transcript = b''
+            deadline = time.monotonic() + 5
+            while time.monotonic() < deadline:
+                if select.select([terminal], [], [], .1)[0]:
+                    try:
+                        chunk = os.read(terminal, 65536)
+                    except OSError:
                         break
-                except OSError:
-                    break
-        waited, status = os.waitpid(tty_pid, os.WNOHANG)
-        if not waited:
-            os.kill(tty_pid, signal.SIGKILL)
+                    if not chunk:
+                        break
+                    transcript += chunk
+            waited, status = os.waitpid(tty_pid, os.WNOHANG)
+            if not waited:
+                os.kill(tty_pid, signal.SIGKILL)
+                os.close(terminal)
+                os.waitpid(tty_pid, 0)
+                raise AssertionError('TTY launcher hung: ' + repr(transcript))
             os.close(terminal)
-            os.waitpid(tty_pid, 0)
-            raise AssertionError('TTY cancellation hung')
-        os.close(terminal)
-        assert os.waitstatus_to_exitcode(status) == 143, status
-        state = subprocess.run(['ps', '-o', 'stat=', '-p', pid_file.read_text()], text=True, capture_output=True).stdout.strip()
-        assert not state or state.startswith('Z'), state
+            assert os.waitstatus_to_exitcode(status) == 0, transcript
+            assert b'"stdin": "terminal payload\\n"' in transcript, transcript
+            pid_file.unlink()
+            tty_pid, terminal = pty.fork()
+            if tty_pid == 0:
+                os.execve(str(script), [str(script), 'hang'], dict(environment, PID_FILE=str(pid_file)))
+            deadline = time.monotonic() + 5
+            while not pid_file.exists() and time.monotonic() < deadline:
+                time.sleep(.02)
+            assert pid_file.exists()
+            os.kill(tty_pid, signal.SIGTERM)
+            while time.monotonic() < deadline:
+                if select.select([terminal], [], [], .1)[0]:
+                    try:
+                        if not os.read(terminal, 65536):
+                            break
+                    except OSError:
+                        break
+            waited, status = os.waitpid(tty_pid, os.WNOHANG)
+            if not waited:
+                os.kill(tty_pid, signal.SIGKILL)
+                os.close(terminal)
+                os.waitpid(tty_pid, 0)
+                raise AssertionError('TTY cancellation hung')
+            os.close(terminal)
+            assert os.waitstatus_to_exitcode(status) == 143, status
+            state = subprocess.run(['ps', '-o', 'stat=', '-p', pid_file.read_text()], text=True, capture_output=True).stdout.strip()
+            assert not state or state.startswith('Z'), state
         attrs['direct_executable_smoke'] = True
         declared.launch_mode = 'dotnet'
         declared.environment = {}
-        host.write_text(host.read_text().replace('os.environ["CUSTOM"]', 'os.environ.get("CUSTOM")'))
+        probe.write_text(probe.read_text().replace('os.environ["CUSTOM"]', 'os.environ.get("CUSTOM")'))
         generate()
         assert Path(json.loads(run().stdout)['cwd']).resolve() == root.resolve()
         runfiles_controls(shell_scope, root, library)

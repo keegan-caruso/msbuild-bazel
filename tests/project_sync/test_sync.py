@@ -13,6 +13,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 SDK = Path(os.environ["RULES_MSBUILD_DOTNET_ROOT"])
+DOTNET = SDK / ("dotnet.exe" if os.name == "nt" else "dotnet")
 RUNNER = ROOT / "tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll"
 
 
@@ -26,7 +27,7 @@ class GraphSyncTests(unittest.TestCase):
         (self.root / "Program.cs").write_text('System.Console.WriteLine(1);')
 
     def sync(self, mappings=None, flags=(), success=True):
-        args = [str(SDK / "dotnet"), str(RUNNER), str(self.root), str(SDK / "sdk/11.0.100"), "App.csproj"]
+        args = [str(DOTNET), str(RUNNER), str(self.root), str(SDK / "sdk/11.0.100"), "App.csproj"]
         if mappings is not None:
             (self.root / "mappings.json").write_text(mappings if isinstance(mappings, str) else json.dumps(mappings))
             args += ["--mappings", "mappings.json"]
@@ -156,7 +157,7 @@ class GraphSyncTests(unittest.TestCase):
                 (self.root/document).unlink()
 
     def test_opt_in_profiling_preserves_declarations(self):
-        command = [str(SDK / 'dotnet'), str(RUNNER), str(self.root), str(SDK / 'sdk/11.0.100'), 'App.csproj']
+        command = [str(DOTNET), str(RUNNER), str(self.root), str(SDK / 'sdk/11.0.100'), 'App.csproj']
         expected = None
         for enabled in [None, '1']:
             environment = dict(os.environ, DOTNET_ROOT=str(SDK))
@@ -184,10 +185,16 @@ class GraphSyncTests(unittest.TestCase):
                 (prepared / name).write_bytes(expected[name])
 
             def publish(*flags):
-                return subprocess.run([str(SDK / 'dotnet'), str(RUNNER), 'publish', str(prepared), str(self.root), *flags],
+                return subprocess.run([str(DOTNET), str(RUNNER), 'publish', str(prepared), str(self.root), *flags],
                     capture_output=True, text=True)
 
             self.assertEqual(publish('--check').returncode, 0)
+            for name, content in expected.items():
+                (self.root / name).write_bytes(content.replace(b'\n', b'\r\n'))
+            self.assertNotEqual(publish('--check').returncode, 0)
+            self.assertEqual(publish().returncode, 0)
+            for name, content in expected.items():
+                self.assertEqual((self.root / name).read_bytes(), content)
             (self.root / 'graph.generated.bzl').write_text('# authored file\n')
             result = publish()
             self.assertNotEqual(result.returncode, 0)
@@ -209,7 +216,7 @@ class GraphSyncTests(unittest.TestCase):
         for paths in [['../outside'], ['same', 'same'], ['parent', 'parent/child']]:
             manifest.write_text(json.dumps({'sources': [{'path': path, 'file': str(self.root / 'Program.cs')} for path in paths], 'runfiles': []}))
             with tempfile.TemporaryDirectory(prefix='sync-stage-') as directory:
-                result = subprocess.run([str(SDK / 'dotnet'), str(RUNNER), 'stage', str(manifest), directory], capture_output=True, text=True)
+                result = subprocess.run([str(DOTNET), str(RUNNER), 'stage', str(manifest), directory], capture_output=True, text=True)
                 self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_prepared_tree_materializes_projection_and_rejects_authored_links(self):
@@ -221,12 +228,12 @@ class GraphSyncTests(unittest.TestCase):
             (original / name).write_text('declared artifact')
             (projected / name).symlink_to(original / name)
         manifest = self.root / 'tree-stage.json'
-        manifest.write_text(json.dumps({'sources': [], 'runfiles': [{'path': 'producer', 'file': str(relative), 'tree': True},
+        manifest.write_text(json.dumps({'sources': [], 'runfiles': [{'path': 'producer', 'file': relative.as_posix(), 'tree': True},
             {'path': 'single.txt', 'file': str(original / 'nested/metadata.txt'), 'tree': True}]}))
 
         def stage():
             destination = Path(tempfile.mkdtemp(dir=self.root))
-            result = subprocess.run([str(SDK / 'dotnet'), str(RUNNER), 'stage', str(manifest), str(destination)],
+            result = subprocess.run([str(DOTNET), str(RUNNER), 'stage', str(manifest), str(destination)],
                 cwd=self.root, capture_output=True, text=True)
             return result, destination / 'runfiles/producer'
 
@@ -390,7 +397,7 @@ class GraphSyncTests(unittest.TestCase):
             payload = base / 'contract.json'
             prepared = base / 'prepared'
             report = base / 'report.json'
-            command = [str(SDK / 'dotnet'), str(runner)]
+            command = [str(DOTNET), str(runner)]
             environment = dict(os.environ, DOTNET_ROOT=str(SDK))
             for case in ['version', 'duplicate', 'definition', 'undeclared']:
                 invalid = json.loads(json.dumps(contract))
@@ -478,7 +485,7 @@ class GraphSyncTests(unittest.TestCase):
                 # Clear products so each row must run the project-cache decision.
                 for path in ['bin', 'obj']:
                     shutil.rmtree(self.root / path, ignore_errors=True)
-                result = subprocess.run([str(SDK / 'dotnet'), str(graph_runner), 'action', str(self.root),
+                result = subprocess.run([str(DOTNET), str(graph_runner), 'action', str(self.root),
                     str(contract), str(base / 'report.json'), str(base / 'cache')], capture_output=True, text=True,
                     env=dict(os.environ, DOTNET_ROOT=str(SDK)))
                 self.assertEqual(result.returncode == 0, failure is None, result.stdout + result.stderr)
@@ -1244,7 +1251,7 @@ class GraphSyncTests(unittest.TestCase):
         (source / 'empty').mkdir()
         (source / 'Hidden.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup></Project>')
         (source / 'Code.cs').write_text('public class Hidden {}')
-        built = subprocess.run([str(SDK / 'dotnet'), 'build', str(source / 'Hidden.csproj'), '-c', 'Release', '-p:UseSharedCompilation=false', '-p:NuGetAudit=false', '-p:RestoreSources=' + str(source / 'empty')], capture_output=True, text=True)
+        built = subprocess.run([str(DOTNET), 'build', str(source / 'Hidden.csproj'), '-c', 'Release', '-p:UseSharedCompilation=false', '-p:NuGetAudit=false', '-p:RestoreSources=' + str(source / 'empty')], capture_output=True, text=True)
         self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
         library = self.root / 'Library'
         library.mkdir()

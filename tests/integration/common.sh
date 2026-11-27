@@ -6,7 +6,9 @@ case "$(uname -s)/$(uname -m)" in
     Linux/x86_64) export SDK_TEST_RID=linux-x64 ;;
     Darwin/arm64) export SDK_TEST_RID=osx-arm64 ;;
     Darwin/x86_64) export SDK_TEST_RID=osx-x64 ;;
-    *) echo 'Integration fixtures require macOS or Linux ARM64/x64.' >&2; exit 1 ;;
+    MINGW*ARM64/x86_64|MSYS_NT*ARM64/x86_64|MINGW*/aarch64|MSYS_NT*/aarch64|MINGW*/arm64|MSYS_NT*/arm64) export SDK_TEST_RID=win-arm64 ;;
+    MINGW*/x86_64|MSYS_NT*/x86_64) export SDK_TEST_RID=win-x64 ;;
+    *) echo 'Unsupported integration fixture platform.' >&2; exit 1 ;;
 esac
 # TEST_TMPDIR is nested below the rules checkout's execroot. MSBuild would discover
 # its ancestor .editorconfig there, so put consumer sources outside that tree.

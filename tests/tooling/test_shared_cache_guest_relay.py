@@ -82,6 +82,7 @@ class RelayTests(unittest.TestCase):
                         server.shutdown()
                         serve.join(3)
 
+    @unittest.skipUnless(hasattr(socket, 'AF_UNIX'), 'Unix-domain relay transport requires AF_UNIX')
     def test_idle_opposite_peer_closes_after_bounded_drain(self):
         def hold(connection, finished):
             self.assertTrue(finished.wait(2))
@@ -89,12 +90,14 @@ class RelayTests(unittest.TestCase):
         self.assertGreaterEqual(elapsed, 0.10)
         self.assertLess(elapsed, 1.5)
 
+    @unittest.skipUnless(hasattr(socket, 'AF_UNIX'), 'Unix-domain relay transport requires AF_UNIX')
     def test_delayed_response_after_half_close_is_preserved(self):
         def respond(connection, finished):
             time.sleep(0.05)
             connection.sendall(b'delayed response')
         self.exercise_drain(respond, b'delayed response', idle=0.3)
 
+    @unittest.skipUnless(hasattr(socket, 'AF_UNIX'), 'Unix-domain relay transport requires AF_UNIX')
     def test_reverse_progress_extends_idle_deadline(self):
         def stream(connection, finished):
             for _ in range(6):
@@ -103,6 +106,7 @@ class RelayTests(unittest.TestCase):
         elapsed = self.exercise_drain(stream, b'xxxxxx', idle=0.15)
         self.assertGreater(elapsed, 0.30)
 
+    @unittest.skipUnless(hasattr(socket, 'AF_UNIX'), 'Unix-domain relay transport requires AF_UNIX')
     def test_blocked_drain_send_is_bounded(self):
         writer, reader = socket.socketpair()
         with writer, reader:
@@ -116,6 +120,7 @@ class RelayTests(unittest.TestCase):
             reader.settimeout(1)
             self.assertTrue(reader.recv(65536))
 
+    @unittest.skipUnless(hasattr(socket, 'AF_UNIX'), 'Unix-domain relay transport requires AF_UNIX')
     def test_bidirectional_bytes_and_half_close(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

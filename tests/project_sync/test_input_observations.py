@@ -6,6 +6,8 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
+SDK = Path(os.environ["RULES_MSBUILD_DOTNET_ROOT"])
+DOTNET = SDK / ("dotnet.exe" if os.name == "nt" else "dotnet")
 
 
 class InputObservationTests(unittest.TestCase):
@@ -22,13 +24,14 @@ class InputObservationTests(unittest.TestCase):
             '<Reference Include="Microsoft.Build.Framework" HintPath="$(MSBuildBinPath)/Microsoft.Build.Framework.dll" />'
             '<AssemblyMetadata Include="SelectedMSBuildBinPath" Value="$(MSBuildBinPath)" /></ItemGroup></Project>')
         (cls.directory / "Program.cs").write_text(CONTROLS)
-        result = subprocess.run(["bash", str(ROOT / "scripts/dotnet.sh"), "build", str(cls.directory / "Controls.csproj"),
-            "-c", "Release", "-warnaserror"], capture_output=True, text=True)
+        result = subprocess.run([str(DOTNET), "build", str(cls.directory / "Controls.csproj"),
+            "-c", "Release", "-warnaserror", "--disable-build-servers", "-p:NuGetAudit=false"],
+            capture_output=True, text=True, env=dict(os.environ, DOTNET_CLI_USE_MSBUILD_SERVER="false", MSBUILDUSESERVER="0"))
         if result.returncode:
             raise AssertionError(result.stdout + result.stderr)
 
     def control(self, name):
-        result = subprocess.run([str(Path(os.environ["RULES_MSBUILD_DOTNET_ROOT"]) / "dotnet"),
+        result = subprocess.run([str(DOTNET),
             str(self.directory / "bin/Release/net11.0/Controls.dll"), name], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return result.stdout

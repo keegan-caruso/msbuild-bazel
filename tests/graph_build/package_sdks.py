@@ -11,6 +11,7 @@ import tempfile
 import zipfile
 
 from qualify import ROOT
+from fixture_host import bazel_environment, bazel_startup, sdk_declaration
 
 
 def main():
@@ -40,7 +41,7 @@ def main():
         (root / 'MODULE.bazel').write_text('module(name="package_sdks")\nbazel_dep(name="rules_msbuild",version="0.0.0")\n'
             f'local_path_override(module_name="rules_msbuild",path={json.dumps(str(ROOT))})\n'
             'dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\n'
-            'dotnet.sdk(name="dotnet",global_json="//:global.json")\nuse_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
+            + sdk_declaration(global_json='//:global.json') + 'use_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
         # This synthetic SDK only adds a define; its compiler reference boundary
         # is reviewed explicitly rather than inferred for an arbitrary import.
         (root / 'mapping.json').write_text(json.dumps({'projectDefaults': {'referenceBoundary': True}}))
@@ -50,9 +51,9 @@ def main():
             'msbuild_package_lock(name="packages",packages=[":sdk"])\n'
             'msbuild_sync(name="sync",package_build=True,package_lock=":packages",mappings="mapping.json",projects=["App/App.csproj"])\n')
         (root / 'BUILD.bazel').write_text(authored)
-        prefix = [str(ROOT / 'scripts/bazel-launcher.sh'), f'--output_base={base / "bazel"}']
+        prefix = bazel_startup(f'--output_base={base / "bazel"}')
         def bazel(*args, success=True):
-            result = subprocess.run(prefix + list(args), cwd=root, env=os.environ, text=True, capture_output=True, timeout=180)
+            result = subprocess.run(prefix + list(args), cwd=root, env=bazel_environment(), text=True, capture_output=True, timeout=180)
             assert (result.returncode == 0) == success, result.stdout + result.stderr
             return result.stdout + result.stderr
         try:

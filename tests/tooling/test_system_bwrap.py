@@ -4,6 +4,7 @@ import stat
 import sys
 import tempfile
 from types import SimpleNamespace
+import os
 import unittest
 from unittest.mock import patch
 
@@ -17,6 +18,7 @@ class SystemBwrapTests(unittest.TestCase):
         with patch.object(Path, 'lstat', side_effect=AssertionError('host read')):
             self.assertEqual(system_bwrap.select_sandbox(Path('/declared')), Path('/declared'))
 
+    @unittest.skipIf(os.name == 'nt', 'Linux Bubblewrap selection requires POSIX executable bits')
     def test_explicit_handoff_checks_bytes_and_privileged_paths(self):
         with tempfile.TemporaryDirectory() as temporary:
             declared = Path(temporary)/'declared'; declared.write_bytes(b'pinned bwrap')

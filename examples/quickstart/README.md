@@ -23,6 +23,8 @@ use_repo(dotnet, "dotnet")
 register_toolchains("@dotnet//:all")
 ```
 
+On Windows, add `platforms = ["win-x64"]` or `platforms = ["win-arm64"]` to `dotnet.sdk` in the copied example’s `MODULE.bazel`. Run the same three commands from Git Bash. See [Windows prerequisites and qualification](../../docs/support.md#windows-qualification-in-progress).
+
 First build resolves release metadata and writes SDK URLs/hashes to `MODULE.bazel.lock` (commit it); later builds reuse and hash-verify those archives. To change SDK versions: edit `global.json`, rerun sync, and commit the updated lockfile and graph. Adapters follow the selected SDK's bundled framework/MSBuild (no SDK-version registration needed). Build servers can enforce locks with `--lockfile_mode=error`. See [SDK configuration](../../docs/api.md#sdks). With a roll-forward policy, `bazel run @dotnet//:update -- --sync //:sync` refreshes SDK selection and graph (review/commit diff). Optional [declared runtimes](../../docs/api.md#runtimes) select the app/test host independently.
 
 Web/Razor apps use the same SDK declaration (bundled ASP.NET provides the default host). To run framework-dependent published outputs:

@@ -58,8 +58,13 @@ def main():
         assert 'Conflicting graph snapshot' in build(success=False, no_read=True)
         assert not list(cache.glob('.staging-*'))
         snapshot.write_bytes(original)
-        blob.write_bytes(b'corrupt shared payload')
+        # Replay reads the snapshot entry, which may be a copy on filesystems
+        # without hard links. Publishing verifies the shared blob itself.
+        entries[0].write_bytes(b'corrupt snapshot entry')
         assert 'Corrupt graph snapshot' in build(success=False)
+        entries[0].write_bytes(payload)
+        blob.write_bytes(b'corrupt shared payload')
+        assert 'Corrupt graph snapshot payload' in build(success=False, no_read=True)
         assert not list((cache / '.cas').glob('*.pending-*'))
         print('PASS: deduplicated payload inodes, independent output bytes/modes, consumer mutation isolation, conflicting snapshot cleanup and corruption rejection')
 

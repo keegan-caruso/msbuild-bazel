@@ -943,7 +943,7 @@ internal static class GraphGenerator
             {
                 throw new InvalidDataException(name + " is stale; run your sync target (bazel run //:sync), then commit the generated files");
             }
-            if (!check && File.Exists(path) && !File.ReadAllText(path).StartsWith(header, StringComparison.Ordinal))
+            if (!check && File.Exists(path) && !File.ReadAllText(path).ReplaceLineEndings("\n").StartsWith(header, StringComparison.Ordinal))
             {
                 throw new InvalidDataException("Refusing to overwrite an authored " + name);
             }

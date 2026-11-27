@@ -11,7 +11,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 DOTNET_ROOT = Path(os.environ.get("RULES_MSBUILD_DOTNET_ROOT", ROOT / ".tools/dotnet")).resolve()
-DOTNET = DOTNET_ROOT / "dotnet"
+DOTNET = DOTNET_ROOT / ("dotnet.exe" if os.name == "nt" else "dotnet")
 
 PROJECT = """<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
@@ -246,6 +246,31 @@ class CodeStyleEnforcementTests(unittest.TestCase):
 
     def test_clean_owned_sources_compile(self):
         self.assert_build_succeeds("tool", CLEAN_SOURCE, "clean-tool")
+
+    def test_redirected_intermediates_ignore_local_build_outputs(self):
+        project = self.projects["tool"]
+        self.assert_build_succeeds("tool", CLEAN_SOURCE, "redirect-seed")
+        generated = list((project.parent / "obj").rglob("*.cs"))
+        self.assertTrue(generated, "Seed build did not leave conventional intermediates")
+        for directory in ("bin", "obj"):
+            poison = project.parent / directory / "BootstrapPoison.cs"
+            poison.parent.mkdir(exist_ok=True)
+            poison.write_text("#error conventional build output must not compile\n")
+            generated.append(poison)
+        retained = {path: path.read_bytes() for path in generated}
+        redirected = self.evidence / "redirected-build"
+        result = self._run(
+            name="redirected-intermediates",
+            command=[
+                str(DOTNET), "build", str(project), "--nologo",
+                "--disable-build-servers", "-p:UseSharedCompilation=false", "-p:NuGetAudit=false",
+                "-p:BaseIntermediateOutputPath=" + str(redirected / "obj") + os.sep,
+                "-p:BaseOutputPath=" + str(redirected / "bin") + os.sep,
+            ],
+        )
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertTrue(list((redirected / "bin").rglob("Probe.dll")))
+        self.assertEqual({path: path.read_bytes() for path in retained}, retained)
 
     def test_selected_style_diagnostics_fail_as_errors(self):
         for diagnostic, source in STYLE_CASES.items():

@@ -15,6 +15,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
 SDK = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])
+DOTNET = SDK / ("dotnet.exe" if os.name == "nt" else "dotnet")
 RUNNER = ROOT/'tools/ArtifactTools/bin/Release/net11.0/ArtifactTools.dll'
 
 
@@ -27,7 +28,7 @@ class ArtifactToolsTests(unittest.TestCase):
     def invoke(self, operation, request, *args, success=True):
         path = self.root/'request.json'
         path.write_text(json.dumps(request))
-        result = subprocess.run([str(SDK/'dotnet'), str(RUNNER), operation, str(path), *map(str,args)], capture_output=True, text=True, env=dict(os.environ,DOTNET_ROOT=str(SDK)))
+        result = subprocess.run([str(DOTNET), str(RUNNER), operation, str(path), *map(str,args)], capture_output=True, text=True, env=dict(os.environ,DOTNET_ROOT=str(SDK)))
         self.assertEqual(result.returncode == 0, success, result.stdout+result.stderr)
         return result.stdout+result.stderr
 
@@ -40,30 +41,43 @@ class ArtifactToolsTests(unittest.TestCase):
         self.assertIn('Expected layout/', self.invoke('run', {}, success=False))
 
     def test_protocol_uses_declared_host_and_stages_inputs(self):
-        app = self.root/'app'
+        app = self.root / 'app'
         app.mkdir()
-        (app/'App.dll').write_text('assembly')
-        (self.root/'data.txt').write_text('input')
-        host = self.root/'host'
-        host.mkdir()
-        executable = host/'dotnet'
-        executable.write_text('#!/bin/sh\n'
-            'test "$DOTNET_ROOT" = "' + str(host) + '" || exit 21\n'
-            'test "$DOTNET_HOST_PATH" = "$DOTNET_ROOT/dotnet" || exit 22\n'
-            'test "$DOTNET_MULTILEVEL_LOOKUP" = 0 || exit 23\n'
-            'test -z "${CORE_ROOT:-}" || exit 24\n'
-            'test -f App.dll && test "$(cat input.txt)" = input || exit 25\n'
-            'while [ "$#" -gt 0 ]; do\n'
-            '  if [ "$1" = --results-directory ]; then shift; output="$1"; fi\n'
-            '  shift\n'
-            'done\n'
-            'cat > "$output/results.trx" <<EOF\n'
-            '<TestRun xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010"><ResultSummary outcome="Completed"><Counters total="0"/></ResultSummary></TestRun>\nEOF\n')
-        executable.chmod(0o755)
+        (self.root / 'data.txt').write_text('input')
+        (app / 'App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
+            '<OutputType>Exe</OutputType><TargetFramework>net11.0</TargetFramework>'
+            '<ImplicitUsings>enable</ImplicitUsings></PropertyGroup></Project>')
+        (app / 'Program.cs').write_text("""
+var host = Environment.GetEnvironmentVariable("DOTNET_ROOT");
+if (host != __HOST__) return 21;
+if (Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") != Path.Combine(host!, __DOTNET__)) return 22;
+if (Environment.GetEnvironmentVariable("DOTNET_MULTILEVEL_LOOKUP") != "0") return 23;
+if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CORE_ROOT"))) return 24;
+if (!File.Exists("App.dll") || File.ReadAllText("input.txt") != "input") return 25;
+var index = Array.IndexOf(args, "--results-directory");
+if (index < 0) return 26;
+File.WriteAllText(Path.Combine(args[index + 1], "results.trx"),
+    "<TestRun xmlns='http://microsoft.com/schemas/VisualStudio/TeamTest/2010'><ResultSummary outcome='Completed'><Counters total='0'/></ResultSummary></TestRun>");
+return 0;
+""".replace('__HOST__', json.dumps(str(SDK.resolve()))).replace('__DOTNET__', json.dumps(DOTNET.name)))
+        built = subprocess.run([str(DOTNET), 'build', str(app / 'App.csproj'), '-c', 'Release',
+            '--disable-build-servers', '-p:NuGetAudit=false', '-p:RestoreSources=' + str(self.root)],
+            capture_output=True, text=True, env=dict(os.environ, DOTNET_ROOT=str(SDK),
+                DOTNET_CLI_USE_MSBUILD_SERVER='false', MSBUILDUSESERVER='0'))
+        self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+        # Manifest aliases can point to a declared SDK on another drive without
+        # copying its runtime or requiring fixture symlink privileges.
+        runfiles = self.root / 'runfiles.manifest'
+        def entry(key, path):
+            physical = str(path.resolve()).replace('\\', '\\b').replace('\n', '\\n')
+            return ' ' + key + ' ' + physical + '\n'
+        runfiles.write_text(entry('app', app / 'bin/Release/net11.0') +
+                            entry('data.txt', self.root / 'data.txt') + entry('host', SDK))
         request = dict(entry='app', assembly='App', data=[dict(source='data.txt', path='input.txt')],
                        testOptions=dict(protocol='mtp', allowEmpty=True),
-                       runtimeHost=dict(directory='host', entryPoint='dotnet'))
-        with unittest.mock.patch.dict(os.environ, RULES_MSBUILD_RUNFILES=str(self.root), CORE_ROOT='ambient'):
+                       runtimeHost=dict(directory='host', entryPoint=DOTNET.name))
+        with unittest.mock.patch.dict(os.environ, RULES_MSBUILD_RUNFILES=str(runfiles),
+                CORE_ROOT='ambient', DOTNET_HOST_PATH='ambient-host-must-not-be-used'):
             self.invoke('test-protocol', request)
 
     def package(self, extra=None):
