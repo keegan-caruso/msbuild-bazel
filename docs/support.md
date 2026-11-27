@@ -206,6 +206,10 @@ SDK **11.0.100** / runtime **11.0.0** and Bazel **9.3.2**:
 
 Rosetta integration-test archive helper fails in GNU tar following Bazel symlinks (`Function not implemented`); direct quickstart passes without it (separate from `libarchive` extraction). Retained source-built SDK 10.0.100 and NativeAOT keep their own pins.
 
+## Test sharding
+
+Native macOS ARM64 with SDK **11.0.100** and Bazel **9.3.3** passed `python3 tests/graph_build/protocols.py --sharding`: both real MTP and VSTest suites ran every discovered case exactly once across three shards, including parameterized cases and a skip. Filtered runs exercised empty partitions; failure propagation and repeated Bazel test-cache hits also passed. MTP UID selection uses location-independent display names for partitioning because framework UIDs can change with the private assembly path. See [test configuration](api.md) for prerequisites. Windows and Linux sharding remain unqualified.
+
 ## Windows qualification in progress
 
 Native Windows Server 2025 x64 (10.0.26100, Azure Run Command/SYSTEM), SDK **11.0.100**, runtime **11.0.0**, MSBuild **18.12.2**, and Bazel **9.3.2** passed these scoped gates:
@@ -584,6 +588,6 @@ Streaming control fetches eight 8 MiB payloads with budget 2 (see [bounded cache
 - Unknown SDKs/workloads and whole-repo runtime/native parity are unqualified.
 - Custom task/analyzer/generator reads, package side effects, and output ownership require contracts; Build compiler selections do not qualify Pack/Publish.
 - Evaluation reuse is opt-in for reviewed compiler-only inputs (verification still reads bytes).
-- Sandboxing ≠ graph isolation: build trusted projects; exports reject links; HTTP publication lacks atomic divergent-writer guarantees; test sharding unsupported.
+- Sandboxing ≠ graph isolation: build trusted projects; exports reject links; HTTP publication lacks atomic divergent-writer guarantees; executable-test sharding remains unsupported.
 
 Run suites: `bash scripts/bazel.sh test //tests/integration:SUITE --test_output=errors` (fresh dirs, separate containers for recovery, reports outside Git). See [Contributing](../CONTRIBUTING.md) and the [versioned record](https://github.com/keegan-caruso/msbuild-bazel/blob/fa2764b55f630ae0462e836aa3163b0807f07f7f/docs/support.md).

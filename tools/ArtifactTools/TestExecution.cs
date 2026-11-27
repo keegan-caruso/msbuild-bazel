@@ -16,10 +16,7 @@ internal static class TestExecution
             throw new InvalidDataException("Unknown test protocol: " + options.Protocol);
         }
 
-        if (int.TryParse(Environment.GetEnvironmentVariable("TEST_TOTAL_SHARDS"), out var count) && count > 1)
-        {
-            throw new InvalidDataException("Test sharding is not supported");
-        }
+        _ = TestSharding.Configuration();
 
         if (options.Settings is not null && options.SettingsOutput is not null)
         {
@@ -163,31 +160,14 @@ internal static class TestExecution
                 // also govern that child instead of a path in captured settings.
                 Add(start, "--", "RunConfiguration.DotNetHostPath=" + start.FileName);
             }
-            var cancelled = 0;
-            using var process = Process.Start(start) ?? throw new InvalidDataException("Test process could not start");
-            void Cancel(PosixSignalContext context)
+            if (!TestSharding.Configure(start, options, stagingRoot))
             {
-                context.Cancel = true;
-                Interlocked.Exchange(ref cancelled, 1);
-                try
-                {
-                    if (!process.HasExited)
-                    {
-                        process.Kill(entireProcessTree: true);
-                    }
-                }
-                catch (InvalidOperationException) { /* The child exited concurrently. */ }
+                Write(xml, [], watch.Elapsed);
+                return 0;
             }
-            using var terminate = PosixSignalRegistration.Create(PosixSignal.SIGTERM, Cancel);
-            using var interrupt = PosixSignalRegistration.Create(PosixSignal.SIGINT, Cancel);
-            process.WaitForExit();
-            exitCode = process.ExitCode;
-            if (cancelled != 0)
-            {
-                throw new InvalidDataException("Test run cancelled");
-            }
+            exitCode = Execute(start).ExitCode;
 
-            return Report(report, xml, process.ExitCode, options.AllowEmpty, protocol == "mtp", watch.Elapsed);
+            return Report(report, xml, exitCode, options.AllowEmpty, protocol == "mtp", watch.Elapsed);
         }
         catch (Exception error)
         {
@@ -195,6 +175,39 @@ internal static class TestExecution
             Write(xml, [Error("runner", error.Message)], watch.Elapsed);
             return exitCode != 0 ? exitCode : 1;
         }
+    }
+
+    internal static (int ExitCode, string Output, string Error) Execute(ProcessStartInfo start)
+    {
+        var cancelled = 0;
+        using var process = Process.Start(start) ?? throw new InvalidDataException("Test process could not start");
+        var output = start.RedirectStandardOutput ? process.StandardOutput.ReadToEndAsync() : Task.FromResult("");
+        var error = start.RedirectStandardError ? process.StandardError.ReadToEndAsync() : Task.FromResult("");
+        void Cancel(PosixSignalContext context)
+        {
+            context.Cancel = true;
+            Interlocked.Exchange(ref cancelled, 1);
+            try
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+            }
+            catch (InvalidOperationException) { /* The child exited concurrently. */ }
+        }
+        using var terminate = PosixSignalRegistration.Create(PosixSignal.SIGTERM, Cancel);
+        using var interrupt = PosixSignalRegistration.Create(PosixSignal.SIGINT, Cancel);
+        process.WaitForExit();
+        if (cancelled != 0)
+        {
+            throw new InvalidDataException("Test run cancelled");
+        }
+        if (!Task.WhenAll(output, error).Wait(TimeSpan.FromSeconds(5)))
+        {
+            throw new InvalidDataException("Test discovery output streams remained open after process exit");
+        }
+        return (process.ExitCode, output.GetAwaiter().GetResult(), error.GetAwaiter().GetResult());
     }
 
     private static void Add(ProcessStartInfo start, params string[] arguments)
