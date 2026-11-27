@@ -206,9 +206,13 @@ SDK **11.0.100** / runtime **11.0.0** and Bazel **9.3.2**:
 
 Rosetta integration-test archive helper fails in GNU tar following Bazel symlinks (`Function not implemented`); direct quickstart passes without it (separate from `libarchive` extraction). Retained source-built SDK 10.0.100 and NativeAOT keep their own pins.
 
+## Instrumented test coverage
+
+Native macOS ARM64, SDK **11.0.100** and Bazel **9.3.3** passed `python3 tests/graph_build/protocols.py --coverage` with real `coverlet.MTP` **10.1.1** and `coverlet.collector` **6.0.4**. The xUnit MTP and VSTest fixtures emitted instrumented LCOV into Bazel's combined report: the called dependency line had positive hits and an uncalled method had zero hits. Repeated runs used cached test coverage; three-shard collection merged correctly with each parameterized/ordinary case present exactly once. The original declared runtime assembly digest remained unchanged. Converter controls cover declared-source mapping, omitted ambient paths, malformed records, missing coverage for nonempty results and ordinary non-coverage execution. A skip-only run produced valid zero-hit coverage. See [coverage configuration](api.md) for declared package and source boundaries. Windows, Linux, F# and directory-source coverage remain unqualified.
+
 ## Test sharding
 
-Native macOS ARM64 with SDK **11.0.100** and Bazel **9.3.3** passed `python3 tests/graph_build/protocols.py --sharding`: both real MTP and VSTest suites ran every discovered case exactly once across three shards, including parameterized cases and a skip. Filtered runs exercised empty partitions; failure propagation and repeated Bazel test-cache hits also passed. MTP UID selection uses location-independent display names for partitioning because framework UIDs can change with the private assembly path. See [test configuration](api.md) for prerequisites. Windows and Linux sharding remain unqualified.
+Native macOS ARM64 with SDK **11.0.100** and Bazel **9.3.3** passed `python3 tests/graph_build/protocols.py --sharding`: both real xUnit MTP and VSTest suites ran every discovered case exactly once across three shards, including parameterized cases and a skip. Filtered runs exercised empty partitions; failure propagation and repeated Bazel test-cache hits also passed. MTP UID selection uses location-independent display names for partitioning because framework UIDs can change with the private assembly path. See [test configuration](api.md) for prerequisites. Windows and Linux sharding remain unqualified.
 
 ## Windows qualification in progress
 

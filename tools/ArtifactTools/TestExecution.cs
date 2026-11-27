@@ -5,7 +5,7 @@ using System.Xml;
 using System.Xml.Linq;
 using RulesMSBuild;
 
-internal sealed record TestOptions(string Protocol, string? Settings = null, string FilterArgument = "", bool AllowEmpty = false, string? Runner = null, string[]? Adapters = null, bool Diagnostics = false, string[]? OutputDirectories = null, string? SettingsOutput = null, string? WorkingDirectory = null);
+internal sealed record TestOptions(string Protocol, string? Settings = null, string FilterArgument = "", bool AllowEmpty = false, string? Runner = null, string[]? Adapters = null, bool Diagnostics = false, string[]? OutputDirectories = null, string? SettingsOutput = null, string? WorkingDirectory = null, string Coverage = "", Dictionary<string, string>? CoverageSources = null, string? CoverageCollector = null);
 
 internal static class TestExecution
 {
@@ -128,6 +128,7 @@ internal static class TestExecution
                     Add(start, "/Settings:" + settings);
                 }
 
+                var adapterSearchPaths = new List<string>();
                 if (options.Adapters is { Length: > 0 })
                 {
                     var adapters = options.Adapters.Select(p => runfiles.Resolve(Program.Safe(p))).ToArray();
@@ -149,7 +150,20 @@ internal static class TestExecution
                         }
                     }
 
-                    Add(start, "/TestAdapterPath:" + string.Join(';', adapters));
+                    adapterSearchPaths.AddRange(adapters);
+                }
+                if (options.CoverageCollector is { } collector)
+                {
+                    var directory = runfiles.Resolve(Program.Safe(collector));
+                    if (!Directory.Exists(directory))
+                    {
+                        throw new InvalidDataException("Missing declared coverage collector directory: " + directory);
+                    }
+                    adapterSearchPaths.Add(directory);
+                }
+                if (adapterSearchPaths.Count > 0)
+                {
+                    Add(start, "/TestAdapterPath:" + string.Join(';', adapterSearchPaths));
                 }
                 var filter = Environment.GetEnvironmentVariable("TESTBRIDGE_TEST_ONLY");
                 if (!string.IsNullOrEmpty(filter))
@@ -160,14 +174,18 @@ internal static class TestExecution
                 // also govern that child instead of a path in captured settings.
                 Add(start, "--", "RunConfiguration.DotNetHostPath=" + start.FileName);
             }
+            var coverage = TestCoverage.Create(options, output);
             if (!TestSharding.Configure(start, options, stagingRoot))
             {
+                coverage?.WriteEmpty();
                 Write(xml, [], watch.Elapsed);
                 return 0;
             }
+            coverage?.Configure(start, protocol);
             exitCode = Execute(start).ExitCode;
-
-            return Report(report, xml, exitCode, options.AllowEmpty, protocol == "mtp", watch.Elapsed);
+            var result = Report(report, xml, exitCode, options.AllowEmpty, protocol == "mtp", watch.Elapsed);
+            coverage?.Finish(empty: result.TestCount == 0);
+            return result.ExitCode;
         }
         catch (Exception error)
         {
@@ -220,7 +238,7 @@ internal static class TestExecution
 
     private static XElement Error(string name, string message) => new("testcase", new XAttribute("name", name), new XAttribute("classname", "Bazel.TestRunner"), new XElement("error", new XAttribute("message", message), message));
 
-    private static int Report(string report, string? output, int exit, bool allowEmpty, bool mtp, TimeSpan elapsed)
+    private static (int ExitCode, int TestCount) Report(string report, string? output, int exit, bool allowEmpty, bool mtp, TimeSpan elapsed)
     {
         using var reader = XmlReader.Create(report, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null });
         var document = XDocument.Load(reader);
@@ -276,12 +294,13 @@ internal static class TestExecution
         {
             throw new InvalidDataException("Incomplete TRX report: result count disagrees with summary");
         }
+        var testCount = cases.Count;
         // MTP reserves exit 8 for zero discovered tests. Only the explicit empty
         // policy plus a valid empty report may turn that particular exit into success.
         if (allowEmpty && mtp && exit == 8 && cases.Count == 0)
         {
             Write(output, cases, elapsed);
-            return 0;
+            return (0, testCount);
         }
         if (cases.Count == 0 && !allowEmpty)
         {
@@ -296,7 +315,8 @@ internal static class TestExecution
         }
 
         Write(output, cases, elapsed);
-        return exit != 0 ? exit : cases.Any(c => c.Element("failure") is not null || c.Element("error") is not null) ? 1 : 0;
+        var code = exit != 0 ? exit : cases.Any(c => c.Element("failure") is not null || c.Element("error") is not null) ? 1 : 0;
+        return (code, testCount);
     }
 
     private static void Write(string? path, IEnumerable<XElement> results, TimeSpan elapsed)

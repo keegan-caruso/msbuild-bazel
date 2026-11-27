@@ -53,6 +53,12 @@ def _runtime_layout(env, target):
     env.expect.that_str(data["native"]["dotnet"]["path"]).equals("dotnet")
     env.expect.that_str(data["shared"]).equals("shared/Microsoft.NETCore.App/10.0.0")
 
+def _coverage(env, target):
+    env.expect.that_collection(paths(target[InstrumentedFilesInfo].instrumented_files)).contains("tests/analysis/Source.cs")
+    data = request(target, ".launch.json")
+    env.expect.that_str(data["testOptions"]["coverage"]).equals("coverlet")
+    env.expect.that_str(data["testOptions"]["coverageSources"]["tests/analysis/Source.cs"]).equals("tests/analysis/Source.cs")
+
 def graph_tests(name):
     """Declare graph analysis controls.
 
@@ -75,6 +81,8 @@ def graph_tests(name):
     analysis_test(name = name + "_launch", targets = {"host": ":source_host", "app": ":app"}, impl = _launch)
     msbuild_layout(name = "direct_host_layout", paths = {"dotnet": "dotnet"}, tags = ["manual"])
     msbuild_runtime(name = "direct_host", layout = ":direct_host_layout", entry_point = "dotnet", runtime_identifier = "linux-arm64", version = "11.0.0", data = ["payload.txt"], tags = ["manual"])
+    msbuild_graph_test(name = "coverage_test", graph = ":graph", project = "App.csproj", test_protocol = "mtp", test_coverage = "coverlet", tags = ["manual"])
+    analysis_test(name = name + "_coverage", target = ":coverage_test", impl = _coverage, config_settings = {"//command_line_option:collect_code_coverage": True})
     msbuild_graph_test(name = "direct_smoke", graph = ":graph", project = "App.csproj", runtime_host = ":direct_host", direct_executable_smoke = True, tags = ["manual"])
     analysis_test(name = name + "_direct_launch", targets = {"host": ":direct_host", "app": ":direct_smoke"}, impl = _direct_launch)
     msbuild_graph_test(name = "registered_direct_smoke", graph = ":graph", project = "App.csproj", direct_executable_smoke = True, tags = ["manual"])
@@ -160,6 +168,9 @@ def graph_tests(name):
     msbuild_graph_layouts(name = "unsafe_combined_layout", graph = ":unsafe_project_output", projects = {"App.csproj|net10.0": "."}, tags = ["manual"])
     failure_test(name + "_unsafe_combined_layout", ":unsafe_combined_layout", "Graph layout requires safe workspace-relative outputs")
     for case, attrs, message in [
+        ("coverage_executable", {"test_coverage": "coverlet"}, "test_coverage requires the mtp or vstest test protocol"),
+        ("coverage_collector_protocol", {"test_protocol": "mtp", "test_coverage": "coverlet", "test_coverage_collector": ":direct_test_tool"}, "test_coverage_collector requires VSTest Coverlet coverage"),
+        ("coverage_collector_missing", {"test_protocol": "vstest", "test_coverage": "coverlet", "test_runner": ":direct_test_tool"}, "VSTest Coverlet coverage requires test_coverage_collector"),
         ("exit_range", {"expected_exit_code": 256}, "expected_exit_code must be between"),
         ("exit_protocol", {"expected_exit_code": 100, "test_protocol": "mtp"}, "expected_exit_code requires"),
         ("settings", {"test_settings": "settings.xml", "test_settings_output": "generated.xml"}, "Declare either test_settings or test_settings_output"),

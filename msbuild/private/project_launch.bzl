@@ -221,7 +221,7 @@ exit "$status"
         runfiles = shell_runfiles(ctx, files = [launcher, runtime, host.directory] + [row.file for row in runtime_data.to_list()], transitive_files = host.files),
     )]
 
-def create_test_protocol_launcher(ctx, tc, name, runtime, runtime_data):
+def create_test_protocol_launcher(ctx, tc, name, runtime, runtime_data, coverage_sources = {}):
     """Return the managed MTP/VSTest adapter and test environment.
 
     Args:
@@ -230,13 +230,14 @@ def create_test_protocol_launcher(ctx, tc, name, runtime, runtime_data):
         name: Assembly name.
         runtime: Compiled runtime output.
         runtime_data: Transitive data files.
+        coverage_sources: Declared workspace source paths mapped to Bazel paths.
 
     Returns:
         The executable DefaultInfo and RunEnvironmentInfo providers.
     """
     if ctx.attr.test_protocol not in ["mtp", "vstest"]:
         fail("Managed test adapter requires the mtp or vstest protocol")
-    test_tools = ([ctx.attr.test_runner] if ctx.attr.test_runner else []) + ctx.attr.test_adapters
+    test_tools = ([ctx.attr.test_runner] if ctx.attr.test_runner else []) + ctx.attr.test_adapters + ([ctx.attr.test_coverage_collector] if ctx.attr.test_coverage_collector else [])
     def_tool = None
     if ctx.attr.test_runner:
         def_tool = ctx.attr.test_runner[MSBuildTestToolInfo]
@@ -248,6 +249,9 @@ def create_test_protocol_launcher(ctx, tc, name, runtime, runtime_data):
         "assembly": name,
         "testOptions": {
             "protocol": ctx.attr.test_protocol,
+            "coverage": ctx.attr.test_coverage,
+            "coverageSources": coverage_sources if ctx.attr.test_coverage else {},
+            "coverageCollector": _runfile(ctx, ctx.attr.test_coverage_collector[MSBuildTestToolInfo].directory) + "/" + ctx.attr.test_coverage_collector[MSBuildTestToolInfo].path if ctx.attr.test_coverage_collector else None,
             "settings": _runfile(ctx, ctx.file.test_settings) if ctx.file.test_settings else None,
             "settingsOutput": ctx.attr.test_settings_output or None,
             "filterArgument": ctx.attr.test_filter_argument,

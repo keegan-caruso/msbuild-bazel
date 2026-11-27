@@ -41,7 +41,7 @@ def packages(lock, workspace):
     (directory/'BUILD.bazel').write_text('\n'.join(rows)+'\n')
 
 
-def setup(folder):
+def setup(folder, *, coverage=False):
     workspace = folder/'src'; workspace.mkdir(parents=True, exist_ok=True)
     (workspace/'MODULE.bazel').write_text(f'''module(name="test_protocol")
 bazel_dep(name="rules_msbuild", version="0.0.0")
@@ -50,6 +50,8 @@ local_path_override(module_name="rules_msbuild", path={json.dumps(str(RULES))})
     (workspace/'BUILD.bazel').write_text('')
     test = workspace/'Mtp'; test.mkdir(exist_ok=True)
     project = '''<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType><UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner></PropertyGroup><ItemGroup><PackageReference Include="xunit.v3.mtp-v2" Version="4.0.0"/><PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.3.3"/></ItemGroup></Project>'''
+    if coverage:
+        project = project.replace('</ItemGroup>', '<PackageReference Include="coverlet.MTP" Version="10.1.1"/></ItemGroup>')
     (test/'Mtp.csproj').write_text(project)
     lock = folder/'lock'; lock.mkdir(exist_ok=True); (lock/'Lock.csproj').write_text(project)
     p = command([DOTNET, 'restore', lock/'Lock.csproj', '--packages', lock/'packages', '-p:NuGetAudit=false'], folder, folder/'restore.log')

@@ -8,7 +8,7 @@ load("//msbuild/private:sdk_bootstrap.bzl", "bootstrap_project")
 load("//msbuild/private:shell_launcher.bzl", _SHELL_TOOLCHAIN = "SHELL_TOOLCHAIN", _shell_launcher_attrs = "shell_launcher_attrs")
 load("//msbuild/private:test_options.bzl", _TEST_OPTIONS_ATTRS = "TEST_OPTIONS_ATTRS", _validate_test = "validate_test")
 
-MSBuildGraphInfo = provider("A declared MSBuild graph workspace and its execution SDK.", fields = {"directory": "Graph output workspace", "contract": "Declared graph output ownership", "dotnet": "Execution host", "sdk": "Declared SDK files", "projects": "Configured project runtime outputs"})
+MSBuildGraphInfo = provider("A declared MSBuild graph workspace and its execution SDK.", fields = {"directory": "Graph output workspace", "contract": "Declared graph output ownership", "dotnet": "Execution host", "sdk": "Declared SDK files", "projects": "Configured project runtime outputs", "coverage_sources": "Declared workspace source paths mapped to Bazel files"})
 
 def _safe_relative_path(path):
     return not path.startswith("/") and "\\" not in path and not any([part in ["", ".", ".."] for part in path.split("/")])
@@ -78,6 +78,7 @@ def _graph_action(ctx, prepare = False):
         fail("reuse_build_cache requires a fresh Pack or Publish action")
     linux_worker = ctx.attr.linux_worker or (ctx.attr.automatic_worker and not prepare and ctx.attr.target == "Build" and linux_stable_paths and stable_paths(ctx))
     worker_sources = []
+    coverage_sources = {}
     prefix = ctx.attr.source_root + "/" if ctx.attr.source_root else ""
     args = ctx.actions.args()
     args.add_all([tc.dotnet.path, runner[0].path, output.path, ctx.file.contract.path, ctx.attr.target, "1" if linux_stable_paths else "0", ctx.file._linux_stable_paths.path, "prepare" if prepare else "action", prepared.directory.path if prepared else "-", "1" if ctx.attr.profile_build else "0", "1" if ctx.attr.windows_isolation else "0"])
@@ -92,6 +93,8 @@ def _graph_action(ctx, prepare = False):
             fail("Graph source requires a safe workspace-relative destination: " + relative)
         args.add_all([file.path, relative])
         worker_sources.append({"path": file.path, "destination": relative})
+        if file.extension == "cs":
+            coverage_sources[relative] = file.path
     for target, relative in ctx.attr.input_paths.items():
         files = target[DefaultInfo].files.to_list()
         if len(files) != 1:
@@ -100,6 +103,8 @@ def _graph_action(ctx, prepare = False):
             fail("Graph input_paths requires safe workspace-relative paths")
         args.add_all([files[0].path, relative])
         worker_sources.append({"path": files[0].path, "destination": relative})
+        if files[0].extension == "cs":
+            coverage_sources[relative] = files[0].path
     closures = []
     tool_properties = {}
     for index, target in enumerate(ctx.attr.bindings):
@@ -227,7 +232,7 @@ def _graph_action(ctx, prepare = False):
         )
     if prepare:
         return [DefaultInfo(files = depset([output])), OutputGroupInfo(runner = depset(runner)), MSBuildGraphRestoreInfo(directory = output, contract = ctx.file.contract, runner = runner[0], sdk = tc.sdk)]
-    return [DefaultInfo(files = depset([output])), OutputGroupInfo(runner = depset(runner)), MSBuildGraphInfo(directory = output, contract = ctx.file.contract, dotnet = tc.dotnet, sdk = tc.sdk, projects = ctx.attr.publish_outputs if ctx.attr.target == "Publish" else ctx.attr.project_outputs)]
+    return [DefaultInfo(files = depset([output])), OutputGroupInfo(runner = depset(runner)), MSBuildGraphInfo(directory = output, contract = ctx.file.contract, dotnet = tc.dotnet, sdk = tc.sdk, projects = ctx.attr.publish_outputs if ctx.attr.target == "Publish" else ctx.attr.project_outputs, coverage_sources = coverage_sources), coverage_common.instrumented_files_info(ctx, source_attributes = ["srcs", "input_paths"], extensions = ["cs"])]
 
 def _graph(ctx):
     return _graph_action(ctx)
@@ -324,11 +329,13 @@ def _runtime(ctx, test = False):
     data = depset([struct(file = target[DefaultInfo].files.to_list()[0], destination = path) for target, path in ctx.attr.data_paths.items()])
     if not test or ctx.attr.test_protocol == "executable":
         return _create_executable_launcher(ctx, assembly.removesuffix(".dll") + ".dll", output, data, test)
-    return _create_test_protocol_launcher(ctx, ctx.toolchains[_TOOLCHAIN], assembly.removesuffix(".dll"), output, data)
+    return _create_test_protocol_launcher(ctx, ctx.toolchains[_TOOLCHAIN], assembly.removesuffix(".dll"), output, data, graph.coverage_sources)
 
 def _test(ctx):
     _validate_test(ctx)
-    return _runtime(ctx, test = True)
+    if ctx.coverage_instrumented() and ctx.attr.test_protocol == "executable":
+        fail("Instrumented coverage requires the mtp or vstest test protocol")
+    return _runtime(ctx, test = True) + [coverage_common.instrumented_files_info(ctx, dependency_attributes = ["graph"])]
 
 _RUNTIME_ATTRS = {
     "graph": attr.label(providers = [MSBuildGraphInfo], mandatory = True),
