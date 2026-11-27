@@ -8,6 +8,7 @@ from pathlib import Path
 import subprocess
 import shutil
 import stat
+import sys
 import tarfile
 import time
 import tempfile
@@ -27,12 +28,39 @@ class ArtifactToolsTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
 
-    def invoke(self, operation, request, *args, success=True):
+    def invoke(self, operation, request, *args, success=True, release_child=None):
         path = self.root/'request.json'
         path.write_text(json.dumps(request))
-        result = subprocess.run([str(DOTNET), str(RUNNER), operation, str(path), *map(str,args)], capture_output=True, text=True, env=dict(os.environ,DOTNET_ROOT=str(SDK)))
+        command = [str(DOTNET), str(RUNNER), operation, str(path), *map(str,args)]
+        environment = dict(os.environ, DOTNET_ROOT=str(SDK))
+        if release_child is None:
+            result = subprocess.run(command, capture_output=True, text=True, env=environment)
+        else:
+            result = self.invoke_with_held_child(command, environment, release_child)
         self.assertEqual(result.returncode == 0, success, result.stdout+result.stderr)
         return result.stdout+result.stderr
+
+    def invoke_with_held_child(self, command, environment, release_child):
+        release, done = release_child
+        # File capture measures adapter process exit independently of handles
+        # inherited by the fixture child. Release that child before reading logs.
+        output = self.root / 'held-child.stdout'
+        errors = self.root / 'held-child.stderr'
+        with output.open('w') as stdout, errors.open('w') as stderr:
+            try:
+                result = subprocess.run(command, stdout=stdout, stderr=stderr, stdin=subprocess.DEVNULL,
+                                        text=True, env=environment, timeout=15)
+            except subprocess.TimeoutExpired as error:
+                raise AssertionError('ArtifactTools process itself exceeded the discovery lifecycle budget') from error
+            finally:
+                release.touch()
+                deadline = time.monotonic() + 5
+                while not done.exists() and time.monotonic() < deadline:
+                    time.sleep(0.02)
+                self.assertTrue(done.exists(), 'Fixture child did not acknowledge release')
+        result.stdout = output.read_text()
+        result.stderr = errors.read_text()
+        return result
 
     def test_protocol_rejects_executable_and_missing_protocol(self):
         for options in ({'protocol': 'executable'}, {}):
@@ -58,15 +86,12 @@ class ArtifactToolsTests(unittest.TestCase):
             '<OutputType>Exe</OutputType><TargetFramework>net11.0</TargetFramework>'
             '<ImplicitUsings>enable</ImplicitUsings></PropertyGroup></Project>')
         (app / 'Program.cs').write_text("""
-if (args.Contains("hold")) { System.Threading.Thread.Sleep(60000); return 0; }
-if (Environment.GetEnvironmentVariable("DISCOVERY_PIPE_HOLD") is { } pidFile && args.Contains("--list-tests")) {
-    var childStart = new System.Diagnostics.ProcessStartInfo(OperatingSystem.IsWindows()
-        ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "ping.exe")
-        : Environment.GetEnvironmentVariable("DOTNET_HOST_PATH")!);
-    if (OperatingSystem.IsWindows()) { childStart.ArgumentList.Add("-t"); childStart.ArgumentList.Add("127.0.0.1"); }
-    else { childStart.ArgumentList.Add(System.Reflection.Assembly.GetExecutingAssembly().Location); childStart.ArgumentList.Add("hold"); }
+if (Environment.GetEnvironmentVariable("DISCOVERY_PIPE_HOLD") is { } childScript && args.Contains("--list-tests")) {
+    var childStart = new System.Diagnostics.ProcessStartInfo(Environment.GetEnvironmentVariable("DISCOVERY_CHILD_PYTHON")!) {
+        WorkingDirectory = Path.GetDirectoryName(childScript)!
+    };
+    childStart.ArgumentList.Add(childScript);
     using var child = System.Diagnostics.Process.Start(childStart)!;
-    File.WriteAllText(pidFile, child.Id.ToString());
     return 0;
 }
 var host = Environment.GetEnvironmentVariable("DOTNET_ROOT");
@@ -117,22 +142,31 @@ return 0;
             self.invoke('test-protocol', request)
             request['testOptions'] = dict(protocol='vstest', allowEmpty=True, runner='runner', adapters=['adapters'])
             self.invoke('test-protocol', request)
-        pid_file = self.root / 'discovery-child.pid'
+        child_folder = self.root / 'discovery-child'
+        child_folder.mkdir()
+        release = child_folder / 'release'
+        done = child_folder / 'done'
+        child_script = child_folder / 'hold.py'
+        child_script.write_text('''
+import os
+from pathlib import Path
+import tempfile
+import time
+root = Path(__file__).parent
+limit = time.monotonic() + 30
+while not (root / 'release').exists() and time.monotonic() < limit:
+    time.sleep(0.02)
+os.chdir(tempfile.gettempdir())
+(root / 'done').write_text('released')
+''')
         request['testOptions'] = dict(protocol='mtp', allowEmpty=True)
         started = time.monotonic()
-        try:
-            with unittest.mock.patch.dict(os.environ, RULES_MSBUILD_RUNFILES=str(runfiles),
-                    TEST_TMPDIR=str(test_tmp), TEST_TOTAL_SHARDS='2', TEST_SHARD_INDEX='0',
-                    DISCOVERY_PIPE_HOLD=str(pid_file)):
-                self.assertIn('output streams remained open after process exit',
-                              self.invoke('test-protocol', request, success=False))
-            self.assertLess(time.monotonic() - started, 15)
-        finally:
-            if pid_file.exists():
-                try:
-                    os.kill(int(pid_file.read_text()), 9)
-                except ProcessLookupError:
-                    pass
+        with unittest.mock.patch.dict(os.environ, RULES_MSBUILD_RUNFILES=str(runfiles),
+                TEST_TMPDIR=str(test_tmp), TEST_TOTAL_SHARDS='2', TEST_SHARD_INDEX='0',
+                DISCOVERY_PIPE_HOLD=str(child_script), DISCOVERY_CHILD_PYTHON=sys.executable):
+            self.assertIn('output streams remained open after process exit',
+                          self.invoke('test-protocol', request, success=False, release_child=(release, done)))
+        self.assertLess(time.monotonic() - started, 15)
         self.assertEqual(list(test_tmp.iterdir()), [])
         for file in readonly:
             self.assertFalse(file.stat().st_mode & stat.S_IWRITE)
