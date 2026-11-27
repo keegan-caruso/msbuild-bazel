@@ -25,9 +25,13 @@ def main():
             + sdk_declaration(global_json='//:global.json') + 'use_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
         (workspace / 'BUILD.bazel').write_text(
             'load("@rules_msbuild//msbuild:sync.bzl","msbuild_sync")\n'
-            'msbuild_sync(name="sync", projects=["App.csproj"], srcs=["App.csproj","App.cs","global.json"], windows_isolation=True)\n')
+            'msbuild_sync(name="sync", projects=["App.csproj"], srcs=["App.csproj","App.cs","Lib/Lib.csproj","Lib/Lib.cs","global.json"], windows_isolation=True)\n')
+        library = workspace / 'Lib'
+        library.mkdir()
+        (library / 'Lib.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup></Project>')
+        (library / 'Lib.cs').write_text('public class Library {}')
         project = workspace / 'App.csproj'
-        template = '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework>{}</PropertyGroup></Project>'
+        template = '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework><DefaultItemExcludes>$(DefaultItemExcludes);Lib/**</DefaultItemExcludes>{}</PropertyGroup><ItemGroup><ProjectReference Include="Lib/Lib.csproj" /></ItemGroup></Project>'
         project.write_text(template.format(''))
         (workspace / 'App.cs').write_text('public class App {}')
         prefix = bazel_startup('--output_base=' + str(base / 'bazel'))
@@ -42,7 +46,7 @@ def main():
             bazel('run', '//:sync')
             outputs = [workspace / name for name in ['graph.generated.json', 'graph.generated.bzl']]
             generated = [path.read_bytes() for path in outputs]
-            assert 'App.csproj' in json.loads(generated[0])['Projects']
+            assert set(json.loads(generated[0])['Projects']) == {'App.csproj', 'Lib/Lib.csproj'}
             bazel('run', '//:sync', '--', '--check')
             sentinel = base / 'parent-private.txt'
             sentinel.write_text('outside declared sync inputs')

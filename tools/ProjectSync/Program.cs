@@ -188,7 +188,7 @@ internal static class Program
             }
             GraphGenerator.Run(view.Root, sdk, projects.ToArray(), check, root, configuration, framework, view, packageBuild, packageInputs.ToArray(), new GraphMappings(mappings), resolveReferences,
                 qualificationDirectory is null ? null : new QualificationOptions(qualificationDirectory, qualificationUrl, graphRunner, bearerToken, qualificationReadOnly),
-                QualificationSandbox.Inside ? QualificationSandbox.Base + "/output" : isolatedOutput);
+                QualificationSandbox.Inside ? QualificationSandbox.Base + "/output" : isolatedOutput, singleNode: isolatedOutput is not null);
             return 0;
         }
         catch (Exception error)
