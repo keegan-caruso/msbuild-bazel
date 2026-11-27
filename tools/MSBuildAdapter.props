@@ -3,6 +3,7 @@
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)ConfiguredProjectKey.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SdkDirectory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ShortDirectory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)RelativePathComponents.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)NoLinkTree.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)AnalyzerConfigs.cs" />
