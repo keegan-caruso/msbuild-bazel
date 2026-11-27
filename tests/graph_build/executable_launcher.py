@@ -10,10 +10,9 @@ import shlex
 import signal
 import sys
 import subprocess
-import tempfile
 from types import SimpleNamespace as NS
 
-from fixture_host import WINDOWS, bazel_environment, bazel_startup
+from fixture_host import temporary_directory, WINDOWS, bazel_environment, bazel_startup
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -158,7 +157,7 @@ def main():
                  shell_launcher=lambda ctx, script: script,
                  shell_runfiles=lambda ctx, **kwargs: kwargs,
                  write_shell_script=shell_scope['write_shell_script'])
-    with tempfile.TemporaryDirectory(prefix='launcher-control-') as temporary:
+    with temporary_directory(prefix='launcher-control-') as temporary:
         root = Path(temporary).resolve()
         runfiles = root / 'runfiles space'
         library_target = runfiles / 'bazel_tools/tools/bash/runfiles/runfiles.bash'

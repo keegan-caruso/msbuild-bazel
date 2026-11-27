@@ -8,10 +8,9 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
-import tempfile
 
 from qualify import DOTNET, ROOT, RUNNER, run
-from fixture_host import bazel_environment, bazel_startup, sdk_declaration
+from fixture_host import temporary_directory, bazel_environment, bazel_startup, sdk_declaration
 
 
 def main():
@@ -19,7 +18,7 @@ def main():
     parser.add_argument("--task-host", action="store_true", help="qualify graph out-of-process task execution")
     parser.add_argument("--graph-worker", action="store_true", help="qualify the Linux persistent cache broker")
     args = parser.parse_args()
-    with tempfile.TemporaryDirectory(prefix='graph-tools-') as temporary:
+    with temporary_directory(prefix='graph-tools-') as temporary:
         base = Path(temporary).resolve()
         root = base / 'workspace'
         root.mkdir()

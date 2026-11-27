@@ -1,7 +1,10 @@
 """Host commands and explicit platform choices for disposable graph fixtures."""
+from contextlib import contextmanager
 import json
+import ntpath
 import os
 import platform
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -58,3 +61,25 @@ def assert_no_host_paths(value, *roots):
             for prefix in prefixes:
                 assert (prefix.casefold() not in text.casefold() if WINDOWS else prefix not in text), item
     inspect(value)
+
+
+def _cleanup_path(path):
+    if not WINDOWS:
+        return path
+    absolute = ntpath.abspath(path)
+    if absolute.startswith('\\\\?\\'):
+        return absolute
+    return '\\\\?\\UNC\\' + absolute[2:] if absolute.startswith('\\\\') else '\\\\?\\' + absolute
+
+
+@contextmanager
+def temporary_directory(*, prefix):
+    """Keep ordinary fixture paths; delete owned Windows trees without MAX_PATH."""
+    temporary = tempfile.TemporaryDirectory(prefix=prefix)
+    try:
+        yield temporary.name
+    finally:
+        # TemporaryDirectory performs its usual read-only/error handling. Only
+        # its deletion path changes; Bazel and MSBuild never receive this form.
+        temporary.name = _cleanup_path(temporary.name)
+        temporary.cleanup()
