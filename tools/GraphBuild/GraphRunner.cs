@@ -39,9 +39,12 @@ internal static class GraphRunner
         var contract = JsonSerializer.Deserialize<GraphContract>(File.ReadAllText(contractPath))
             ?? throw new InvalidDataException("Missing graph contract");
         report = Path.GetFullPath(report);
-        Directory.SetCurrentDirectory(root);
+        using var workspace = new ShortDirectory(root, workingDirectory: true);
         root = Directory.GetCurrentDirectory();
-        var sdkRoot = Environment.GetEnvironmentVariable("DOTNET_ROOT") ?? throw new InvalidDataException("DOTNET_ROOT is required");
+        var declaredSdk = Environment.GetEnvironmentVariable("DOTNET_ROOT") ?? throw new InvalidDataException("DOTNET_ROOT is required");
+        using var selectedSdk = new SdkDirectory(Path.Combine(declaredSdk, "sdk", contract.SdkVersion));
+        var sdk = selectedSdk.Path;
+        var sdkRoot = Path.GetDirectoryName(Path.GetDirectoryName(sdk))!;
         var contractFiles = new ContractFiles(root, sdkRoot);
         foreach (var (path, digest) in contract.DefinitionDigests ?? [])
         {
@@ -52,7 +55,6 @@ internal static class GraphRunner
             }
         }
         Environment.SetEnvironmentVariable("DOTNET_HOST_PATH", Path.Combine(sdkRoot, OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet"));
-        var sdk = Path.Combine(sdkRoot, "sdk", contract.SdkVersion);
         MSBuildContext.Bind(sdk);
         Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(sdk, "MSBuild.dll"));
         Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(sdk, "Sdks"));
