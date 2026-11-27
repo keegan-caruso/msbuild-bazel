@@ -205,6 +205,7 @@ Native Windows Server 2025 x64 (10.0.26100, Azure Run Command/SYSTEM), SDK **11.
 | NuGet updater | All **5** direct controls passed: default/explicit/disposable HTTP caches, shared-directory F# locks, and ambient MSBuild-server opt-out. Restore/evaluation use a private Windows profile; persistent HTTP cache selection retains caller defaults. |
 | Path/ownership controls | Native device/stream rejection and case/separator ownership controls; the exact graph action shell also built with a stripped environment and an output path containing spaces. |
 | Runfiles consumers | Native parser, ProjectSync producer/tool-closure staging, and ArtifactTools MTP/VSTest launcher branches passed with directory and manifest inputs. The protocol fixture uses a reporting executable; real framework qualification remains separate. |
+| Test protocols | The real MTP and VSTest fixture passed success, failure, filtering, empty-result, output and dependency-invalidation controls in **355.42 s**. Private runtime, data and adapter copies clear inherited read-only attributes so Windows cleanup succeeds; the focused native control preserves source attributes and leaves no staging directory. |
 
 Reproduce the updater controls after building ProjectSync with `"$RULES_MSBUILD_PYTHON" -m unittest discover -s tests/project_sync -p test_nuget_update.py -v` (select a Python 3 executable).
 

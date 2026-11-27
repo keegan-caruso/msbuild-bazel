@@ -4,6 +4,18 @@ using static Program;
 
 internal static class TestProtocolLaunch
 {
+    internal static void CopyInput(string source, string destination)
+    {
+        Copy(source, destination);
+        // These are private copies, not the read-only Bazel inputs. Windows
+        // preserves their attributes on copy and otherwise refuses cleanup.
+        var attributes = File.GetAttributes(destination);
+        if ((attributes & FileAttributes.ReadOnly) != 0)
+        {
+            File.SetAttributes(destination, attributes & ~FileAttributes.ReadOnly);
+        }
+    }
+
     internal static int Run(TestProtocolRequest request, string[] args)
     {
         TestExecution.Validate(request.TestOptions);
@@ -21,11 +33,11 @@ internal static class TestProtocolLaunch
             // This directory is the selected declared graph output, not a host tree.
             foreach (var file in Directory.EnumerateFiles(input, "*", SearchOption.AllDirectories))
             {
-                Copy(file, Path.Combine(runtimeDirectory, Safe(RelativePathComponents.LogicalRelative(input, file))));
+                CopyInput(file, Path.Combine(runtimeDirectory, Safe(RelativePathComponents.LogicalRelative(input, file))));
             }
             foreach (var file in request.Data)
             {
-                Copy(runfiles.Resolve(Safe(file.Source)), Path.Combine(temporary, Safe(file.Path)));
+                CopyInput(runfiles.Resolve(Safe(file.Source)), Path.Combine(temporary, Safe(file.Path)));
             }
 
             var runtimeHost = request.RuntimeHost ?? throw new InvalidDataException("Missing declared runtime host");

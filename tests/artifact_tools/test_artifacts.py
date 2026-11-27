@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import subprocess
 import shutil
+import stat
 import tarfile
 import tempfile
 import unittest
@@ -54,9 +55,12 @@ if (Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") != Path.Combine(host!
 if (Environment.GetEnvironmentVariable("DOTNET_MULTILEVEL_LOOKUP") != "0") return 23;
 if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CORE_ROOT"))) return 24;
 if (!File.Exists("App.dll") || File.ReadAllText("input.txt") != "input") return 25;
+if ((File.GetAttributes("App.dll") & FileAttributes.ReadOnly) != 0 ||
+    (File.GetAttributes("input.txt") & FileAttributes.ReadOnly) != 0) return 27;
 var index = Array.IndexOf(args, "--results-directory");
-if (index < 0) return 26;
-File.WriteAllText(Path.Combine(args[index + 1], "results.trx"),
+var results = index >= 0 ? args[index + 1] : args.Single(arg => arg.StartsWith("/ResultsDirectory:"))[18..];
+if (index < 0 && ((File.GetAttributes("adapter.props") & FileAttributes.ReadOnly) != 0)) return 28;
+File.WriteAllText(Path.Combine(results, "results.trx"),
     "<TestRun xmlns='http://microsoft.com/schemas/VisualStudio/TeamTest/2010'><ResultSummary outcome='Completed'><Counters total='0'/></ResultSummary></TestRun>");
 return 0;
 """.replace('__HOST__', json.dumps(str(SDK.resolve()))).replace('__DOTNET__', json.dumps(DOTNET.name)))
@@ -72,13 +76,30 @@ return 0;
             physical = str(path.resolve()).replace('\\', '\\b').replace('\n', '\\n')
             return ' ' + key + ' ' + physical + '\n'
         runfiles.write_text(entry('app', app / 'bin/Release/net11.0') +
-                            entry('data.txt', self.root / 'data.txt') + entry('host', SDK))
+                            entry('data.txt', self.root / 'data.txt') + entry('host', SDK) +
+                            entry('runner', app / 'bin/Release/net11.0/App.dll') + entry('adapters', self.root / 'adapters'))
+        # Bazel outputs are read-only. Staged copies must be writable and
+        # disposable without changing their declared source files.
+        adapters = self.root / 'adapters'
+        adapters.mkdir()
+        (adapters / 'adapter.props').write_text('adapter')
+        readonly = [adapters / 'adapter.props', self.root / 'data.txt', app / 'bin/Release/net11.0/App.dll']
+        for file in readonly:
+            file.chmod(stat.S_IREAD)
+            self.addCleanup(file.chmod, stat.S_IREAD | stat.S_IWRITE)
+        test_tmp = self.root / 'test-tmp'
+        test_tmp.mkdir()
         request = dict(entry='app', assembly='App', data=[dict(source='data.txt', path='input.txt')],
                        testOptions=dict(protocol='mtp', allowEmpty=True),
                        runtimeHost=dict(directory='host', entryPoint=DOTNET.name))
         with unittest.mock.patch.dict(os.environ, RULES_MSBUILD_RUNFILES=str(runfiles),
-                CORE_ROOT='ambient', DOTNET_HOST_PATH='ambient-host-must-not-be-used'):
+                CORE_ROOT='ambient', DOTNET_HOST_PATH='ambient-host-must-not-be-used', TEST_TMPDIR=str(test_tmp)):
             self.invoke('test-protocol', request)
+            request['testOptions'] = dict(protocol='vstest', allowEmpty=True, runner='runner', adapters=['adapters'])
+            self.invoke('test-protocol', request)
+        self.assertEqual(list(test_tmp.iterdir()), [])
+        for file in readonly:
+            self.assertFalse(file.stat().st_mode & stat.S_IWRITE)
 
     def package(self, extra=None):
         path = self.root/'example.nupkg'
