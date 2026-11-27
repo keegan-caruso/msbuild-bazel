@@ -6,11 +6,10 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
-import tempfile
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[2]
-from fixture_host import bazel_environment, bazel_startup, sdk_declaration
+from fixture_host import temporary_directory, bazel_environment, bazel_startup, sdk_declaration
 
 sys.path.insert(0, str(ROOT / 'tests/fixtures'))
 from protocol import setup as mtp_setup
@@ -21,7 +20,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--graph-worker', action='store_true')
     options = parser.parse_args()
-    with tempfile.TemporaryDirectory(prefix='graph-protocols-') as temporary:
+    with temporary_directory(prefix='graph-protocols-') as temporary:
         for protocol, setup in [('mtp', mtp_setup), ('vstest', vstest_setup)]:
             folder = Path(temporary).resolve() / protocol
             folder.mkdir()

@@ -5,10 +5,9 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
-import tempfile
 
 from qualify import ROOT, fixture
-from fixture_host import WINDOWS, bazel_environment, bazel_startup, sdk_declaration
+from fixture_host import temporary_directory, WINDOWS, bazel_environment, bazel_startup, sdk_declaration
 
 
 PROBE = r'''
@@ -30,7 +29,7 @@ return args.Length > 0 && args[0] == "exit-seven" ? 7 : 0;
 
 
 def main():
-    with tempfile.TemporaryDirectory(prefix='direct-smoke-') as temporary:
+    with temporary_directory(prefix='direct-smoke-') as temporary:
         root = Path(temporary).resolve()
         workspace = root / 'workspace'
         workspace.mkdir()

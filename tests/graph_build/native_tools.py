@@ -7,9 +7,8 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
-import tempfile
 
-from fixture_host import bazel_environment, bazel_startup, sdk_declaration
+from fixture_host import temporary_directory, bazel_environment, bazel_startup, sdk_declaration
 from qualify import DOTNET, ROOT, RUNNER, run
 
 
@@ -17,7 +16,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--graph-worker', action='store_true')
     options = parser.parse_args()
-    with tempfile.TemporaryDirectory(prefix='graph-native-tools-') as temporary:
+    with temporary_directory(prefix='graph-native-tools-') as temporary:
         base = Path(temporary).resolve()
         root = base / 'workspace'
         (root / 'App').mkdir(parents=True)
