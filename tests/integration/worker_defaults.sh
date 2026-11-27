@@ -156,7 +156,9 @@ try:
                 ancestor = int(next(line.split()[1] for line in status if line.startswith('PPid:')))
             assert worker is not None, 'Controlled child is not descended from the owned Bazel worker'
             cancelled = time.monotonic()
-            client.send_signal(signal.SIGINT)
+            # BIT_BAZEL_BINARY can be a shell wrapper. Ctrl-C addresses its
+            # foreground group, including the actual native Bazel client.
+            os.killpg(client.pid, signal.SIGINT)
             exit_code = client.wait(timeout=30)
             assert exit_code != 0, exit_code
             deadline = time.monotonic() + 15
@@ -172,6 +174,16 @@ try:
             if client.poll() is None:
                 os.killpg(client.pid, signal.SIGKILL)
                 client.wait(timeout=10)
+            # A failing assertion must not leave the intentional ten-minute
+            # delay running while the fixture shuts down its Bazel server.
+            # Match the recorded child's unique identity before signalling.
+            if owned is not None and worker is not None:
+                try:
+                    arguments = Path('/proc', str(owned), 'cmdline').read_bytes().split(b'\0')
+                    if arguments[0] == marker.encode():
+                        os.kill(owned, signal.SIGKILL)
+                except (FileNotFoundError, ProcessLookupError):
+                    pass
 finally:
     source.write_text(original)
 PY_CANCEL
