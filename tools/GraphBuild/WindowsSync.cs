@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
 namespace RulesMSBuild.GraphBuild;
@@ -7,10 +6,9 @@ internal static class WindowsSync
 {
     internal static Task<int> Run(string[] args)
     {
-        if (!OperatingSystem.IsWindows() || RuntimeInformation.OSArchitecture != Architecture.X64 ||
-            RuntimeInformation.ProcessArchitecture != Architecture.X64)
+        if (!WindowsPlatform.IsNative)
         {
-            throw new PlatformNotSupportedException("Windows sync isolation requires native Windows x64");
+            throw new PlatformNotSupportedException("Windows sync isolation requires matching native Windows x64 or ARM64");
         }
         if (args.Length < 8 || !RelativePathComponents.IsSafeRelative(args[3], true) || args[3].Contains('/'))
         {

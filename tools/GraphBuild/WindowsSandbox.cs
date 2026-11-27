@@ -4,14 +4,9 @@ internal static class WindowsSandbox
 {
     internal static async Task<int> Run(string[] args, GraphRunOptions options)
     {
-        if (!OperatingSystem.IsWindows())
+        if (!WindowsPlatform.IsNative)
         {
-            throw new PlatformNotSupportedException("Windows filesystem isolation requires native Windows");
-        }
-        if (System.Runtime.InteropServices.RuntimeInformation.OSArchitecture != System.Runtime.InteropServices.Architecture.X64 ||
-            System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture != System.Runtime.InteropServices.Architecture.X64)
-        {
-            throw new PlatformNotSupportedException("Windows filesystem isolation currently requires native x64");
+            throw new PlatformNotSupportedException("Windows filesystem isolation requires matching native Windows x64 or ARM64");
         }
         if (args.Length != 8 || args[5] is not ("action" or "prepare"))
         {
