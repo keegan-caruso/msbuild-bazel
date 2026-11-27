@@ -40,7 +40,7 @@ def main():
     p.add_argument('--source', required=True, type=Path)
     p.add_argument('--output', required=True, type=Path)
     p.add_argument('--commit', default='HEAD')
-    p.add_argument('--versions', nargs='+', choices=['9.3.2'], default=['9.3.2'])
+    p.add_argument('--versions', nargs='+', choices=['9.3.3'], default=['9.3.3'])
     p.add_argument('--mode', choices=['analysis', 'clean', 'noop'], default='analysis')
     p.add_argument('--runs', type=int, default=5)
     workloads = json.loads((ROOT/'benchmarks/workloads.json').read_text())

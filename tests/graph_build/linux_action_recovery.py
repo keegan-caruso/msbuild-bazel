@@ -181,7 +181,7 @@ def main():
     server = Cache(cache_dir, 1024**3)
     thread = threading.Thread(target=server.serve_forever, daemon=True); thread.start()
     url = 'http://127.0.0.1:' + str(server.server_port)
-    environment = dict(os.environ, USE_BAZEL_VERSION='9.3.2',
+    environment = dict(os.environ, USE_BAZEL_VERSION='9.3.3',
                        RULES_MSBUILD_PROJECT_CACHE_URL=url, RULES_MSBUILD_PROJECT_CACHE_READ_ONLY='1')
     environment.pop('RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN', None)
     snapshots = {}
@@ -189,12 +189,12 @@ def main():
     if pins['dotnet']['version'] != '11.0.100':
         raise ValueError('Rules checkout SDK pin differs from quickstart')
     report = {'rulesRevision': revision, 'sdk': '11.0.100',
-              'sdkArchiveSha256': pins['dotnet']['sha256'], 'bazel': '9.3.2', 'phases': {}}
+              'sdkArchiveSha256': pins['dotnet']['sha256'], 'bazel': '9.3.3', 'phases': {}}
     try:
         version = subprocess.run([str(bazel), '--version'], cwd=workspace, env=environment,
                                  capture_output=True, text=True, timeout=120)
-        if version.returncode or '9.3.2' not in version.stdout + version.stderr:
-            raise RuntimeError('Expected Bazel 9.3.2: ' + version.stdout + version.stderr)
+        if version.returncode or '9.3.3' not in version.stdout + version.stderr:
+            raise RuntimeError('Expected Bazel 9.3.3: ' + version.stdout + version.stderr)
         sync_base = [str(bazel), '--ignore_all_rc_files', '--host_jvm_args=-Xmx1024m',
                      '--output_base=' + str(folder / 'sync-base')]
         sync_flags = ['--jobs=2', '--local_test_jobs=1', '--disk_cache=', '--remote_cache=']

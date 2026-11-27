@@ -46,8 +46,8 @@ class ToolChecks(unittest.TestCase):
         version = json.loads((ROOT/'global.json').read_text())['sdk']['version']
         self.executable(self.sdk/'dotnet', version)
         self.bazel = self.root/('bazel.exe' if os.name == 'nt' else 'bazel')
-        self.executable(self.bazel, 'bazel 9.3.2')
-        self.env = dict(os.environ, DOTNET_ROOT=str(self.sdk), RULES_MSBUILD_BAZEL=str(self.bazel), USE_BAZEL_VERSION='9.3.2')
+        self.executable(self.bazel, 'bazel 9.3.3')
+        self.env = dict(os.environ, DOTNET_ROOT=str(self.sdk), RULES_MSBUILD_BAZEL=str(self.bazel), USE_BAZEL_VERSION='9.3.3')
         if os.name == 'nt':
             # Run the fake apphosts on the verified test SDK, while Tooling reads
             # the independent DOTNET_ROOT under test. Architecture roots take precedence.
@@ -69,7 +69,7 @@ class ToolChecks(unittest.TestCase):
                               env=self.env, capture_output=True, text=True)
 
     def test_selected_versions_without_preparation(self):
-        for version in ['9.3.2']:
+        for version in ['9.3.3']:
             self.executable(self.bazel, 'bazel '+version)
             self.env['USE_BAZEL_VERSION'] = version
             result = self.check()

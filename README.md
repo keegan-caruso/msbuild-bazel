@@ -10,7 +10,7 @@ Build, test, and cache .NET project graphs with Bazel while keeping standard `.c
 
 ## Start here
 
-See the [quick start](examples/quickstart/README.md) ([downloaded SDK](examples/quickstart/README.md#downloaded-sdk), [source-built SDK](examples/quickstart/README.md#source-built-sdk)) and [source-to-app workflow](examples/source-runtime-app/README.md) for a source-built execution runtime. Requires Bazelisk and OS .NET prerequisites. Pins: SDK **11.0.100**; Bazel **9.3.2**.
+See the [quick start](examples/quickstart/README.md) ([downloaded SDK](examples/quickstart/README.md#downloaded-sdk), [source-built SDK](examples/quickstart/README.md#source-built-sdk)) and [source-to-app workflow](examples/source-runtime-app/README.md) for a source-built execution runtime. Requires Bazelisk and OS .NET prerequisites. Pins: SDK **11.0.100**; Bazel **9.3.3**.
 
 **Experimental:** consume a pinned source checkout (no BCR or runner release; API may change). See [validated scope and limits](docs/support.md).
 

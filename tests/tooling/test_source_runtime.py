@@ -547,12 +547,12 @@ class SourceRuntimeSetupTests(unittest.TestCase):
     def test_run_uses_the_prepared_workspace_and_forwards_arguments(self):
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary)
-            (base/'setup.json').write_text(json.dumps(dict(workspace=str(base/'workspace'),environment={'USE_BAZEL_VERSION':'9.3.2'})))
+            (base/'setup.json').write_text(json.dumps(dict(workspace=str(base/'workspace'),environment={'USE_BAZEL_VERSION':'9.3.3'})))
             command,cwd,env=build_command(base,'run',['--describe-runtime','argument with spaces'])
             self.assertEqual(cwd,base/'workspace')
             self.assertEqual(command[-3:],['--','--describe-runtime','argument with spaces'])
             self.assertIn('//:app',command)
-            self.assertEqual(env['USE_BAZEL_VERSION'],'9.3.2')
+            self.assertEqual(env['USE_BAZEL_VERSION'],'9.3.3')
             test,_,_=build_command(base,'test')
             self.assertIn('--nocache_test_results',test)
             self.assertIn('//:runtime_test',test)

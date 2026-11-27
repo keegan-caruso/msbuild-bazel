@@ -6,7 +6,7 @@ Use a separate Git worktree per change.
 
 ## Goal and current state
 
-Sole build interface: `msbuild/defs.bzl` / `msbuild/graph.bzl` with `tools/GraphBuild` and its MSBuild project-cache plugin. `ProjectSync` emits explicit graph contracts; `ArtifactTools` handles artifact extraction/composition and MTP/VSTest protocols. Baseline: Bazel 9.3.2. See `docs/api.md` and `docs/support.md` for scope/limits.
+Sole build interface: `msbuild/defs.bzl` / `msbuild/graph.bzl` with `tools/GraphBuild` and its MSBuild project-cache plugin. `ProjectSync` emits explicit graph contracts; `ArtifactTools` handles artifact extraction/composition and MTP/VSTest protocols. Baseline: Bazel 9.3.3. See `docs/api.md` and `docs/support.md` for scope/limits.
 
 SDK toolchains consume verified archives or declared Bazel-produced artifacts; never add host-path SDK repositories. Historical commands require their recorded revisions (linked in `docs/support.md`). GitHub CI runs only when explicitly requested. Read `README.md` and `docs/support.md` before implementing changes.
 

@@ -52,8 +52,8 @@ class FixtureHost(unittest.TestCase):
             self.assertEqual(fixture_host.bazel_environment()['USE_BAZEL_VERSION'], expected)
             self.assertEqual(fixture_host.bazel_environment(USE_BAZEL_VERSION='')['USE_BAZEL_VERSION'], expected)
             self.assertEqual(fixture_host.bazel_environment(USE_BAZEL_VERSION='8.8.0')['USE_BAZEL_VERSION'], '8.8.0')
-        with patch.dict(os.environ, {'USE_BAZEL_VERSION': '9.3.2'}, clear=True):
-            self.assertEqual(fixture_host.bazel_environment()['USE_BAZEL_VERSION'], '9.3.2')
+        with patch.dict(os.environ, {'USE_BAZEL_VERSION': '9.3.3'}, clear=True):
+            self.assertEqual(fixture_host.bazel_environment()['USE_BAZEL_VERSION'], '9.3.3')
 
     def test_ordinary_fixture_sdk_supports_native_windows_architectures(self):
         with patch.object(fixture_sdk.platform, 'system', return_value='Windows'), patch.object(fixture_sdk.platform, 'machine') as machine:

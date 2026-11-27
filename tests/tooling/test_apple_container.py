@@ -73,12 +73,12 @@ class AppleContainerTests(unittest.TestCase):
             self.assertIn('export BAZELISK_HOME=/acquisition/bazelisk', (root / 'guest').read_text())
             self.assertIn('ln -s /acquisition/downloads .cache/downloads', (root / 'guest').read_text())
             env.pop('RULES_MSBUILD_CONTAINER_ACQUISITION')
-            env['USE_BAZEL_VERSION'] = '9.3.2'
+            env['USE_BAZEL_VERSION'] = '9.3.3'
             result = subprocess.run(['bash', str(script), 'true'], env=env, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             override_args = (root / 'args').read_text().splitlines()
-            self.assertIn('USE_BAZEL_VERSION=9.3.2', override_args)
-            self.assertEqual(override_args[override_args.index('USE_BAZEL_VERSION=9.3.2') - 1], '-e')
+            self.assertIn('USE_BAZEL_VERSION=9.3.3', override_args)
+            self.assertEqual(override_args[override_args.index('USE_BAZEL_VERSION=9.3.3') - 1], '-e')
             with socket.socket(socket.AF_UNIX) as relay_socket:
                 socket_path = str(root / 'host.sock')
                 relay_socket.bind(socket_path)

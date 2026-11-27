@@ -22,7 +22,7 @@ class Bootstrap(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
-        (self.root/'.bazelversion').write_text('9.3.2\n')
+        (self.root/'.bazelversion').write_text('9.3.3\n')
         scripts = self.root / 'scripts'
         scripts.mkdir()
         for name in ('setup.sh', 'env.sh', 'tooling.sh', 'dotnet.sh', 'check.sh', 'bazel-launcher.sh'):
