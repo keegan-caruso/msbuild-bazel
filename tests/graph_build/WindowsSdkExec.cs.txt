@@ -1,0 +1,63 @@
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
+using System.Security.Principal;
+using System.Security.AccessControl;
+using System.Text.Json;
+
+[SupportedOSPlatform("windows")]
+internal static class Program
+{
+    [DllImport("kernel32.dll")] private static extern IntPtr GetCurrentProcess();
+    [DllImport("kernel32.dll")] private static extern bool CloseHandle(IntPtr handle);
+    [DllImport("advapi32.dll", SetLastError = true)] private static extern bool OpenProcessToken(IntPtr process, uint access, out IntPtr token);
+    [DllImport("advapi32.dll", SetLastError = true)] private static extern bool GetTokenInformation(IntPtr token, int kind, IntPtr data, int size, out int returned);
+
+    private static void Denied(Action operation)
+    {
+        try { operation(); }
+        catch (UnauthorizedAccessException) { return; }
+        throw new Exception("Undeclared access succeeded");
+    }
+
+    private static int Main()
+    {
+        if (!OpenProcessToken(GetCurrentProcess(), 8, out var token)) throw new Exception("Cannot query token");
+        string sid;
+        try
+        {
+            var flag = Marshal.AllocHGlobal(4);
+            try
+            {
+                if (!GetTokenInformation(token, 29, flag, 4, out _) || Marshal.ReadInt32(flag) != 1) throw new Exception("Not AppContainer");
+            }
+            finally { Marshal.FreeHGlobal(flag); }
+            GetTokenInformation(token, 31, IntPtr.Zero, 0, out var size);
+            var data = Marshal.AllocHGlobal(size);
+            try
+            {
+                if (!GetTokenInformation(token, 31, data, size, out _)) throw new Exception("Cannot query package SID");
+                sid = new SecurityIdentifier(Marshal.ReadIntPtr(data)).Value;
+            }
+            finally { Marshal.FreeHGlobal(data); }
+        }
+        finally { CloseHandle(token); }
+        if (sid != Environment.GetEnvironmentVariable("EXPECTED_SID")) throw new Exception("Wrong AppContainer SID");
+        if (File.ReadAllText("allowed.txt") != "declared input") throw new Exception("Input unavailable");
+        Denied(() => File.GetAttributes(@"C:\"));
+        Denied(() => File.ReadAllText(Environment.GetEnvironmentVariable("OUTSIDE_FILE")!));
+        Denied(() => File.ReadAllText(Environment.GetEnvironmentVariable("OUTSIDE_SDK")!));
+        Denied(() => File.ReadAllText(Environment.GetEnvironmentVariable("OTHER_WORKSPACE")!));
+        Denied(() => File.ReadAllText(Environment.GetEnvironmentVariable("OTHER_SCRATCH")!));
+        var otherPermissions = new FileSecurity();
+        otherPermissions.SetAccessRuleProtection(true, false);
+        otherPermissions.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(Environment.GetEnvironmentVariable("EXPECTED_SID")!), FileSystemRights.FullControl, AccessControlType.Allow));
+        Denied(() => new FileInfo(Environment.GetEnvironmentVariable("OTHER_WORKSPACE")!).SetAccessControl(otherPermissions));
+        var sdk = new DirectoryInfo(Environment.GetEnvironmentVariable("DOTNET_ROOT")!);
+        var permissions = sdk.GetAccessControl(AccessControlSections.Access);
+        permissions.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(Environment.GetEnvironmentVariable("EXPECTED_SID")!), FileSystemRights.WriteData, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
+        Denied(() => sdk.SetAccessControl(permissions));
+        Denied(() => File.WriteAllText(Path.Combine(sdk.FullName, ".forbidden"), "forbidden"));
+        File.WriteAllText("sdk-proof.json", JsonSerializer.Serialize(new { sid, rootDenied = true, hostDenied = true, originalSdkDenied = true, otherWorkspaceDenied = true, sdkWriteDenied = true }));
+        return 0;
+    }
+}

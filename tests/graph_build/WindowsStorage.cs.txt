@@ -1,0 +1,80 @@
+using System.Runtime.Versioning;
+using System.Runtime.InteropServices;
+using System.Security.AccessControl;
+using RulesMSBuild.GraphBuild;
+
+[SupportedOSPlatform("windows")]
+internal static class Controls
+{
+    [DllImport("kernel32.dll", EntryPoint = "CreateHardLinkW", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool CreateHardLink(string name, string existing, IntPtr security);
+    private static void Require(bool value, string message)
+    {
+        if (!value) throw new Exception(message);
+    }
+
+    private static int Main(string[] args)
+    {
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+        using var lease = new WindowsSandboxLease();
+        var action = lease.Action;
+        lease.AllocateDrive();
+        var drive = lease.Root[..2];
+        Require(WindowsDrive.Query(drive).SequenceEqual(new[] { "\\??\\" + action }), "Wrong private drive target");
+        var writable = Directory.CreateDirectory(Path.Combine(action, "workspace")).FullName;
+        WindowsStorage.Permissions(action, lease.Profile.Identifier);
+        WindowsStorage.Integrity(action, false);
+        WindowsStorage.Permissions(writable, lease.Profile.Identifier, true);
+        WindowsStorage.IntegrityTree(writable, true);
+        File.WriteAllText(Path.Combine(writable, "allowed.txt"), "declared");
+        var access = new DirectoryInfo(writable).GetAccessControl().GetAccessRules(true, true, typeof(System.Security.Principal.SecurityIdentifier));
+        Require(access.Cast<FileSystemAccessRule>().Any(rule => rule.IdentityReference.Value == lease.Profile.Identifier.Value &&
+            (rule.FileSystemRights & FileSystemRights.Modify) == FileSystemRights.Modify), "Missing profile workspace permission");
+        var record = System.Text.Json.JsonSerializer.Serialize(new { action, drive, sid = lease.Profile.Identifier.Value });
+        Console.WriteLine(record);
+        Console.Out.Flush();
+        if (args.Length > 0 && args[0] == "hold")
+        {
+            File.WriteAllText(args[1], record);
+            Thread.Sleep(TimeSpan.FromSeconds(30));
+            throw new TimeoutException("Control owner was not terminated within its bounded lifetime");
+        }
+        var outside = args[0];
+        var sentinel = Path.Combine(outside, "sentinel.txt");
+        File.SetAttributes(sentinel, File.GetAttributes(sentinel) | FileAttributes.ReadOnly);
+        var originalAttributes = File.GetAttributes(sentinel);
+        Require(CreateHardLink(Path.Combine(writable, "host-alias.txt"), sentinel, IntPtr.Zero), "Cannot create hard-link control");
+        try
+        {
+            WindowsStorage.Copy(writable, Path.Combine(outside, "copy-output"), true);
+            throw new Exception("Privileged output copy accepted a hard link");
+        }
+        catch (InvalidDataException error) when (error.Message.StartsWith("Hard link in sandbox output:")) { }
+        Require(!File.Exists(Path.Combine(outside, "copy-output", "host-alias.txt")), "Host alias content copied");
+        WindowsStorage.Delete(Path.Combine(writable, "host-alias.txt"));
+        Require(File.GetAttributes(sentinel) == originalAttributes, "Unlink changed host attributes");
+        foreach (var name in new[] { ".. ", "NUL" })
+        {
+            var alias = @"\\?\" + writable + "\\" + name;
+            if (name == ".. ") Directory.CreateDirectory(alias);
+            else File.WriteAllText(alias, "literal NTFS file");
+            try
+            {
+                WindowsStorage.Copy(writable, Path.Combine(outside, "copy-output"), true);
+                throw new Exception("Privileged output copy accepted a Win32 alias");
+            }
+            catch (InvalidDataException error) when (error.Message.StartsWith("Unsafe sandbox filename:")) { }
+            WindowsStorage.Delete(alias);
+        }
+        Directory.CreateDirectory(@"\\?\" + writable + "\\.. ");
+        File.WriteAllText(@"\\?\" + writable + "\\NUL", "literal NTFS file");
+        Directory.CreateSymbolicLink(Path.Combine(writable, "outside-link"), outside);
+        lease.Dispose();
+        Require(!Directory.Exists(action), "Owned storage remains after disposal");
+        Require(WindowsDrive.Query(drive).Length == 0, "Owned drive remains after disposal");
+        Require(File.ReadAllText(Path.Combine(outside, "sentinel.txt")) == "outside", "Cleanup traversed a junction");
+        Require(File.GetAttributes(sentinel) == originalAttributes, "Hard-link cleanup changed host attributes");
+        Console.WriteLine("PASS: lease, labels, drive, rejected hardlink/Win32 aliases and exact no-follow cleanup");
+        return 0;
+    }
+}

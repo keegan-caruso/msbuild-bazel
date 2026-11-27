@@ -50,12 +50,16 @@ def _graph_action(ctx, prepare = False):
     if len(runner) != 1:
         fail("runner must provide one graph runner payload")
     linux_stable_paths = stable_paths(ctx) if ctx.attr.automatic_stable_paths else ctx.attr.linux_stable_paths
+    if ctx.attr.windows_isolation and prepare:
+        fail("Windows filesystem isolation does not support prepared Restore")
     if prepare and not linux_stable_paths and ctx.attr.optional_restore:
         return [DefaultInfo(), MSBuildGraphRestoreInfo(directory = None, contract = ctx.file.contract, runner = runner[0], sdk = tc.sdk)]
     output = ctx.actions.declare_directory(ctx.label.name + (".restore" if prepare else ".graph"))
     prepared = ctx.attr.restore[MSBuildGraphRestoreInfo] if ctx.attr.restore else None
     if prepared and prepared.directory == None:
         prepared = None
+    if ctx.attr.windows_isolation and (linux_stable_paths or ctx.attr.linux_worker or prepared):
+        fail("Windows filesystem isolation requires a fresh graph without Linux execution or prepared Restore")
     if prepare and prepared:
         fail("Restore preparation cannot consume another Restore artifact")
     if (prepare or prepared) and not linux_stable_paths:
@@ -76,7 +80,7 @@ def _graph_action(ctx, prepare = False):
     worker_sources = []
     prefix = ctx.attr.source_root + "/" if ctx.attr.source_root else ""
     args = ctx.actions.args()
-    args.add_all([tc.dotnet.path, runner[0].path, output.path, ctx.file.contract.path, ctx.attr.target, "1" if linux_stable_paths else "0", ctx.file._linux_stable_paths.path, "prepare" if prepare else "action", prepared.directory.path if prepared else "-", "1" if ctx.attr.profile_build else "0"])
+    args.add_all([tc.dotnet.path, runner[0].path, output.path, ctx.file.contract.path, ctx.attr.target, "1" if linux_stable_paths else "0", ctx.file._linux_stable_paths.path, "prepare" if prepare else "action", prepared.directory.path if prepared else "-", "1" if ctx.attr.profile_build else "0", "1" if ctx.attr.windows_isolation else "0"])
     for file in ctx.files.srcs:
         if file.owner.repo_name != ctx.label.repo_name:
             fail("Graph sources from other repositories require input_paths: " + file.short_path)
@@ -157,9 +161,9 @@ def _graph_action(ctx, prepare = False):
             # Offline preparation never reads or publishes project snapshots.
             env = {} if prepare else cache_env,
             command = """set -eu
-    dotnet="$PWD/$1"; runner="$PWD/$2"; output="$PWD/$3"; contract="$PWD/$4"; target="$5"; isolated="$6"; sandbox="$PWD/$7"; mode="$8"; prepared="$9"; profile="${10}"
+    dotnet="$PWD/$1"; runner="$PWD/$2"; output="$PWD/$3"; contract="$PWD/$4"; target="$5"; isolated="$6"; sandbox="$PWD/$7"; mode="$8"; prepared="$9"; profile="${10}"; windows_isolated="${11}"
     if test "$prepared" != -; then prepared="$PWD/$prepared"; fi
-    shift 10
+    shift 11
     scratch=$(mktemp -d)
     trap 'rm -rf "$scratch"' EXIT
     workspace="$output/workspace"
@@ -202,6 +206,10 @@ def _graph_action(ctx, prepare = False):
             export DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=true
             ;;
     esac
+    if test "$windows_isolated" = 1; then
+        "$dotnet" exec "$(native_path "$runner/GraphBuild.dll")" windows-sandbox "$(native_path "$(dirname "$dotnet")")" "$(native_path "$runner")" "$(native_path "$output")" "$(native_path "$contract")" "$target" "$mode" - "$profile"
+        exit 0
+    fi
     if test "$isolated" = 1; then
         bash "$sandbox" "$(dirname "$dotnet")" "$runner" "$output" "$contract" "$scratch" "$target" "$mode" "$prepared" - 0 "$profile"
         if test "$mode" = prepare; then rm -rf "$workspace"; rm -f "$output/report.json"; fi
@@ -243,6 +251,7 @@ _GRAPH_ATTRS = {
     "automatic_stable_paths": attr.bool(default = True),
     "optional_restore": attr.bool(default = False),
     "linux_stable_paths": attr.bool(default = False, doc = "Use bubblewrap on Linux for stable graph paths; cache transport retains network access."),
+    "windows_isolation": attr.bool(default = False, doc = "Opt in to native Windows x64 AppContainer filesystem isolation for a fresh graph. Requires local NTFS control storage; prepared Restore and external project caches are unsupported."),
     "_linux_stable_paths": attr.label(default = "//msbuild:graph-sandbox.sh", allow_single_file = True),
     "target": attr.string(default = "Build", values = ["Build", "Pack", "Publish", "DesignTimeBuild"]),
 }

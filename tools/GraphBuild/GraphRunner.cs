@@ -140,7 +140,7 @@ internal static class GraphRunner
             var buildEvaluation = profile || evaluation is not null ? new BuildEvaluationCounter() : null;
             var parameters = new BuildParameters(inputs.Collection)
             {
-                MaxNodeCount = 4,
+                MaxNodeCount = options.SingleNode ? 1 : 4,
                 EnableNodeReuse = false,
                 DisableInProcNode = evaluation is not null,
                 ProjectCacheDescriptor = ProjectCacheDescriptor.FromInstance(plugin),
