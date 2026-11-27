@@ -100,7 +100,6 @@ class GraphSyncTests(unittest.TestCase):
         watched = [SDK / "sdk/11.0.100/MSBuild.dll",
             SDK / "sdk/11.0.100/Sdks/Microsoft.NET.Sdk/targets/Microsoft.PackageDependencyResolution.targets"]
         digests = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in watched}
-        links = set(Path(tempfile.gettempdir()).glob("msbuild-view-*"))
         def stage(source, destination):
             # Read-only leaves need independent copies: tempfile's retry must
             # never clear an attribute on the immutable declared SDK inode.
@@ -110,19 +109,26 @@ class GraphSyncTests(unittest.TestCase):
             else:
                 os.link(source, destination)
         with temporary_directory(prefix="long-sdk-import-") as temporary:
+            managed_temp = Path(temporary) / "managed-temp"
+            managed_temp.mkdir()
             declared = Path(temporary) / ("a" * 64) / ("b" * 64) / ("c" * 64) / "sdk-root"
             shutil.copytree(SDK, "\\\\?\\" + str(declared), copy_function=stage)
             selected = declared / "sdk/11.0.100"
             self.assertGreater(len(str(selected / "Sdks/Microsoft.NET.Sdk/targets/Microsoft.PackageDependencyResolution.targets")), 260)
             command = [str(DOTNET), str(RUNNER), str(self.root), str(selected), "App.csproj",
                 "--package-build", "--resolve-references"]
-            result = subprocess.run(command, capture_output=True, text=True, env=dict(os.environ, DOTNET_ROOT=str(SDK)))
+            # LocalSystem .NET uses SystemTemp; Python may use a different TEMP.
+            # Watch the fixture-owned namespace that the child actually uses.
+            environment = dict(os.environ, DOTNET_ROOT=str(SDK), SystemTemp=str(managed_temp),
+                TEMP=str(managed_temp), TMP=str(managed_temp))
+            result = subprocess.run(command, capture_output=True, text=True, env=environment)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             app = json.loads((self.root / "graph.generated.json").read_text())["Projects"]["App.csproj"]["Configurations"][0]
             self.assertTrue(app["CompilerReferencesComplete"])
+            self.assertFalse(list(managed_temp.glob("msbuild-view-*")))
+            self.assertFalse(list(managed_temp.glob("msb-*")))
         self.assertEqual({path: path.stat().st_file_attributes for path in source_files}, attributes)
         self.assertEqual({path: hashlib.sha256(path.read_bytes()).hexdigest() for path in watched}, digests)
-        self.assertLessEqual(set(Path(tempfile.gettempdir()).glob("msbuild-view-*")), links)
 
     def test_graph_is_the_only_default(self):
         self.sync()
