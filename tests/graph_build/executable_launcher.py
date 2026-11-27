@@ -252,11 +252,14 @@ sys.exit(7 if "seven" in sys.argv else 0)
         signal_pid = root / 'signal-pid'
         host_pid = root / 'host-pid'
         command = shell_command(script, 'hang')
+        cancellation_environment = dict(environment, PID_FILE=str(pid_file), CONTROL_PID_FILE=str(signal_pid), HOST_PID_FILE=str(host_pid))
         if WINDOWS:
-            wrapper = root / 'signal-wrapper'
-            wrapper.write_text('printf "%s" "$$" > "$CONTROL_PID_FILE"\nexec "$@"\n')
-            command = bash_command(wrapper, bash_executable(), script, 'hang')
-        process = subprocess.Popen(command, env=dict(environment, PID_FILE=str(pid_file), CONTROL_PID_FILE=str(signal_pid), HOST_PID_FILE=str(host_pid)), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            # Observe the generated Bash itself, without inserting an execing
+            # shell between it and the native process-status observer.
+            observer = root / 'signal-observer'
+            observer.write_text('case "$0" in */launcher|*\\\\launcher) printf "%s" "$$" > "$CONTROL_PID_FILE" ;; esac\n', newline='\n')
+            cancellation_environment['BASH_ENV'] = bash_path(observer)
+        process = subprocess.Popen(command, env=cancellation_environment, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         import time
         deadline = time.monotonic() + 5
         while not pid_file.exists() and time.monotonic() < deadline:
