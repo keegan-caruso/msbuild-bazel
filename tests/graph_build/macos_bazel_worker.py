@@ -14,7 +14,8 @@ import uuid
 
 
 def records(path):
-    text = path.read_text(); decoder = json.JSONDecoder()
+    text = path.read_text()
+    decoder = json.JSONDecoder()
     while text.strip():
         row, used = decoder.raw_decode(text.lstrip())
         yield row
@@ -23,8 +24,13 @@ def records(path):
 
 def processes():
     rows = subprocess.check_output(['/bin/ps', '-axww', '-o', 'pid=,ppid=,command='], text=True, timeout=5)
-    return {int(pid): (int(parent), command) for line in rows.splitlines()
-            if len(parts := line.strip().split(None, 2)) == 3 for pid, parent, command in [parts]}
+    result = {}
+    for line in rows.splitlines():
+        parts = line.strip().split(None, 2)
+        if len(parts) == 3:
+            pid, parent, command = parts
+            result[int(pid)] = int(parent), command
+    return result
 
 
 def identity(pid):
@@ -53,16 +59,20 @@ def main():
     parser.add_argument('--timeout', type=int, default=900)
     args = parser.parse_args()
     assert platform.system() == 'Darwin' and platform.machine() == 'arm64', platform.uname()
-    rules = args.rules.resolve(strict=True); bazel = args.bazel.resolve(strict=True)
+    rules = args.rules.resolve(strict=True)
+    bazel = args.bazel.resolve(strict=True)
     revision = subprocess.check_output(['git', '-C', str(rules), 'rev-parse', 'HEAD'], text=True).strip()
     expected = subprocess.check_output(['git', '-C', str(rules), 'rev-parse', args.expected_revision], text=True).strip()
     assert revision == expected, (revision, expected)
     subprocess.run(['git', '-C', str(rules), 'diff', '--quiet', 'HEAD'], check=True)
-    root = args.directory.resolve(); root.mkdir(parents=True, exist_ok=False)
-    consumer = root / 'consumer'; shutil.copytree(rules / 'tests/integration/fixtures/worker', consumer)
+    root = args.directory.resolve()
+    root.mkdir(parents=True, exist_ok=False)
+    consumer = root / 'consumer'
+    shutil.copytree(rules / 'tests/integration/fixtures/worker', consumer)
     module = consumer / 'MODULE.bazel'
     module.write_text(module.read_text().replace('"../msbuild-bazel"', json.dumps(str(rules))))
-    settings = json.loads((consumer / 'global.json').read_text()); settings['sdk']['version'] = '11.0.100'
+    settings = json.loads((consumer / 'global.json').read_text())
+    settings['sdk']['version'] = '11.0.100'
     (consumer / 'global.json').write_text(json.dumps(settings))
     for project in consumer.glob('P*/*.csproj'):
         project.write_text(project.read_text().replace('net10.0', 'net11.0'))
@@ -89,7 +99,8 @@ def main():
         options.append('--repository_cache=' + str(args.repository_cache.resolve()))
     worker_options = ['--worker_sandboxing', '--experimental_worker_cancellation']
     deadline = time.monotonic() + args.timeout
-    phases = []; result = dict(revision=revision, bazelVersion=environment['USE_BAZEL_VERSION'], host=list(platform.uname()))
+    phases = []
+    result = dict(revision=revision, bazelVersion=environment['USE_BAZEL_VERSION'], host=list(platform.uname()))
 
     def run(name, arguments, worker=False):
         command = startup + arguments + options + (worker_options if worker else [])
@@ -104,7 +115,8 @@ def main():
                 try:
                     process.wait(timeout=10)
                 except subprocess.TimeoutExpired:
-                    os.killpg(process.pid, signal.SIGKILL); process.wait(timeout=10)
+                    os.killpg(process.pid, signal.SIGKILL)
+                    process.wait(timeout=10)
                 raise
         phases.append(dict(name=name, command=command, exitCode=process.returncode, wallSeconds=time.monotonic()-start))
         (root / 'phases.json').write_text(json.dumps(phases, indent=2))
@@ -119,13 +131,15 @@ def main():
         assert len(actions) == 1 and not actions[0].get('cacheHit'), actions
         assert (actions[0].get('runner') == 'worker') == (kind == 'worker'), actions
         report = consumer / 'bazel-bin' / (kind + '_graph.graph/report.json')
-        data = json.loads(report.read_text()); assert ('worker' in data) == (kind == 'worker'), data
+        data = json.loads(report.read_text())
+        assert ('worker' in data) == (kind == 'worker'), data
         (root / (name + '-report.json')).write_text(json.dumps(data, indent=2))
         inventory = products(report.parent / 'workspace')
         (root / (name + '-products.json')).write_text(json.dumps(inventory, indent=2))
         return inventory
 
-    observed = {}; client = None
+    observed = {}
+    client = None
     try:
         run('sync', ['run', '//:sync'])
         with build.open('a') as output:
@@ -137,14 +151,18 @@ msbuild_graph_binary(name="worker_app", graph=":worker_graph", project="P2/P2.cs
 msbuild_graph_binary(name="local_app", graph=":local_graph", project="P2/P2.csproj")
 ''')
         # Confirm actual worker execution; merely passing --strategy is insufficient.
-        cold = app('cold-worker', 'worker', '1'); local = app('cold-local', 'local', '1')
+        cold = app('cold-worker', 'worker', '1')
+        local = app('cold-local', 'local', '1')
         assert cold == local, 'Cold local/worker byte or mode parity failed'
-        source = consumer / 'P0/Code.cs'; source.write_text(source.read_text().replace('=> 1', '=> 2'))
-        body = app('body-worker', 'worker', '2'); local = app('body-local', 'local', '2')
+        source = consumer / 'P0/Code.cs'
+        source.write_text(source.read_text().replace('=> 1', '=> 2'))
+        body = app('body-worker', 'worker', '2')
+        local = app('body-local', 'local', '2')
         assert body == local, 'Body local/worker byte or mode parity failed'
         assert body['P0/bin/Release/net11.0/P0.dll'] != cold['P0/bin/Release/net11.0/P0.dll']
         assert body['P0/obj/Release/net11.0/ref/P0.dll'] == cold['P0/obj/Release/net11.0/ref/P0.dll']
-        original = source.read_text(); source.write_text(original + '\n// issue224-cancel\n')
+        original = source.read_text()
+        source.write_text(original + '\n// issue224-cancel\n')
         command = startup + ['build', '//:worker_graph'] + options + worker_options
         start = time.monotonic()
         with (root / 'cancel.log').open('w') as output:
@@ -170,14 +188,16 @@ msbuild_graph_binary(name="local_app", graph=":local_graph", project="P2/P2.cspr
                             while added := {p for p, (q, _) in rows.items() if q in descendants} - descendants:
                                 descendants.update(added)
                             if not any(rows[p][1].split() in (['/bin/sleep', '600'], ['sleep', '600']) for p in descendants):
-                                broker = None; break
+                                broker = None
+                                break
                             observed = {p: (rows[p][1], identity(p)) for p in descendants}
                             break
                         ancestor = parent
                     if broker is not None:
                         break
                 time.sleep(.05)
-            broker_started = identity(broker); cancelled = time.monotonic()
+            broker_started = identity(broker)
+            cancelled = time.monotonic()
             os.killpg(client.pid, signal.SIGINT)  # includes a possible Bazelisk/shell launcher
             code = client.wait(timeout=min(30, max(1, deadline-time.monotonic())))
             assert code != 0, code
@@ -198,7 +218,8 @@ msbuild_graph_binary(name="local_app", graph=":local_graph", project="P2/P2.cspr
         raise
     finally:
         if client is not None and client.poll() is None:
-            os.killpg(client.pid, signal.SIGKILL); client.wait(timeout=10)
+            os.killpg(client.pid, signal.SIGKILL)
+            client.wait(timeout=10)
         # Only verified fixture descendants can be stopped on a failed control.
         rows = processes()
         for pid, (arguments, started) in reversed(list(observed.items())):
