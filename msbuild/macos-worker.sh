@@ -16,6 +16,7 @@ profile='
 (deny default)
 (import "system.sb")
 (allow process*)
+(deny syscall-unix (syscall-number SYS_setsid SYS_setpgid))
 (allow signal (target self))
 (allow sysctl-read)
 (allow file-read-metadata)
@@ -42,5 +43,12 @@ exec 3<&0
 child=$!
 (IFS= read -r _ <&3 || :; kill -KILL -- "-$child" 2>/dev/null || :) &
 monitor=$!
-trap 'kill "$monitor" 2>/dev/null || :; wait "$monitor" 2>/dev/null || :' EXIT
+finish() {
+    # A completed build may have started a background task. Stop its group
+    # before the broker publishes the output or removes request scratch.
+    kill -KILL -- "-$child" 2>/dev/null || :
+    kill "$monitor" 2>/dev/null || :
+    wait "$monitor" 2>/dev/null || :
+}
+trap finish EXIT
 wait "$child"

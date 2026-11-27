@@ -76,7 +76,12 @@ esac
             clean()
             assert not (root / 'output/workspace/owned/product').exists(), 'Cancelled product published'
             pid = int((root / 'child-pid').read_text())
-            assert not Path('/proc', str(pid)).exists(), 'Cancelled child survived'
+            try:
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                pass
+            else:
+                raise AssertionError('Cancelled child survived')
             for identity, mode in [(2, 'fail'), (3, 'link')]:
                 request(worker, identity, mode)
                 assert reply(worker)['exitCode'] != 0

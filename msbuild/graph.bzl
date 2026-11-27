@@ -276,7 +276,7 @@ _msbuild_graph_restore = rule(
 def msbuild_graph(name, linux_stable_paths = None, linux_worker = None, **kwargs):
     """Build with stable paths and workers on a declared qualified execution platform."""
     if kwargs.get("macos_worker", False):
-        kwargs["exec_compatible_with"] = kwargs.get("exec_compatible_with", []) + ["@platforms//os:macos", "@platforms//cpu:aarch64"]
+        kwargs["exec_compatible_with"] = kwargs.get("exec_compatible_with", []) + [Label("@platforms//os:macos"), Label("@platforms//cpu:aarch64")]
     _msbuild_graph(name = name, linux_worker = linux_worker if linux_worker != None else False, automatic_worker = linux_worker == None, linux_stable_paths = linux_stable_paths if linux_stable_paths != None else False, automatic_stable_paths = linux_stable_paths == None, **kwargs)
 
 def msbuild_graph_restore(name, linux_stable_paths = None, **kwargs):
