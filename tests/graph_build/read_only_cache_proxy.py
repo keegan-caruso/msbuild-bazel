@@ -1,4 +1,4 @@
-"""Consumer-local HTTP cache guard: a remote miss stops the local Bazel group.
+"""POSIX consumer-local HTTP cache guard: a remote miss stops the local Bazel group.
 
 The upstream service must independently restrict access and reject writes. This
 proxy rejects writes too, and counts streamed response body bytes, not wire bytes.
@@ -146,6 +146,8 @@ def main():
     parser.add_argument('command', nargs=argparse.REMAINDER,
                         help='-- BAZEL --batch --output_base=FRESH build|test ...')
     args = parser.parse_args()
+    if not hasattr(os, 'killpg'):
+        parser.error('This cache guard requires POSIX process groups')
     command = args.command[1:] if args.command[:1] == ['--'] else args.command
     actions = [index for index, value in enumerate(command) if value in ['build', 'test']]
     if not command or len(actions) != 1 or '--batch' not in command or not any(
