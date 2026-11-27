@@ -78,6 +78,9 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
                 // extra nodes on a single-CPU execution platform.
                 MaxNodeCount = Math.Clamp(Environment.ProcessorCount, 1, 4),
                 EnableNodeReuse = false,
+                // Task assemblies remain mapped in an in-process Windows node.
+                // Dispose worker nodes before deleting the private package tree.
+                DisableInProcNode = OperatingSystem.IsWindows(),
                 ProjectCacheDescriptor = cache is null ? null : ProjectCacheDescriptor.FromInstance(cache),
                 Loggers = [new Microsoft.Build.Logging.ConsoleLogger(Microsoft.Build.Framework.LoggerVerbosity.Minimal)]
             };

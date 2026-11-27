@@ -1148,6 +1148,42 @@ class GraphSyncTests(unittest.TestCase):
             self.assertFalse(list(Path(directory).glob('*/manifest.json')))
             self.assertFalse((self.root / 'graph.generated.json').exists())
 
+    def test_custom_task_assembly_is_released_before_private_workspace_cleanup(self):
+        with tempfile.TemporaryDirectory(prefix="sync-task-assembly-") as temporary:
+            task = Path(temporary)
+            engine = SDK / "sdk/11.0.100"
+            (task / "Task.csproj").write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
+                '<TargetFramework>net11.0</TargetFramework></PropertyGroup><ItemGroup>'
+                + ''.join('<Reference Include="' + name + '" HintPath="' + str(engine / (name + '.dll'))
+                    + '" Private="false" />' for name in ['Microsoft.Build.Framework', 'Microsoft.Build.Utilities.Core'])
+                + '</ItemGroup></Project>')
+            (task / "Task.cs").write_text('public sealed class FixtureTask : Microsoft.Build.Utilities.Task {'
+                'public override bool Execute() { Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High,'
+                '"PRIVATE_TASK_DLL=" + typeof(FixtureTask).Assembly.Location); return true; }}')
+            built = subprocess.run([str(DOTNET), 'build', str(task / 'Task.csproj'), '-c', 'Release',
+                '-p:UseSharedCompilation=false', '-nodeReuse:false'], capture_output=True, text=True,
+                env=dict(os.environ, DOTNET_CLI_USE_MSBUILD_SERVER='false', MSBUILDUSESERVER='0', MSBUILDDISABLENODEREUSE='1'))
+            self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+            original = self.root / 'tasks/Task.dll'
+            original.parent.mkdir()
+            shutil.copyfile(task / 'bin/Release/net11.0/Task.dll', original)
+            digest = hashlib.sha256(original.read_bytes()).hexdigest()
+            project = self.project.replace('</Project>', '<UsingTask TaskName="FixtureTask" AssemblyFile="tasks/Task.dll" />'
+                '<Target Name="LoadFixtureTask" AfterTargets="Build"><FixtureTask /></Target></Project>')
+            (self.root / 'App.csproj').write_text(project)
+            mapping = {'projectDefaults': {'referenceBoundary': True, 'documents': {'App.csproj': {
+                'sha256': hashlib.sha256(project.encode()).hexdigest(), 'targets': ['LoadFixtureTask'],
+                'tasks': ['FixtureTask'], 'inputs': ['tasks/Task.dll']}}}}
+            output = self.sync(mapping, flags=['--package-build', '--resolve-references'])
+            self.assertIn('PRIVATE_TASK_DLL=', output)
+            loaded = Path(next(line.strip().split('=', 1)[1] for line in output.splitlines()
+                if line.strip().startswith('PRIVATE_TASK_DLL=')))
+            self.assertNotEqual(loaded.resolve(), original.resolve())
+            self.assertFalse(loaded.parent.parent.exists(), output)
+            self.assertEqual(hashlib.sha256(original.read_bytes()).hexdigest(), digest)
+            contract = json.loads((self.root / 'graph.generated.json').read_text())
+            self.assertTrue(contract['Projects']['App.csproj']['Configurations'][0]['CompilerReferencesComplete'])
+
     def test_serial_and_parallel_qualification_preserve_selected_artifacts(self):
         references = []
         for name, properties in [('First', '<ProduceReferenceAssembly>false</ProduceReferenceAssembly>'),
