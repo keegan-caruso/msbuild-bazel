@@ -193,7 +193,9 @@ load("@rules_msbuild//msbuild:sync.bzl", "msbuild_nuget_update")
 msbuild_nuget_update(name = "update_packages", projects = ["App/App.csproj"])
 ```
 
-Run `bazel run //:update_packages` after package, framework, central-version, or SDK changes. Resolves in a disposable copy using the declared SDK and root `NuGet.Config` hierarchy; writes native project locks (`packages.PROJECT.lock.json` with spaces→underscores in shared dirs, `packages.lock.json` otherwise; existing project-specific locks win; name collisions fail) and `nuget.lock.json` (failures leave existing locks intact). Commit both. `--check` re-resolves online and rejects stale locks. HTTP responses cache in `<user-data>/rules-msbuild/nuget-http` (override via `-- --http-cache /abs/path`, disable via `-- --no-http-cache`). `-- --distdir /abs/archives` exports verified archives for Bazel `--distdir` (existing files must match hashes).
+Run `bazel run //:update_packages` after package, framework, central-version, or SDK changes. Resolves in a disposable copy using the declared SDK and root `NuGet.Config` hierarchy. Restore and graph evaluation isolate [user-profile settings](https://learn.microsoft.com/en-us/nuget/consume-packages/configuring-nuget-behavior), including Windows roaming/local application data. Writes native project locks (`packages.PROJECT.lock.json` with spaces→underscores in shared dirs, `packages.lock.json` otherwise; existing project-specific locks win; name collisions fail) and `nuget.lock.json` (failures leave existing locks intact). Commit both. `--check` re-resolves online and rejects stale locks.
+
+HTTP responses cache in `<user-data>/rules-msbuild/nuget-http` (override via `-- --http-cache /abs/path`, disable via `-- --no-http-cache`). `-- --distdir /abs/archives` exports verified archives for Bazel `--distdir` (existing files must match hashes).
 
 After first update, wire the inventory in `MODULE.bazel`:
 

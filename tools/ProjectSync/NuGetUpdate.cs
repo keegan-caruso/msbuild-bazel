@@ -143,8 +143,10 @@ internal static class NuGetUpdate
                 CaptureLocks(workspace, metadata, locks, lockOwners);
                 NuGetConfigs.Capture(workspace, metadata, source, Path.Combine(scratch, "home"), originals);
             }
-            Environment.SetEnvironmentVariable("HOME", Path.Combine(scratch, "home"));
-            Environment.SetEnvironmentVariable("DOTNET_CLI_HOME", Path.Combine(scratch, "home"));
+            foreach (var (name, value) in PrivateProfile(scratch))
+            {
+                Environment.SetEnvironmentVariable(name, value);
+            }
             Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(engine, "MSBuild.dll"));
             Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(engine, "Sdks"));
             Environment.SetEnvironmentVariable("DOTNET_HOST_PATH", Path.Combine(sdk, "dotnet"));
@@ -236,6 +238,28 @@ internal static class NuGetUpdate
         return Path.Combine(root, "rules-msbuild", "nuget-http");
     }
 
+    private static Dictionary<string, string> PrivateProfile(string scratch)
+    {
+        var home = Path.Combine(scratch, "home");
+        var environment = new Dictionary<string, string>
+        {
+            ["HOME"] = home,
+            ["DOTNET_CLI_HOME"] = home
+        };
+        // NuGet reads the Windows roaming profile independently of HOME.
+        if (OperatingSystem.IsWindows())
+        {
+            environment["USERPROFILE"] = home;
+            environment["APPDATA"] = Path.Combine(home, "AppData", "Roaming");
+            environment["LOCALAPPDATA"] = Path.Combine(home, "AppData", "Local");
+        }
+        foreach (var directory in environment.Values)
+        {
+            Directory.CreateDirectory(directory);
+        }
+        return environment;
+    }
+
     private static async Task Restore(string sdk, string workspace, string packages, string project, Dictionary<string, string> properties, string scratch, string engine, string httpCache)
     {
         if (!File.Exists(Path.Combine(workspace, project)))
@@ -259,8 +283,7 @@ internal static class NuGetUpdate
             ["DOTNET_ROOT"] = sdk,
             ["DOTNET_NOLOGO"] = "1",
             ["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1",
-            ["DOTNET_CLI_HOME"] = Path.Combine(scratch, "home"),
-            ["HOME"] = Path.Combine(scratch, "home"),
+            ["DOTNET_ADD_GLOBAL_TOOLS_TO_PATH"] = "false",
             ["NUGET_PACKAGES"] = packages,
             ["NUGET_HTTP_CACHE_PATH"] = httpCache,
             ["NUGET_PLUGINS_CACHE_PATH"] = Path.Combine(scratch, "plugins"),
@@ -271,6 +294,10 @@ internal static class NuGetUpdate
             ["DOTNET_CLI_USE_MSBUILD_SERVER"] = "false",
             ["MSBUILDUSESERVER"] = "0"
         })
+        {
+            start.Environment[name] = value;
+        }
+        foreach (var (name, value) in PrivateProfile(scratch))
         {
             start.Environment[name] = value;
         }
