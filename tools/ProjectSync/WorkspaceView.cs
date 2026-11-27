@@ -174,8 +174,7 @@ internal sealed class WorkspaceView : IDisposable
                     foreach (var file in Directory.GetFiles(source, "*", SearchOption.AllDirectories))
                     {
                         var destination = Path.Combine(temporary, relative, Safe(RelativePathComponents.LogicalRelative(source, file)));
-                        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-                        File.Copy(file, destination);
+                        SyncFiles.Copy(file, destination);
                     }
                     view.GraphBindingLabels.Add(binding.Label);
                 }
