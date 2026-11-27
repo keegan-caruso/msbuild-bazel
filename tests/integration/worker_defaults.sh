@@ -24,12 +24,23 @@ settings['sdk']['version']='11.0.100';path.write_text(json.dumps(settings)+'\n')
 for project in Path('.').glob('P*/*.csproj'):
     project.write_text(project.read_text().replace('net10.0','net11.0'))
 PY_SDK
-# The import is declared before sync; editing it later remains a real input
-# change, rather than an undeclared target injected into the worker workspace.
-cat > P0/Directory.Build.targets <<'TARGETS'
-<Project><Target Name="WorkerCancellationControl" BeforeTargets="CoreCompile"><Exec Command="true" /></Target></Project>
-TARGETS
-cp BUILD.bazel.in BUILD.bazel
+# The imported target is reviewed before sync. A declared source comment
+# activates its delay without changing the reviewed target bytes.
+python3 - <<'PY_TARGET'
+import hashlib,json,os
+from pathlib import Path
+marker='rules-msbuild-cancel-'+str(os.getpid())
+target=Path('P0/Directory.Build.targets')
+target.write_text('<Project><Target Name="WorkerCancellationControl" BeforeTargets="CoreCompile">'
+    '<Exec Command="bash -c &quot;exec -a '+marker+' sleep 600&quot;" '
+    """Condition="$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)/Code.cs').Contains('issue224-cancel'))" />"""
+    '</Target></Project>')
+Path('worker-mappings.json').write_text(json.dumps(dict(projects={'P0/P0.csproj':dict(documents={
+    'P0/Directory.Build.targets':dict(sha256=hashlib.sha256(target.read_bytes()).hexdigest(),
+        targets=['WorkerCancellationControl'],tasks=[],inputs=['P0/Code.cs'])})})))
+p=Path('BUILD.bazel');p.write_text(Path('BUILD.bazel.in').read_text().replace(
+    'projects = ["P2/P2.csproj"]','projects = ["P2/P2.csproj"], mappings = "worker-mappings.json"'))
+PY_TARGET
 bazel run //:sync
 printf '\nbazel_dep(name="platforms", version="1.0.0")\n' >> MODULE.bazel
 cat >> BUILD.bazel <<'BUILD'
@@ -92,6 +103,7 @@ python3 - "$BIT_BAZEL_BINARY" "$scratch/bazel" "$TEST_TMPDIR" <<'PY_CANCEL'
 import json
 import os
 from pathlib import Path
+import re
 import signal
 import subprocess
 import sys
@@ -99,11 +111,10 @@ import time
 
 binary, output_base, reports = sys.argv[1:]
 reports = Path(reports)
-target = Path('P0/Directory.Build.targets')
-original = target.read_text()
-marker = 'rules-msbuild-cancel-' + str(os.getpid())
-target.write_text(original.replace('Command="true"',
-    'Command="bash -c &quot;exec -a ' + marker + ' sleep 600&quot;"'))
+source = Path('P0/Code.cs')
+original = source.read_text()
+marker = re.search(r'exec -a (rules-msbuild-cancel-[0-9]+) ', Path('P0/Directory.Build.targets').read_text())[1]
+source.write_text(original+'\n// issue224-cancel\n')
 command = [binary, '--nosystem_rc', '--nohome_rc', '--noworkspace_rc',
            '--output_base=' + output_base, 'build', '//:graph',
            '--extra_execution_platforms=//:qualified']
@@ -159,7 +170,7 @@ try:
                 os.killpg(client.pid, signal.SIGKILL)
                 client.wait(timeout=10)
 finally:
-    target.write_text(original)
+    source.write_text(original)
 PY_CANCEL
 # A different body guarantees the next action executes after cancellation.
 sed -i 's/=> 2/=> 3/' P0/Code.cs
