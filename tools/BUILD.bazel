@@ -16,6 +16,7 @@ exports_files([
     "OutputOwnershipIndex.cs",
     "RelativePathComponents.cs",
     "Runfiles.cs",
+    "SdkDirectory.cs",
 ])
 
 # Shared adapter inputs retain their tools/ paths in staged workspaces.
@@ -37,6 +38,7 @@ filegroup(
         "OutputOwnershipIndex.cs",
         "PackageSdks.cs",
         "RelativePathComponents.cs",
+        "SdkDirectory.cs",
         "//tools/ProjectCache:BuildSeed.cs",
         "//tools/ProjectCache:CachedTargetItem.cs",
         "//tools/ProjectCache:FileMaterializer.cs",
