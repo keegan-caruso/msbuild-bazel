@@ -1,6 +1,7 @@
 """Remote misses and broken downloads must not fall back to local producers."""
 import hashlib
 import json
+import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import signal
@@ -58,6 +59,7 @@ class CacheProxy(unittest.TestCase):
         self.url = 'http://127.0.0.1:' + str(self.proxy.server_port)
         Upstream.puts = 0
 
+    @unittest.skipUnless(hasattr(os, 'killpg'), 'Cache guard execution requires POSIX process groups')
     def test_remote_misses_stop_own_bazel_group_before_reply(self):
         for method in ['GET', 'HEAD']:
             with self.subTest(method=method):
@@ -87,11 +89,29 @@ class CacheProxy(unittest.TestCase):
         self.assertEqual(Upstream.puts, 0)
         self.assertFalse(self.proxy.misses)
 
+    @unittest.skipUnless(hasattr(os, 'killpg'), 'Cache guard execution requires POSIX process groups')
     def test_cli_reports_streamed_bytes_for_one_owned_phase(self):
         self.cli_case(present=True, ignore_term=False)
 
+    @unittest.skipUnless(hasattr(os, 'killpg'), 'Cache guard execution requires POSIX process groups')
     def test_cli_stops_even_signal_ignoring_requester_before_fallback(self):
         self.cli_case(present=False, ignore_term=True)
+
+    @unittest.skipIf(hasattr(os, 'killpg'), 'Native rejection applies without POSIX process groups')
+    def test_cli_rejects_unsupported_host_before_starting_producer(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            marker = root/'started'
+            report = root/'phase.json'
+            guard = Path(__file__).resolve().parents[1]/'graph_build/read_only_cache_proxy.py'
+            command = [sys.executable, str(guard), '--cache=' + self.url, '--report=' + str(report),
+                       '--', sys.executable, '-c', 'from pathlib import Path;Path(' + repr(str(marker)) + ').touch()',
+                       '--batch', '--output_base=' + str(root/'base'), 'build']
+            result = subprocess.run(command, capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertIn('requires POSIX process groups', result.stderr)
+            self.assertFalse(marker.exists(), 'Unsupported guard started a producer')
+            self.assertFalse(report.exists())
 
     def cli_case(self, present, ignore_term):
         with tempfile.TemporaryDirectory() as folder:
@@ -120,6 +140,7 @@ class CacheProxy(unittest.TestCase):
                 self.assertTrue(receipt['misses'])
                 self.assertEqual(receipt['returnCode'], -signal.SIGKILL)
 
+    @unittest.skipUnless(hasattr(os, 'killpg'), 'Cache guard execution requires POSIX process groups')
     def test_transport_failure_stops_group(self):
         self.upstream.shutdown()
         self.upstream.server_close()
