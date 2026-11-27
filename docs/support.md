@@ -218,6 +218,8 @@ For graph acceptance from Git Bash, set `RULES_MSBUILD_PYTHON` to native Python,
 
 The upstream Bazel integration test runner opens its inputs in a physical runfiles tree. To run that wrapper directly on Windows, use `bazel --windows_enable_symlinks test //tests/integration:quickstart --enable_runfiles` from an account allowed to create symlinks. The example app, test and sync targets also support default manifest runfiles.
 
+On Windows ARM64, ProjectSync staged a read-only producer and completed the tree membership and digest replay control while preserving the producer file. Run `python -m unittest discover -s tests/project_sync -p test_sync.py -k tree_contract_guards_membership_and_hashes_bytes` after building ProjectSync and GraphBuild.
+
 Windows launchers use the pinned shell toolchain's native executable launcher and declared runfiles library. Bash and managed consumers accept manifest or directory runfiles; native .NET arguments are explicit Windows paths. Graph actions keep profile, AppData, temp, and NuGet machine-settings paths under scratch. An empty private `PROGRAMFILES` base avoids NuGet's `RestoreTask` failing with null `path1`. ProjectSync emits LF JSON so generated-file checks agree across hosts.
 
 Contract keys use `/`; native paths handle filesystem IO. Device names, alternate streams, invalid filename characters, trailing dots/spaces, and case/separator ownership aliases have controls. Windows 8.3 aliases and hardlinks remain outside these lexical checks. Run `python3 tests/graph_build/input_integrity.py` and `python3 tests/graph_build/output_ownership.py` after building GraphBuild for the portable source controls.
