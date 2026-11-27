@@ -71,7 +71,7 @@ def main():
             rows.append(item)
             text = text[end:]
         selected = [row for row in rows if row.get('mnemonic') == mnemonic]
-        assert len(selected) == 1 and not selected[0].get('cacheHit') and selected[0].get('exitCode', 0) == 0, selected
+        assert len(selected) == 1 and not selected[0].get('cacheHit') and selected[0].get('exitCode', 0) == 0, [{key: row.get(key) for key in ['mnemonic', 'runner', 'cacheHit', 'exitCode']} for row in selected]
         return selected[0]
 
     try:
@@ -83,7 +83,11 @@ def main():
         build.write_text('load(":graph.generated.bzl","app_graph")\n' + sync + 'app_graph(name="graph",windows_isolation=True)\n')
         run('graph', [*prefix, 'build', *uncached, '--execution_log_json_file=' + str(base / 'graph-execution.json'), '//:graph'], workspace)
         graph_action = executed(base / 'graph-execution.json', 'MSBuildGraph')
-        assert graph_action['commandArgs'][-1] == '1' and any('windows-sandbox' in argument for argument in graph_action['commandArgs']), graph_action
+        # run_shell passes $0 after the -c command, then the eleven graph options
+        # followed by source/destination pairs. Isolation is option eleven.
+        parameters = graph_action['commandArgs'][graph_action['commandArgs'].index('-c') + 3:]
+        assert len(parameters) >= 11 and parameters[10] == '1', parameters
+        assert any('windows-sandbox' in argument for argument in graph_action['commandArgs']), graph_action['commandArgs']
         output = Path(run('bin-path', [*prefix, 'info', 'bazel-bin'], workspace).strip()) / 'graph.graph/workspace/App/bin/Release/net11.0/App.dll'
         dotnet = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']) / 'dotnet.exe'
         assert run('app', [dotnet, output], workspace).strip() == 'isolated Windows ' + abi['process']
@@ -91,7 +95,7 @@ def main():
         assert all((workspace / name).read_bytes() == contents for name, contents in generated.items())
         after = set(storage.iterdir()) if storage.exists() else set()
         assert not after - before, 'New owned sandbox lease remains after successful operations'
-        (base / 'result.json').write_text(json.dumps(dict(abi=abi, generated={name: hashlib.sha256(contents).hexdigest() for name, contents in generated.items()}, normalCleanup=True, appHost='selected native dotnet.exe', executedActions=[{key: action.get(key) for key in ['mnemonic', 'runner', 'cacheHit', 'exitCode', 'targetLabel']} for action in [sync_action, graph_action]], receipts=receipts), indent=2) + '\n')
+        (base / 'result.json').write_text(json.dumps(dict(abi=abi, generated={name: hashlib.sha256(contents).hexdigest() for name, contents in generated.items()}, normalCleanup=True, graphIsolationArgument=parameters[10], appHost='selected native dotnet.exe', executedActions=[{key: action.get(key) for key in ['mnemonic', 'runner', 'cacheHit', 'exitCode', 'targetLabel']} for action in [sync_action, graph_action]], receipts=receipts), indent=2) + '\n')
     finally:
         run('shutdown', [*prefix, 'shutdown'], workspace)
     print('PASS: native Windows isolated two-project sync/build, app output, sync check and normal cleanup')
