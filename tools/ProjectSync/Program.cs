@@ -21,10 +21,11 @@ internal static class Program
                 NuGetUpdate.Run(args[1..]).GetAwaiter().GetResult();
                 return 0;
             }
-            var isolatedOutput = args.Length > 1 && args[0] == "windows-prepared" ? args[1] : null;
+            var isolatedOutput = args.Length > 2 && args[0] == "windows-prepared" ? args[1] : null;
+            var parentScratch = isolatedOutput is not null ? args[2] : null;
             if (isolatedOutput is not null)
             {
-                args = args[2..];
+                args = args[3..];
             }
             if (args.Length < 3)
             {
@@ -177,7 +178,7 @@ internal static class Program
                 return QualificationSandbox.Run(root, sdk, projects.ToArray(), check, configuration, framework,
                     packageInputs.ToArray(), mappings, inputs, runfiles, new QualificationOptions(qualificationDirectory, qualificationUrl, graphRunner, bearerToken, qualificationReadOnly));
             }
-            using var view = SyncProfile.Run("producer-bindings", () => WorkspaceView.Create(root, inputs, runfiles, copyInputs: isolatedOutput is not null));
+            using var view = SyncProfile.Run("producer-bindings", () => WorkspaceView.Create(root, inputs, runfiles, parentScratch));
             if (graphRunner is not null)
             {
                 Environment.SetEnvironmentVariable("NUGET_HTTP_CACHE_PATH", null);
