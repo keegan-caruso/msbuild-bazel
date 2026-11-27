@@ -15,6 +15,10 @@ internal sealed record SyncInputs(SyncInput[] Inputs, SyncPackage[] Packages, st
 internal sealed class WorkspaceView : IDisposable
 {
     private readonly string? temporary;
+    internal string? ParentScratch
+    {
+        get;
+    }
     private readonly Dictionary<string, string> packageSources = new(StringComparer.Ordinal);
     private readonly Dictionary<string, (string Label, HashSet<string> Packages)> packageLocks = new(StringComparer.Ordinal);
     private readonly HashSet<string> visiblePackages = new(StringComparer.Ordinal);
@@ -45,10 +49,11 @@ internal sealed class WorkspaceView : IDisposable
     private readonly HashSet<string> treeRoots = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> producerRoots = new(StringComparer.Ordinal);
 
-    private WorkspaceView(string root, string? temporary, string? packageLock)
+    private WorkspaceView(string root, string? temporary, string? packageLock, string? parentScratch = null)
     {
         Root = root;
         this.temporary = temporary;
+        ParentScratch = parentScratch;
         DefaultPackageLock = packageLock;
     }
 
@@ -76,6 +81,16 @@ internal sealed class WorkspaceView : IDisposable
         return current;
     }
 
+    internal static string CreatePrivateDirectory(string parent, string name)
+    {
+        var directory = Path.Combine(parent, name);
+        if (Path.Exists(directory))
+        {
+            throw new IOException("Expected a fresh private sync directory: " + directory);
+        }
+        return Directory.CreateDirectory(directory).FullName;
+    }
+
     internal static string Safe(string path)
     {
         if (!RelativePathComponents.IsSafeRelative(path))
@@ -85,7 +100,7 @@ internal sealed class WorkspaceView : IDisposable
         return path;
     }
 
-    internal static WorkspaceView Create(string root, string? manifest, string? runfiles)
+    internal static WorkspaceView Create(string root, string? manifest, string? runfiles, string? parentScratch = null)
     {
         if (manifest is null)
         {
@@ -97,11 +112,11 @@ internal sealed class WorkspaceView : IDisposable
         }
         var resolver = new Runfiles(runfiles);
         var inputs = JsonSerializer.Deserialize<SyncInputs>(File.ReadAllText(manifest), new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }) ?? throw new InvalidDataException("Empty sync input manifest");
-        var temporary = PhysicalPath(Directory.CreateTempSubdirectory("msbuild-sync-").FullName);
-        var view = new WorkspaceView(temporary, temporary, inputs.PackageLock);
+        var temporary = parentScratch is null ? PhysicalPath(Directory.CreateTempSubdirectory("msbuild-sync-").FullName) : CreatePrivateDirectory(parentScratch, "view");
+        var view = new WorkspaceView(temporary, parentScratch is null ? temporary : null, inputs.PackageLock, parentScratch);
         try
         {
-            CopySources(root, temporary);
+            view.CopySources(root, temporary);
             foreach (var input in inputs.Inputs)
             {
                 view.HasBuildInputs |= input.BuildOnly;
@@ -151,7 +166,7 @@ internal sealed class WorkspaceView : IDisposable
                         throw new InvalidDataException("Duplicate sync input: " + path);
                     }
                     Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-                    File.CreateSymbolicLink(destination, source);
+                    view.StageFile(source, destination);
                     if (input.BuildOnly)
                     {
                         view.buildInputs.Add(path);
@@ -288,7 +303,7 @@ internal sealed class WorkspaceView : IDisposable
         foreach (var identity in visiblePackages.Except(wanted, StringComparer.Ordinal).ToArray())
         {
             var path = Path.Combine(packageRoot, identity);
-            Directory.Delete(path);
+            Directory.Delete(path, recursive: ParentScratch is not null);
             var parent = Path.GetDirectoryName(path)!;
             if (!Directory.EnumerateFileSystemEntries(parent).Any())
             {
@@ -300,13 +315,45 @@ internal sealed class WorkspaceView : IDisposable
         {
             var path = Path.Combine(packageRoot, identity);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            Directory.CreateSymbolicLink(path, packageSources[identity]);
+            if (ParentScratch is not null)
+            {
+                var source = packageSources[identity];
+                Directory.CreateDirectory(path);
+                foreach (var entry in ProducerEntries(source))
+                {
+                    var destination = Path.Combine(path, Path.GetRelativePath(source, entry));
+                    if (Directory.Exists(entry))
+                    {
+                        Directory.CreateDirectory(destination);
+                    }
+                    else
+                    {
+                        SyncFiles.Copy(entry, destination);
+                    }
+                }
+            }
+            else
+            {
+                Directory.CreateSymbolicLink(path, packageSources[identity]);
+            }
             visiblePackages.Add(identity);
         }
         PackageLock = selected;
     }
 
-    private static void CopySources(string source, string destination)
+    private void StageFile(string source, string destination)
+    {
+        if (ParentScratch is not null)
+        {
+            SyncFiles.Copy(source, destination);
+        }
+        else
+        {
+            File.CreateSymbolicLink(destination, source);
+        }
+    }
+
+    private void CopySources(string source, string destination)
     {
         foreach (var entry in Directory.EnumerateFileSystemEntries(source))
         {
@@ -327,7 +374,7 @@ internal sealed class WorkspaceView : IDisposable
             }
             else
             {
-                File.CreateSymbolicLink(target, entry);
+                StageFile(entry, target);
             }
         }
     }

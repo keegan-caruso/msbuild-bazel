@@ -50,52 +50,9 @@ internal static class WindowsSandbox
         {
             WindowsStorage.Copy(Path.GetFullPath(prepared), Path.Combine(lease.Action, "prepared"));
         }
-        foreach (var directory in new[] { "scratch", "scratch/appdata", "scratch/localappdata", "scratch/programfiles" })
-        {
-            Directory.CreateDirectory(Path.Combine(lease.Action, directory));
-        }
-        WindowsStorage.Permissions(lease.Action, lease.Profile.Identifier);
-        WindowsStorage.IntegrityTree(lease.Action, false);
-        foreach (var directory in new[] { "output", "scratch" })
-        {
-            var writable = Path.Combine(lease.Action, directory);
-            WindowsStorage.Permissions(writable, lease.Profile.Identifier, true);
-            WindowsStorage.IntegrityTree(writable, true);
-        }
-        lease.AllocateDrive();
+        var environment = WindowsExecution.Prepare(lease);
         var root = lease.Root;
-        var scratch = root + "scratch";
-        var environment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["SystemRoot"] = Environment.GetEnvironmentVariable("SystemRoot") ?? throw new IOException("SystemRoot is required"),
-            ["WINDIR"] = Environment.GetEnvironmentVariable("WINDIR") ?? throw new IOException("WINDIR is required"),
-            ["ComSpec"] = Path.Combine(Environment.SystemDirectory, "cmd.exe"),
-            ["PATH"] = root + "sdk;" + Environment.SystemDirectory,
-            ["DOTNET_ROOT"] = root + "sdk",
-            ["HOME"] = scratch,
-            ["DOTNET_CLI_HOME"] = scratch,
-            ["USERPROFILE"] = scratch,
-            ["APPDATA"] = scratch + "\\appdata",
-            ["LOCALAPPDATA"] = scratch + "\\localappdata",
-            ["PROGRAMFILES"] = scratch + "\\programfiles",
-            ["NUGET_PACKAGES"] = scratch + "\\packages",
-            ["TEMP"] = scratch,
-            ["TMP"] = scratch,
-            ["SystemTemp"] = scratch,
-            ["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1",
-            ["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1",
-            ["DOTNET_NOLOGO"] = "1",
-            ["DOTNET_ADD_GLOBAL_TOOLS_TO_PATH"] = "false",
-            ["DOTNET_GENERATE_ASPNET_CERTIFICATE"] = "false",
-            ["DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE"] = "true",
-            ["DOTNET_CLI_USE_MSBUILD_SERVER"] = "false",
-            ["MSBUILDUSESERVER"] = "0",
-            ["MSBUILDDISABLENODEREUSE"] = "1",
-            ["DOTNET_EnableDiagnostics"] = "0",
-            ["RULES_MSBUILD_GRAPH_COPY_MODE"] = "copy"
-        };
-        // AppContainer out-of-process MSBuild node startup/IPC is unqualified.
-        // A fresh graph can execute all nodes through its in-process engine.
+        environment["RULES_MSBUILD_GRAPH_COPY_MODE"] = "copy";
         environment["RULES_MSBUILD_GRAPH_SINGLE_NODE"] = "1";
         if (profile || options.Profile)
         {
@@ -122,19 +79,7 @@ internal static class WindowsSandbox
         {
             arguments.Add(target);
         }
-        using var stop = new CancellationTokenSource(WorkerProcess.RequestTimeout);
-        ConsoleCancelEventHandler cancel = (_, eventArgs) => { eventArgs.Cancel = true; stop.Cancel(); };
-        Console.CancelKeyPress += cancel;
-        int result;
-        try
-        {
-            result = await WindowsProcess.Run(lease.Profile, lease.JobName, root + "sdk\\dotnet.exe", arguments,
-                root + "output\\workspace", environment, lease.Started, stop.Token);
-        }
-        finally
-        {
-            Console.CancelKeyPress -= cancel;
-        }
+        var result = await WindowsExecution.Run(lease, arguments, root + "output\\workspace", environment);
         if (result == 0)
         {
             // The inner job is empty before the privileged parent reads outputs.

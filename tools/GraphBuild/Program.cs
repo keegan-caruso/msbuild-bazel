@@ -1,9 +1,13 @@
 using RulesMSBuild.GraphBuild;
 
-if (args.Length > 0 && args[0] == "windows-sandbox")
+if (args.Length > 0 && args[0] is ("windows-sandbox" or "windows-sync"))
 {
     try
     {
+        if (args[0] == "windows-sync")
+        {
+            return await WindowsSync.Run(args[1..]);
+        }
         return await WindowsSandbox.Run(args[1..], GraphRunOptions.Read());
     }
     catch (Exception error)
