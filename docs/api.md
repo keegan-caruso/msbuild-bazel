@@ -279,6 +279,28 @@ Binaries and executable tests run their selected runtime directly (staging app +
 
 For MTP and VSTest tests, set Bazel's `shard_count` on `msbuild_graph_test`. Each shard discovers the filtered suite, deterministically selects a subset and executes only that subset. MTP requires version **2.3 or later**, structured JSON discovery and framework support for UID filters; it partitions stable display names, keeping duplicate names together. VSTest partitions fully qualified names case-insensitively, keeping parameterized cases with the same name together. Test identities must remain stable across processes. If a VSTest filter resolves no identities during discovery (for example, a runtime-only data-row display name), shard 0 runs the original filter once and other shards return empty results. This preserves filtering and the ordinary zero-test policy while giving up parallelism for that run. Empty partitions succeed; an empty discovered suite still follows `allow_empty_tests`. Executable tests remain unsharded.
 
+For instrumented C# coverage, set `test_coverage = "coverlet"` and run `bazel coverage //:tests --combined_report=lcov`. MTP test projects must register the declared `coverlet.MTP` package. VSTest targets must declare a `coverlet.collector` directory separately from framework adapters:
+
+```starlark
+msbuild_test_tool(
+    name = "coverage_collector",
+    package = "//packages:coverlet.collector",
+    path = "build/netstandard2.0",
+)
+msbuild_graph_test(
+    name = "tests",
+    graph = ":graph",
+    project = "Tests/Tests.csproj",
+    test_protocol = "vstest",
+    test_runner = ":runner",
+    test_adapters = [":adapter"],
+    test_coverage = "coverlet",
+    test_coverage_collector = ":coverage_collector",
+)
+```
+
+The referenced graph, runner, framework adapter and locked packages must already be declared; this snippet is the coverage configuration, not a standalone workspace. Qualified packages are `coverlet.MTP` **10.1.1** and `coverlet.collector` **6.0.4**. Instrumentation affects private test copies. The collector is searched in place so its bundled platform DLLs cannot overwrite the framework adapter/runtime. Ordinary `bazel test` does not enable instrumentation. Coverage exports only declared C# source mappings from graph `srcs` and individual-file `input_paths`, replacing controlled PDB workspace paths with Bazel source paths in `COVERAGE_OUTPUT_FILE`. Use graph labels when setting Bazel’s `--instrumentation_filter`. The combined LCOV report is `bazel-out/_coverage/_coverage_report.dat`. Test sharding and coverage can be used together; empty shards emit empty coverage files. Empty validated result sets may emit empty coverage; every nonempty result set requires mapped instrumented lines, including when `allow_empty_tests = True`. Coverage for F# and source-directory inputs remains unqualified.
+
 ## Caching and workers
 
 Bazel caches unchanged graph actions; changed graphs need a Linux persistent worker or HTTP project cache (fresh local actions start empty). Stable paths default on only on the declared qualified execution platform above (portable platforms use ordinary actions). Closed bundled `Microsoft.NET.Sdk` graphs without package tasks, custom documents, or dynamic Compile globs infer a conservative Restore contract keying all declared source bytes (`preparedRestore: false` disables globally or per project; custom Restore hooks/outputs need explicit contracts). Generated Restore actions fall back to ordinary Restore on portable platforms or with `linux_stable_paths = False`.

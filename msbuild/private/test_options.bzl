@@ -3,6 +3,8 @@
 load(":providers.bzl", "MSBuildRuntimeInfo", "MSBuildTestToolInfo")
 
 TEST_OPTIONS_ATTRS = {
+    "test_coverage_collector": attr.label(providers = [MSBuildTestToolInfo], doc = "Declared VSTest coverage data-collector directory; searched in place without copying framework dependencies."),
+    "test_coverage": attr.string(values = ["", "coverlet"], doc = "Coverage collector registered by the declared MTP extension or VSTest adapter; enabled only by bazel coverage."),
     "test_protocol": attr.string(default = "executable", values = ["executable", "mtp", "vstest"]),
     "expected_exit_code": attr.int(default = 0, doc = "Success status for executable tests (0 through 255)."),
     "test_settings": attr.label(allow_single_file = True),
@@ -24,6 +26,12 @@ def validate_test(ctx):
     Args:
         ctx: Test rule context.
     """
+    if ctx.attr.test_coverage_collector and (ctx.attr.test_protocol != "vstest" or ctx.attr.test_coverage != "coverlet"):
+        fail("test_coverage_collector requires VSTest Coverlet coverage")
+    if ctx.attr.test_protocol == "vstest" and ctx.attr.test_coverage == "coverlet" and not ctx.attr.test_coverage_collector:
+        fail("VSTest Coverlet coverage requires test_coverage_collector")
+    if ctx.attr.test_coverage and ctx.attr.test_protocol == "executable":
+        fail("test_coverage requires the mtp or vstest test protocol")
     if ctx.attr.expected_exit_code < 0 or ctx.attr.expected_exit_code > 255:
         fail("expected_exit_code must be between 0 and 255")
     if ctx.attr.expected_exit_code != 0 and ctx.attr.test_protocol != "executable":

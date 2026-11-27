@@ -1,5 +1,6 @@
 """Qualify real MTP and VSTest packages through generated graph rules."""
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -20,12 +21,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--graph-worker', action='store_true')
     parser.add_argument('--sharding', action='store_true')
+    parser.add_argument('--coverage', action='store_true')
+    parser.add_argument('--evidence-directory', type=Path)
     options = parser.parse_args()
+    if options.evidence_directory:
+        options.evidence_directory.mkdir(parents=True, exist_ok=False)
     with temporary_directory(prefix='graph-protocols-') as temporary:
         for protocol, setup in [('mtp', mtp_setup), ('vstest', vstest_setup)]:
             folder = Path(temporary).resolve() / protocol
             folder.mkdir()
-            workspace = setup(folder)
+            workspace = setup(folder, coverage=options.coverage)
             shutil.copy(ROOT / 'global.json', workspace / 'global.json')
             module = (ROOT / 'examples/quickstart/MODULE.bazel').read_text().replace('"../msbuild-bazel"', json.dumps(str(ROOT)))
             declaration = 'dotnet.sdk(\n    name = "dotnet",\n    global_json = "//:global.json",\n)'
@@ -43,6 +48,14 @@ def main():
                          'msbuild_test_tool(name="adapter",package="//Vstest/packages:xunit.runner.visualstudio",path="build/net8.0")\n'
                          'msbuild_graph_test(name="tests",graph=":graph",project="Vstest/Xunit/Xunit.csproj",test_protocol="vstest",test_runner=":runner",test_adapters=[":adapter"],'
                          'test_settings="Vstest/Xunit/settings.runsettings",test_working_directory="tests",data_paths={"Vstest/Xunit/input.txt":"tests/input.txt"},test_output_dirs=["tests/logs"])\n')
+            if options.coverage:
+                tests = tests.replace('name="tests",', 'name="tests",test_coverage="coverlet",')
+                if protocol == 'mtp':
+                    roots.append('//packages:coverlet.mtp')
+                else:
+                    roots.append('//Vstest/packages:coverlet.collector')
+                    tests = ('msbuild_test_tool(name="collector",package="//Vstest/packages:coverlet.collector",path="build/netstandard2.0")\n' +
+                             tests.replace('test_adapters=[":adapter"]', 'test_adapters=[":adapter"],test_coverage_collector=":collector"'))
             if protocol == 'vstest':
                 project_file = workspace / 'Vstest/Xunit/Xunit.csproj'
                 # The old per-project rule forces library compilation; the graph
@@ -52,7 +65,7 @@ def main():
             dependency.mkdir()
             (dependency / 'Dependency.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup></Project>')
             dependency_source = dependency / 'Code.cs'
-            original_dependency = 'public static class Dependency { public static int Value => 1; }'
+            original_dependency = 'public static class Dependency {\n public static int Value => 1;\n public static int NeverCalled() => 7;\n}\n'
             dependency_source.write_text(original_dependency)
             test_project = workspace / projects[0]
             relative = os.path.relpath(dependency / 'Dependency.csproj', test_project.parent)
@@ -84,6 +97,63 @@ def main():
                 bazel('run', '//:sync', '--', '--check')
                 graph_options = ',linux_stable_paths=True,linux_worker=True' if options.graph_worker else ''
                 (workspace / 'BUILD.bazel').write_text(authored + 'load(":graph.generated.bzl","app_graph")\napp_graph(name="graph"' + graph_options + ')\n' + tests)
+                if options.coverage:
+                    bazel('build', '//:tests')
+                    assembly_path = 'Mtp.dll' if protocol == 'mtp' else 'Xunit.Tests.dll'
+                    runtime_directory = workspace / 'bazel-bin/tests.runtime'
+                    original = runtime_directory / assembly_path
+                    original_digest = hashlib.sha256(original.read_bytes()).hexdigest()
+                    runtime_hashes = lambda: {str(path.relative_to(runtime_directory)): hashlib.sha256(path.read_bytes()).hexdigest() for path in runtime_directory.rglob('*') if path.is_file()}
+                    original_files = runtime_hashes()
+                    command_flags = ['--combined_report=lcov', '--test_output=errors']
+                    coverage_log = bazel('coverage', '//:tests', *command_flags, '--nocache_test_results')
+                    report = workspace / 'bazel-out/_coverage/_coverage_report.dat'
+                    def check_coverage(expect_hits=True):
+                        text = report.read_text()
+                        records = [record for record in text.split('end_of_record') if 'SF:Dependency/Code.cs' in record]
+                        assert len(records) == 1, text
+                        lines = {int(value.split(',')[0]): int(value.split(',')[1]) for line in records[0].splitlines() if line.startswith('DA:') for value in [line[3:]]}
+                        assert (lines.get(2, 0) > 0 if expect_hits else lines.get(2) == 0) and lines.get(3) == 0, lines
+                        assert '/private/' not in text and '/_/workspace/' not in text, text
+                        assert runtime_hashes() == original_files, 'Declared runtime inputs changed during instrumentation'
+                        return text
+                    ordinary = check_coverage()
+                    cached = bazel('coverage', '//:tests', *command_flags)
+                    assert '(cached)' in cached, cached
+                    assert check_coverage() == ordinary
+                    sharded = tests.replace('name="tests",', 'name="tests",shard_count=3,')
+                    (workspace / 'BUILD.bazel').write_text(authored + 'load(":graph.generated.bzl","app_graph")\napp_graph(name="graph"' + graph_options + ')\n' + sharded)
+                    shard_log = bazel('coverage', '//:tests', *command_flags, '--nocache_test_results')
+                    sharded_report = check_coverage()
+                    shard_reports = sorted((workspace / 'bazel-testlogs/tests').glob('shard_*_of_3/test.xml'))
+                    assert len(shard_reports) == 3
+                    cases = [test.get('name') for path in shard_reports for test in ET.parse(path).getroot().findall('.//testcase')]
+                    assert len(cases) == 4 and len(set(cases)) == 4, cases
+                    filter_value = '/*/*/Tests/Passes' if protocol == 'mtp' else 'FullyQualifiedName~Passes'
+                    filtered_log = bazel('coverage', '//:tests', *command_flags, '--test_filter=' + filter_value, '--nocache_test_results')
+                    filtered_report = check_coverage()
+                    filtered_cases = [test.get('name') for path in shard_reports for test in ET.parse(path).getroot().findall('.//testcase')]
+                    assert len(filtered_cases) == 1 and 'Passes' in filtered_cases[0], filtered_cases
+                    skipped_filter = '/*/*/Tests/Skipped' if protocol == 'mtp' else 'FullyQualifiedName~Skipped'
+                    skipped_log = bazel('coverage', '//:tests', *command_flags, '--test_filter=' + skipped_filter, '--nocache_test_results')
+                    skipped_report = check_coverage(expect_hits=False)
+                    skipped_cases = [test for path in shard_reports for test in ET.parse(path).getroot().findall('.//testcase')]
+                    assert len(skipped_cases) == 1 and skipped_cases[0].find('skipped') is not None
+                    if options.evidence_directory:
+                        evidence = options.evidence_directory
+                        (evidence / (protocol + '.lcov')).write_text(ordinary)
+                        (evidence / (protocol + '-sharded.lcov')).write_text(sharded_report)
+                        (evidence / (protocol + '-filtered.lcov')).write_text(filtered_report)
+                        (evidence / (protocol + '-skipped.lcov')).write_text(skipped_report)
+                        (evidence / (protocol + '.log')).write_text(coverage_log + cached + shard_log + filtered_log + skipped_log)
+                        archives = sorted(folder.rglob('*.nupkg'))
+                        (evidence / (protocol + '-inputs.json')).write_text(json.dumps({
+                            'runtimeAssemblySha256': original_digest,
+                            'runtimeFiles': original_files,
+                            'packages': {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in archives},
+                        }, indent=2))
+                    print('PASS:', protocol, 'instrumented bazel coverage hit/unhit lines, cache reuse, three-shard merge and immutable inputs', flush=True)
+                    continue
                 if options.sharding:
                     bazel('test', '//:tests', '--test_output=errors', '--nocache_test_results')
                     baseline = ET.parse(workspace / 'bazel-testlogs/tests/test.xml').getroot()
