@@ -94,6 +94,9 @@ internal static class WindowsSandbox
             ["DOTNET_EnableDiagnostics"] = "0",
             ["RULES_MSBUILD_GRAPH_COPY_MODE"] = "copy"
         };
+        // AppContainer out-of-process MSBuild node startup/IPC is unqualified.
+        // A fresh graph can execute all nodes through its in-process engine.
+        environment["RULES_MSBUILD_GRAPH_SINGLE_NODE"] = "1";
         if (profile || options.Profile)
         {
             environment["RULES_MSBUILD_GRAPH_PROFILE"] = "1";
