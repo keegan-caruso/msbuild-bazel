@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import shutil
 import stat
+import sys
 import tempfile
 import unittest
 import zipfile
@@ -89,6 +90,39 @@ class GraphSyncTests(unittest.TestCase):
         self.fsharp_project()
         self.assertIn('Compile globs require a C# project', self.sync(
             {'projects': {'Library.fsproj': {'compileGlobs': ['src/*.cs']}}}, success=False))
+
+    @unittest.skipUnless(os.name == "nt", "Windows SDK import path regression")
+    def test_long_sdk_path_keeps_package_resolution_and_owned_link_cleanup(self):
+        sys.path.insert(0, str(ROOT / "tests/graph_build"))
+        from fixture_host import temporary_directory
+        source_files = list(SDK.rglob("*"))
+        attributes = {path: path.stat().st_file_attributes for path in source_files}
+        watched = [SDK / "sdk/11.0.100/MSBuild.dll",
+            SDK / "sdk/11.0.100/Sdks/Microsoft.NET.Sdk/targets/Microsoft.PackageDependencyResolution.targets"]
+        digests = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in watched}
+        links = set(Path(tempfile.gettempdir()).glob("msbuild-sdk-*"))
+        def stage(source, destination):
+            # Read-only leaves need independent copies: tempfile's retry must
+            # never clear an attribute on the immutable declared SDK inode.
+            if os.stat(source).st_file_attributes & stat.FILE_ATTRIBUTE_READONLY:
+                shutil.copy2(source, destination)
+                os.chmod(destination, stat.S_IREAD | stat.S_IWRITE)
+            else:
+                os.link(source, destination)
+        with temporary_directory(prefix="long-sdk-import-") as temporary:
+            declared = Path(temporary) / ("a" * 64) / ("b" * 64) / ("c" * 64) / "sdk-root"
+            shutil.copytree(SDK, "\\\\?\\" + str(declared), copy_function=stage)
+            selected = declared / "sdk/11.0.100"
+            self.assertGreater(len(str(selected / "Sdks/Microsoft.NET.Sdk/targets/Microsoft.PackageDependencyResolution.targets")), 260)
+            command = [str(DOTNET), str(RUNNER), str(self.root), str(selected), "App.csproj",
+                "--package-build", "--resolve-references"]
+            result = subprocess.run(command, capture_output=True, text=True, env=dict(os.environ, DOTNET_ROOT=str(SDK)))
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            app = json.loads((self.root / "graph.generated.json").read_text())["Projects"]["App.csproj"]["Configurations"][0]
+            self.assertTrue(app["CompilerReferencesComplete"])
+        self.assertEqual({path: path.stat().st_file_attributes for path in source_files}, attributes)
+        self.assertEqual({path: hashlib.sha256(path.read_bytes()).hexdigest() for path in watched}, digests)
+        self.assertLessEqual(set(Path(tempfile.gettempdir()).glob("msbuild-sdk-*")), links)
 
     def test_graph_is_the_only_default(self):
         self.sync()

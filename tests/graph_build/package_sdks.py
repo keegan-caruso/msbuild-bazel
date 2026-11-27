@@ -7,11 +7,10 @@ import json
 import os
 from pathlib import Path
 import subprocess
-import tempfile
 import zipfile
 
 from qualify import ROOT
-from fixture_host import bazel_environment, bazel_startup, sdk_declaration
+from fixture_host import temporary_directory, bazel_environment, bazel_startup, sdk_declaration
 
 
 def main():
@@ -19,7 +18,7 @@ def main():
     parser.add_argument('--prepared-restore', action='store_true', help='Linux stable-path preparation regression')
     args = parser.parse_args()
     assert not args.prepared_restore or os.uname().sysname == 'Linux'
-    with tempfile.TemporaryDirectory(prefix='graph-package-sdks-') as temporary:
+    with temporary_directory(prefix='graph-package-sdks-') as temporary:
         base = Path(temporary).resolve()
         root = base / 'workspace'
         root.mkdir()
