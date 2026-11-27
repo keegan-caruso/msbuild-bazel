@@ -578,6 +578,12 @@ RULES_MSBUILD_DOTNET_ROOT="$PWD/.tools/dotnet" \
   python3 tests/graph_build/worker_lifecycle.py
 ```
 
+## macOS worker qualification
+
+Native macOS ARM64 supports an opt-in persistent broker for trusted Build targets on APFS. It launches each request through the operating system’s filesystem sandbox with a fresh private workspace and scratch, read-only declared SDK and runner, and one MSBuild node. The broker clones the finished tree into a private location before verifying and publishing declared outputs. An open handle to a staged file cannot modify the published copy. Temporary files and caches are private to the request.
+
+On Bazel 9.3.3 and SDK 11.0.100 the public three-project quickstart built through the worker and its executable test passed. The [native boundary control](../tests/graph_build/macos_worker_boundary.py) checks host file access, writable scratch, termination of ordinary task descendants on normal completion or broker-pipe closure, and survival of an unrelated process. The [public Bazel driver](../tests/graph_build/macos_bazel_worker.py) matched all 20 product hashes and Unix modes against ordinary local builds for cold and body-edited projects. Cooperative cancellation stopped the owned task in 0.153 s. The next edited build used the same broker process and produced the expected result. The [broker control](../tests/graph_build/worker_lifecycle.py) checks live cancellation, a following request, lease recovery and publication from independent files. Worker process supervision covers tasks that stay in their request process group. Use ordinary actions for workloads that start detached services.
+
 ## Bounded native regression controls
 
 - **Streaming & publication**: 64 KiB buffers, 1 transfer budget/store (default 8); uploads verify staged payloads, downloads verify streamed digests + deduplicate; up to 2 async publications overlap serial capture and drain before exit.
@@ -602,7 +608,7 @@ Streaming control fetches eight 8 MiB payloads with budget 2 (see [bounded cache
 
 ## Limits
 
-- Persistent workers require Bubblewrap + nested namespaces; broad worker qualification is Linux ARM64 only; native x64 automatic selection and opt-in sandboxed cancellation have the scoped [three-project gate](#linux-worker-qualification). macOS workers remain unqualified.
+- Linux persistent workers require Bubblewrap and nested namespaces; broad worker qualification is Linux ARM64 only; native x64 automatic selection and opt-in sandboxed cancellation have the scoped [three-project gate](#linux-worker-qualification). The [opt-in macOS worker](#macos-worker-qualification) has separate evidence.
 - Unknown SDKs/workloads and whole-repo runtime/native parity are unqualified.
 - Custom task/analyzer/generator reads, package side effects, and output ownership require contracts; Build compiler selections do not qualify Pack/Publish.
 - Evaluation reuse is opt-in for reviewed compiler-only inputs (verification still reads bytes).

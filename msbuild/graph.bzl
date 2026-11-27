@@ -123,7 +123,12 @@ def _graph_action(ctx, prepare = False):
         worker_sources.append({"path": file.path, "destination": ".package-source/" + file.basename})
     action_inputs = depset(ctx.files.srcs + [file for target in ctx.attr.input_paths for file in target[DefaultInfo].files.to_list()] + packages + closures + ([prepared.directory] if prepared else []) + [ctx.file.contract, runner[0], ctx.file._linux_stable_paths], transitive = [tc.sdk] + ([ctx.attr.package_lock[MSBuildPackageLockInfo].validations] if ctx.attr.package_lock else []))
     cache_env = {key: value for key, value in ctx.configuration.default_shell_env.items() if key.startswith("RULES_MSBUILD_PROJECT_CACHE_")}
-    if linux_worker:
+    if ctx.attr.macos_worker and cache_env.get("RULES_MSBUILD_PROJECT_CACHE_URL"):
+        fail("macos_worker supports fresh local qualification; an external project cache is unsupported")
+    if ctx.attr.macos_worker and (prepare or prepared or linux_stable_paths or linux_worker or ctx.attr.windows_isolation or ctx.attr.target != "Build"):
+        fail("macos_worker requires an ordinary Build with fresh Restore on native macOS")
+    if linux_worker or ctx.attr.macos_worker:
+        worker_sandbox = ctx.file._macos_sandbox if ctx.attr.macos_worker else ctx.file._linux_stable_paths
         request = ctx.actions.declare_file(ctx.label.name + ".graph-request.json")
         ctx.actions.write(request, json.encode({
             "contract": ctx.file.contract.path,
@@ -135,7 +140,7 @@ def _graph_action(ctx, prepare = False):
             "evaluationCacheMb": ctx.attr.evaluation_cache_mb,
         }))
         launcher = ctx.actions.declare_file(ctx.label.name + ".graph-worker.sh")
-        ctx.actions.write(launcher, "#!/usr/bin/env bash\nset -eu\nexec \"$PWD/%s\" exec \"$PWD/%s/GraphBuild.dll\" worker \"$PWD/%s\" %s \"$@\"\n" % (tc.dotnet.path, runner[0].path, ctx.file._linux_stable_paths.path, ctx.attr.worker_cache_mb), is_executable = True)
+        ctx.actions.write(launcher, "#!/usr/bin/env bash\nset -eu\nexec \"$PWD/%s\" exec \"$PWD/%s/GraphBuild.dll\" worker \"$PWD/%s\" %s \"$@\"\n" % (tc.dotnet.path, runner[0].path, worker_sandbox.path, ctx.attr.worker_cache_mb), is_executable = True)
         params = ctx.actions.args()
         params.add(request.path)
         params.use_param_file("@%s", use_always = True)
@@ -144,7 +149,7 @@ def _graph_action(ctx, prepare = False):
             executable = launcher,
             arguments = [params],
             inputs = depset([request], transitive = [action_inputs]),
-            tools = depset([tc.dotnet, runner[0], ctx.file._linux_stable_paths], transitive = [tc.sdk]),
+            tools = depset([tc.dotnet, runner[0], worker_sandbox], transitive = [tc.sdk]),
             outputs = [output],
             env = cache_env,
             execution_requirements = {"supports-workers": "1", "requires-worker-protocol": "json", "supports-worker-cancellation": "1"},
@@ -247,6 +252,8 @@ _GRAPH_ATTRS = {
     "evaluation_cache_mb": attr.int(default = 512, doc = "Retained evaluation heap budget in MiB for reviewed compiler-only contracts; zero uses fresh engines. Retire between requests above this live-heap budget or max(256 MiB, three times this limit) resident memory; these are not peak-memory caps."),
     "worker_cache_mb": attr.int(default = 4096, doc = "Conservative logical snapshot-cache budget in MiB; zero discards between requests."),
     "linux_worker": attr.bool(default = False, doc = "Use the Linux graph worker; None selects it on the declared qualified execution platform."),
+    "macos_worker": attr.bool(default = False),
+    "_macos_sandbox": attr.label(default = "//msbuild:macos-worker.sh", allow_single_file = True),
     "automatic_worker": attr.bool(default = False),
     "automatic_stable_paths": attr.bool(default = True),
     "optional_restore": attr.bool(default = False),
@@ -270,6 +277,8 @@ _msbuild_graph_restore = rule(
 
 def msbuild_graph(name, linux_stable_paths = None, linux_worker = None, **kwargs):
     """Build with stable paths and workers on a declared qualified execution platform."""
+    if kwargs.get("macos_worker", False):
+        kwargs["exec_compatible_with"] = kwargs.get("exec_compatible_with", []) + [Label("@platforms//os:macos"), Label("@platforms//cpu:aarch64")]
     _msbuild_graph(name = name, linux_worker = linux_worker if linux_worker != None else False, automatic_worker = linux_worker == None, linux_stable_paths = linux_stable_paths if linux_stable_paths != None else False, automatic_stable_paths = linux_stable_paths == None, **kwargs)
 
 def msbuild_graph_restore(name, linux_stable_paths = None, **kwargs):

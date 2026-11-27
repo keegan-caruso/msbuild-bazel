@@ -1,9 +1,12 @@
+using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
 // The OS releases the lease even after SIGKILL. Reclaim abandoned state on the
 // next startup; never infer liveness from a PID that the kernel may have reused.
 [SupportedOSPlatform("linux")]
+[SupportedOSPlatform("macos")]
 internal sealed class WorkerDirectory : IDisposable
 {
     private readonly FileStream lease;
@@ -26,19 +29,35 @@ internal sealed class WorkerDirectory : IDisposable
     [DllImport("libc", EntryPoint = "statx", SetLastError = true)]
     private static extern int Status(int directory, string path, int flags, uint mask, out FileStatus status);
 
+    private static bool OwnedBy(string path, uint user)
+    {
+        if (OperatingSystem.IsMacOS())
+        {
+            // BSD stat checks the link itself unless -L is requested.
+            using var stat = Process.Start(new ProcessStartInfo("/usr/bin/stat")
+            {
+                ArgumentList = { "-f", "%u", path },
+                RedirectStandardOutput = true
+            }) ?? throw new IOException("Cannot inspect worker directory ownership");
+            var owner = stat.StandardOutput.ReadToEnd().Trim();
+            stat.WaitForExit();
+            return stat.ExitCode == 0 && owner == user.ToString(CultureInfo.InvariantCulture);
+        }
+        // AT_FDCWD, AT_SYMLINK_NOFOLLOW, STATX_UID.
+        if (Status(-100, path, 0x100, 0x8, out var status) != 0)
+        {
+            throw new IOException("Cannot inspect worker state ownership", new System.ComponentModel.Win32Exception(Marshal.GetLastPInvokeError()));
+        }
+        return (status.Mask & 0x8) != 0 && status.UserId == user;
+    }
+
     internal WorkerDirectory()
     {
         var user = EffectiveUserId();
         var parent = Path.Combine(Path.GetTempPath(), "rules-msbuild-workers-" + user.ToString(System.Globalization.CultureInfo.InvariantCulture));
         const UnixFileMode mode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
         Directory.CreateDirectory(parent, mode);
-        // AT_FDCWD, AT_SYMLINK_NOFOLLOW, STATX_UID. Reject pre-created directories
-        // owned by another user before looking at any leases beneath them.
-        if (Status(-100, parent, 0x100, 0x8, out var status) != 0)
-        {
-            throw new IOException("Cannot inspect worker state ownership", new System.ComponentModel.Win32Exception(Marshal.GetLastPInvokeError()));
-        }
-        if ((status.Mask & 0x8) == 0 || status.UserId != user || (File.GetAttributes(parent) & FileAttributes.ReparsePoint) != 0 || File.GetUnixFileMode(parent) != mode)
+        if (!OwnedBy(parent, user) || (File.GetAttributes(parent) & FileAttributes.ReparsePoint) != 0 || File.GetUnixFileMode(parent) != mode)
         {
             throw new InvalidDataException("Worker state requires a private, owned, non-symlink directory: " + parent);
         }
