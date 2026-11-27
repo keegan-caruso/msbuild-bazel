@@ -148,7 +148,7 @@ internal static class TestExecution
                     {
                         foreach (var file in Directory.GetFiles(adapter, "*", SearchOption.AllDirectories))
                         {
-                            Program.Copy(file, Path.Combine(start.WorkingDirectory, Program.Safe(RelativePathComponents.LogicalRelative(adapter, file))));
+                            TestProtocolLaunch.CopyInput(file, Path.Combine(start.WorkingDirectory, Program.Safe(RelativePathComponents.LogicalRelative(adapter, file))));
                         }
                     }
 
