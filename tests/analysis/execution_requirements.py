@@ -19,7 +19,7 @@ labels = {row['id']: row['label'] for row in graph['targets']}
 expected = {
     '//tests/analysis:tool_layout': {},
     '//tests/analysis:graph': {},
-    '//tests/analysis:worker': {'supports-workers': '1', 'requires-worker-protocol': 'json'},
+    '//tests/analysis:worker': {'supports-workers': '1', 'requires-worker-protocol': 'json', 'supports-worker-cancellation': '1'},
 }
 seen = set()
 for action in graph['actions']:
