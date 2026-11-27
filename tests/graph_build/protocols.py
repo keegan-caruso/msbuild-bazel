@@ -19,6 +19,7 @@ from vstest import setup as vstest_setup
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--graph-worker', action='store_true')
+    parser.add_argument('--sharding', action='store_true')
     options = parser.parse_args()
     with temporary_directory(prefix='graph-protocols-') as temporary:
         for protocol, setup in [('mtp', mtp_setup), ('vstest', vstest_setup)]:
@@ -83,6 +84,33 @@ def main():
                 bazel('run', '//:sync', '--', '--check')
                 graph_options = ',linux_stable_paths=True,linux_worker=True' if options.graph_worker else ''
                 (workspace / 'BUILD.bazel').write_text(authored + 'load(":graph.generated.bzl","app_graph")\napp_graph(name="graph"' + graph_options + ')\n' + tests)
+                if options.sharding:
+                    bazel('test', '//:tests', '--test_output=errors', '--nocache_test_results')
+                    baseline = ET.parse(workspace / 'bazel-testlogs/tests/test.xml').getroot()
+                    identities = lambda tree: sorted((test.get('classname'), test.get('name')) for test in tree.findall('.//testcase'))
+                    expected_cases = identities(baseline)
+                    assert len(expected_cases) == 4, expected_cases
+                    sharded = tests.replace('name="tests",', 'name="tests",shard_count=3,')
+                    (workspace / 'BUILD.bazel').write_text(authored + 'load(":graph.generated.bzl","app_graph")\napp_graph(name="graph"' + graph_options + ')\n' + sharded)
+                    bazel('test', '//:tests', '--test_output=errors', '--nocache_test_results')
+                    shard_reports = sorted((workspace / 'bazel-testlogs/tests').glob('shard_*_of_3/test.xml'))
+                    assert len(shard_reports) == 3, shard_reports
+                    observed = sorted(case for path in shard_reports for case in identities(ET.parse(path).getroot()))
+                    assert observed == expected_cases, (observed, expected_cases)
+                    cached = bazel('test', '//:tests', '--test_output=errors')
+                    assert '(cached)' in cached, cached
+                    filter_value = '/*/*/Tests/Passes' if protocol == 'mtp' else 'FullyQualifiedName~Passes'
+                    bazel('test', '//:tests', '--test_output=errors', '--test_filter=' + filter_value, '--nocache_test_results')
+                    filtered = [case for path in shard_reports for case in identities(ET.parse(path).getroot())]
+                    assert len(filtered) == 1 and 'Passes' in filtered[0][1], filtered
+                    if protocol == 'vstest':
+                        bazel('test', '//:tests', '--test_output=errors', '--test_filter=DisplayName~1', '--nocache_test_results')
+                        rows = [case for path in shard_reports for case in identities(ET.parse(path).getroot())]
+                        assert len(rows) == 1 and 'n: 1' in rows[0][1], rows
+                        bazel('test', '//:tests', '--test_output=errors', '--test_filter=DisplayName~Absent', '--nocache_test_results', success=False)
+                    bazel('test', '//:tests', '--test_output=errors', '--test_env=CASE=fail', '--nocache_test_results', success=False)
+                    print('PASS:', protocol, 'three shards execute every case once; filter, empty shards, failures and cache reuse', flush=True)
+                    continue
                 for case, flags, success, count in [
                     ('pass', [], True, 4), ('fail', ['--test_env=CASE=fail'], False, 4),
                     ('filter', ['--test_filter=' + ('/*/*/Tests/Passes' if protocol == 'mtp' else 'FullyQualifiedName~Passes')], True, 1),

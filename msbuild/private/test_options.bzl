@@ -34,7 +34,7 @@ def validate_test(ctx):
         path = getattr(ctx.attr, attribute)
         if path and (path.startswith("/") or "\\" in path or any([part in ["", ".", ".."] for part in path.split("/")])):
             fail(attribute + " must be a safe relative path")
-    if ctx.attr.shard_count > 1:
+    if ctx.attr.shard_count > 1 and ctx.attr.test_protocol == "executable":
         fail("Executable tests do not yet support sharding")
     if ctx.attr.test_diagnostics and ctx.attr.test_protocol != "vstest":
         fail("test_diagnostics currently requires VSTest")
