@@ -11,15 +11,20 @@ internal static class Program
                 PreparedSync.Publish(args[1..]);
                 return 0;
             }
-            if (args.Length == 3 && args[0] == "stage")
+            if (args.Length == 3 && args[0] is ("stage" or "stage-copy"))
             {
-                PreparedSync.Stage(args[1], args[2]);
+                PreparedSync.Stage(args[1], args[2], copyRunfiles: args[0] == "stage-copy");
                 return 0;
             }
             if (args.Length != 0 && args[0] == "nuget-update")
             {
                 NuGetUpdate.Run(args[1..]).GetAwaiter().GetResult();
                 return 0;
+            }
+            var isolatedOutput = args.Length > 1 && args[0] == "windows-prepared" ? args[1] : null;
+            if (isolatedOutput is not null)
+            {
+                args = args[2..];
             }
             if (args.Length < 3)
             {
@@ -172,7 +177,7 @@ internal static class Program
                 return QualificationSandbox.Run(root, sdk, projects.ToArray(), check, configuration, framework,
                     packageInputs.ToArray(), mappings, inputs, runfiles, new QualificationOptions(qualificationDirectory, qualificationUrl, graphRunner, bearerToken, qualificationReadOnly));
             }
-            using var view = SyncProfile.Run("producer-bindings", () => WorkspaceView.Create(root, inputs, runfiles));
+            using var view = SyncProfile.Run("producer-bindings", () => WorkspaceView.Create(root, inputs, runfiles, copyInputs: isolatedOutput is not null));
             if (graphRunner is not null)
             {
                 Environment.SetEnvironmentVariable("NUGET_HTTP_CACHE_PATH", null);
@@ -183,7 +188,7 @@ internal static class Program
             }
             GraphGenerator.Run(view.Root, sdk, projects.ToArray(), check, root, configuration, framework, view, packageBuild, packageInputs.ToArray(), new GraphMappings(mappings), resolveReferences,
                 qualificationDirectory is null ? null : new QualificationOptions(qualificationDirectory, qualificationUrl, graphRunner, bearerToken, qualificationReadOnly),
-                QualificationSandbox.Inside ? QualificationSandbox.Base + "/output" : null);
+                QualificationSandbox.Inside ? QualificationSandbox.Base + "/output" : isolatedOutput);
             return 0;
         }
         catch (Exception error)

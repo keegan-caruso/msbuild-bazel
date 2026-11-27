@@ -98,6 +98,23 @@ internal static class WindowsStorage
         return count;
     }
 
+    internal static void CopySyncOutputs(string source, string destination)
+    {
+        var expected = new HashSet<string>(["graph.generated.json", "graph.generated.bzl"], StringComparer.Ordinal);
+        foreach (var entry in Entries(Exact(source)))
+        {
+            if (entry.IsDirectory || !expected.Remove(entry.Relative))
+            {
+                throw new InvalidDataException("Unexpected sync output: " + entry.Relative);
+            }
+        }
+        if (expected.Count != 0)
+        {
+            throw new InvalidDataException("Missing generated sync declarations");
+        }
+        Copy(source, destination, overwrite: true);
+    }
+
     // Only call after the job is empty. Never traverse a task-created junction
     // or symlink during parent-side cleanup, even when it points inside the tree.
     internal static void Delete(string root)
