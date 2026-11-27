@@ -468,7 +468,15 @@ class GraphSyncTests(unittest.TestCase):
             manifest.write_text(json.dumps({'inputs': [{'path': 'inputs', 'label': '@producer//:tree',
                 'runfile': 'producer', 'directory': True}, {'path': 'empty-tree', 'label': '@producer//:empty',
                 'runfile': 'empty', 'directory': True}], 'packages': [], 'packageLock': None}))
-            self.sync(flags=['--inputs', str(manifest), '--runfiles', str(base)])
+            member = tree / 'data.txt'
+            original_mode = member.stat().st_mode
+            member.chmod(original_mode & ~0o222)
+            try:
+                self.sync(flags=['--inputs', str(manifest), '--runfiles', str(base)])
+                self.assertFalse(member.stat().st_mode & stat.S_IWRITE)
+                self.assertEqual(member.read_text(), 'one')
+            finally:
+                member.chmod(original_mode)
             contract = base / 'contract.json'
             (self.root / 'graph.generated.json').rename(contract)
             (self.root / 'graph.generated.bzl').unlink()
