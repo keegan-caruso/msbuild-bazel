@@ -35,7 +35,7 @@ target.write_text('<Project><Target Name="WorkerCancellationControl" BeforeTarge
     '<Exec Command="bash -c &quot;exec -a '+marker+' sleep 600&quot;" '
     """Condition="$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)/Code.cs').Contains('issue224-cancel'))" />"""
     '</Target></Project>')
-Path('worker-mappings.json').write_text(json.dumps(dict(projects={'P0/P0.csproj':dict(documents={
+Path('worker-mappings.json').write_text(json.dumps(dict(projectDefaults=dict(referenceBoundary=True,preparedRestore=True),projects={'P0/P0.csproj':dict(documents={
     'P0/Directory.Build.targets':dict(sha256=hashlib.sha256(target.read_bytes()).hexdigest(),
         targets=['WorkerCancellationControl'],tasks=[],inputs=['P0/Code.cs'])})})))
 p=Path('BUILD.bazel');p.write_text(Path('BUILD.bazel.in').read_text().replace(
