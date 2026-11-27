@@ -1,0 +1,13 @@
+load("@rules_msbuild//msbuild:sync.bzl", "msbuild_nuget_update", "msbuild_sync")
+
+msbuild_nuget_update(
+    name = "update_packages",
+    projects = ["App/App.csproj"],
+)
+
+msbuild_sync(
+    name = "sync",
+    package_build = True,
+    package_lock = "@nuget//:packages",
+    projects = ["App/App.csproj"],
+)
