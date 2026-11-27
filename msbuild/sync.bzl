@@ -79,6 +79,8 @@ def sync_source_globs(name, globs, compile_globs = []):
 def _sync_impl(ctx):
     if ctx.label.package:
         fail("msbuild_sync currently belongs in the workspace root BUILD file")
+    if ctx.attr.nuget_update and ctx.attr.windows_isolation:
+        fail("Windows sync isolation applies to declared-source msbuild_sync targets")
     if ctx.attr.nuget_update and ctx.attr.srcs:
         fail("NuGet updates resolve packages explicitly; srcs caching is only for msbuild_sync")
     tc = ctx.toolchains[_TOOLCHAIN]
