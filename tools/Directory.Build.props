@@ -1,5 +1,7 @@
 <Project>
   <PropertyGroup>
+    <!-- Redirected bootstrap outputs must not turn local bin/obj into sources. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);bin/**;obj/**</DefaultItemExcludes>
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
