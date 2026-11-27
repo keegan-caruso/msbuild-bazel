@@ -64,6 +64,7 @@ import json,sys
 rows=json.load(open(sys.argv[1]))['actions'];assert len(rows)==1,rows
 info={v['key']:v['value'] for v in rows[0].get('executionInfo',[])}
 assert (info.get('supports-workers')=='1') == (sys.argv[2]=='worker'),info
+assert (info.get('supports-worker-cancellation')=='1') == (sys.argv[2]=='worker'),info
 PY
 }
 requirements portable graph
@@ -117,14 +118,16 @@ marker = re.search(r'exec -a (rules-msbuild-cancel-[0-9]+) ', Path('P0/Directory
 source.write_text(original+'\n// issue224-cancel\n')
 command = [binary, '--nosystem_rc', '--nohome_rc', '--noworkspace_rc',
            '--output_base=' + output_base, 'build', '//:graph',
-           '--extra_execution_platforms=//:qualified']
+           '--extra_execution_platforms=//:qualified', '--worker_sandboxing',
+           '--experimental_worker_cancellation']
 start = time.monotonic()
 owned = None
 worker = None
 try:
     with (reports / 'cancel.log').open('w') as log:
         client = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT,
-                                  start_new_session=True)
+                                  start_new_session=True,
+                                  preexec_fn=lambda: signal.signal(signal.SIGINT, signal.SIG_DFL))
         try:
             deadline = time.monotonic() + 120
             while owned is None:
@@ -174,7 +177,7 @@ finally:
 PY_CANCEL
 # A different body guarantees the next action executes after cancellation.
 sed -i 's/=> 2/=> 3/' P0/Code.cs
-bazel run //:app --extra_execution_platforms=//:qualified --execution_log_json_file="$TEST_TMPDIR/retry-execution.json" > "$TEST_TMPDIR/retry.log" 2>&1 || { cat "$TEST_TMPDIR/retry.log"; exit 1; }
+bazel run //:app --extra_execution_platforms=//:qualified --worker_sandboxing --experimental_worker_cancellation --execution_log_json_file="$TEST_TMPDIR/retry-execution.json" > "$TEST_TMPDIR/retry.log" 2>&1 || { cat "$TEST_TMPDIR/retry.log"; exit 1; }
 [[ $(tail -1 "$TEST_TMPDIR/retry.log") == 3 ]]
 cp bazel-bin/graph.graph/report.json "$TEST_TMPDIR/retry-report.json"
 python3 - "$TEST_TMPDIR/retry-execution.json" <<'PY_RETRY'

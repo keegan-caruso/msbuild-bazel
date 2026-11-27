@@ -147,7 +147,7 @@ def _graph_action(ctx, prepare = False):
             tools = depset([tc.dotnet, runner[0], ctx.file._linux_stable_paths], transitive = [tc.sdk]),
             outputs = [output],
             env = cache_env,
-            execution_requirements = {"supports-workers": "1", "requires-worker-protocol": "json"},
+            execution_requirements = {"supports-workers": "1", "requires-worker-protocol": "json", "supports-worker-cancellation": "1"},
             mnemonic = "MSBuildGraph",
         )
     else:
