@@ -26,11 +26,8 @@ internal static class Program
                 throw new ArgumentException("ProjectSync <workspace> <sdk-directory> <project.csproj|project.fsproj|project.ilproj|dirs.proj>... [--check] [--configuration Release] [--framework TFM] [--package-build] [--resolve-references] [--package-input FILE] [--mappings mappings.json] [--qualification-cache DIR [--qualification-cache-url URL] [--qualification-cache-read-only]]");
             }
             using var profile = SyncProfile.Measure("sync-total");
-            var sdk = WorkspaceView.PhysicalPath(args[1]);
-            if (!File.Exists(Path.Combine(sdk, "MSBuild.dll")))
-            {
-                throw new ArgumentException("sdk-directory must contain MSBuild.dll");
-            }
+            using var sdkDirectory = new SdkDirectory(OperatingSystem.IsWindows() ? args[1] : WorkspaceView.PhysicalPath(args[1]));
+            var sdk = sdkDirectory.Path;
             System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) => File.Exists(Path.Combine(sdk, name.Name + ".dll")) ? context.LoadFromAssemblyPath(Path.Combine(sdk, name.Name + ".dll")) : null;
             Environment.SetEnvironmentVariable("DOTNET_HOST_PATH", Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(sdk))!, OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet"));
             Environment.SetEnvironmentVariable("MSBuildEnableWorkloadResolver", "false");
