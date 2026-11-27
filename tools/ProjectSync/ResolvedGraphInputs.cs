@@ -16,7 +16,7 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
         string root, string sdkRoot, ProjectGraphNode[] selected, Func<ProjectGraphNode, IEnumerable<string>> products,
         Func<ProjectGraphNode, IEnumerable<ProjectGraphNode>> dependencies, IEnumerable<string> inputs, HashSet<string> packages,
         Func<ProjectGraphNode, IEnumerable<string>> consumerInputs, QualificationOptions? cacheOptions = null,
-        Func<ProjectGraphNode, string>? cacheConfiguration = null, IEnumerable<string>? packageDigests = null, QualificationEnvironment? environment = null)
+        Func<ProjectGraphNode, string>? cacheConfiguration = null, IEnumerable<string>? packageDigests = null, QualificationEnvironment? environment = null, bool singleNode = false)
     {
         using var profile = SyncProfile.Measure("compiler-inventory");
         if (selected.Length == 0)
@@ -76,11 +76,11 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
             {
                 // Match the graph runner's bounded concurrency without forcing
                 // extra nodes on a single-CPU execution platform.
-                MaxNodeCount = Math.Clamp(Environment.ProcessorCount, 1, 4),
+                MaxNodeCount = singleNode ? 1 : Math.Clamp(Environment.ProcessorCount, 1, 4),
                 EnableNodeReuse = false,
                 // Task assemblies remain mapped in an in-process Windows node.
                 // Dispose worker nodes before deleting the private package tree.
-                DisableInProcNode = OperatingSystem.IsWindows(),
+                DisableInProcNode = OperatingSystem.IsWindows() && !singleNode,
                 ProjectCacheDescriptor = cache is null ? null : ProjectCacheDescriptor.FromInstance(cache),
                 Loggers = [new Microsoft.Build.Logging.ConsoleLogger(Microsoft.Build.Framework.LoggerVerbosity.Minimal)]
             };

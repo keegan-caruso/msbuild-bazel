@@ -7,7 +7,11 @@ namespace RulesMSBuild.ProjectSync;
 // Package evaluation runs only in an owned copy, never through source symlinks.
 internal sealed class GraphEvaluationWorkspace : IDisposable
 {
-    internal string Root { get; } = CreateRoot();
+    internal string Root
+    {
+        get;
+    }
+    private readonly bool ownsRoot;
     private readonly QualificationRestoreCache? restoreCache;
 
     internal void SaveRestore() => restoreCache?.Save();
@@ -33,6 +37,10 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
     internal GraphEvaluationWorkspace(string source, string sdk, IEnumerable<string> entries,
         Dictionary<string, string> properties, WorkspaceView view, Dictionary<string, string>? toolProperties = null, Dictionary<string, Dictionary<string, string>>? entryProperties = null, QualificationOptions? cache = null, GraphMappings? mappings = null, QualificationEnvironment? environment = null)
     {
+        // AppContainer task assemblies may stay mapped until the child exits.
+        // The parent removes its scratch after the entire Windows job is empty.
+        ownsRoot = view.ParentScratch is null;
+        Root = view.ParentScratch is { } scratch ? WorkspaceView.CreatePrivateDirectory(scratch, "evaluation") : CreateRoot();
         using var profile = SyncProfile.Measure("offline-preparation");
         try
         {
@@ -194,6 +202,9 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
     public void Dispose()
     {
         restoreCache?.Dispose();
-        Directory.Delete(Root, true);
+        if (ownsRoot)
+        {
+            Directory.Delete(Root, true);
+        }
     }
 }

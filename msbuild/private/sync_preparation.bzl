@@ -65,14 +65,7 @@ def prepare_sync(ctx, tc, payload, manifest, bound_files):
         cache_command = 'set -- "$@" --qualification-cache "$scratch/project-cache" --qualification-cache-url "${RULES_MSBUILD_PROJECT_CACHE_URL:?Set the qualification project-cache URL through --action_env}"'
     if seed_cache:
         cache_command += "\nseed_runner=" + quote(ctx.file.seed_runner.path) + '\nset -- "$@" --seed-build-cache "$base/$seed_runner"'
-    ctx.actions.run_shell(
-        inputs = depset(ctx.files.srcs + bound_files + (ctx.files.seed_runner if seed_cache else []) + [payload, manifest, stage] + ([ctx.file.mappings] if ctx.file.mappings else []), transitive = [tc.sdk]),
-        tools = [tc.dotnet],
-        outputs = [prepared],
-        resource_set = _qualification_resources if ctx.attr.resolve_references else None,
-        env = environment,
-        arguments = [tc.dotnet.path, payload.path, stage.path, prepared.path, manifest.path, tc.sdk_version, ctx.file.mappings.path if ctx.file.mappings else ""] + ctx.attr.projects,
-        command = """set -eu
+    command = """set -eu
 base="$PWD"
 dotnet="$base/$1"; runner="$base/$2/ProjectSync.dll"; stage="$base/$3"; output="$base/$4"
 manifest="$base/$5"; version=$6; mappings=$7
@@ -89,7 +82,36 @@ if [ -n "$mappings" ]; then set -- "$@" --mappings "$base/$mappings"; fi
 "$dotnet" "$runner" "$scratch/workspace" "$DOTNET_ROOT/sdk/$version" "$@" %s --inputs "$manifest" --runfiles "$scratch/runfiles"
 mkdir -p "$output"
 cp "$scratch/workspace/graph.generated.json" "$scratch/workspace/graph.generated.bzl" "$output/"
-""" % (cache_command, " ".join([quote(flag) for flag in flags])),
+""" % (cache_command, " ".join([quote(flag) for flag in flags]))
+    if ctx.attr.windows_isolation:
+        command = """set -eu
+export MSYS2_ARG_CONV_EXCL='*'
+native() { cygpath -am "$1"; }
+dotnet="$PWD/$1"
+runner="$PWD/$2"
+stage="$PWD/$3"
+output="$PWD/$4"
+manifest="$PWD/$5"
+version="$6"
+mappings="-"
+if [ -n "$7" ]; then mappings="$(native "$PWD/$7")"; fi
+shift 7
+scratch=$(mktemp -d)
+trap 'rm -rf "$scratch"' EXIT
+export DOTNET_ROOT="$(native "$(dirname "$dotnet")")" DOTNET_CLI_HOME="$(native "$scratch")"
+export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
+"$dotnet" exec "$(native "$runner/ProjectSync.dll")" stage-copy "$(native "$stage")" "$(native "$scratch/staged")"
+graph_runner=%s
+"$dotnet" exec "$(native "$PWD/$graph_runner/GraphBuild.dll")" windows-sync "$DOTNET_ROOT" "$(native "$runner")" "$(native "$scratch/staged")" "$version" "$(native "$output")" "$(native "$manifest")" "$mappings" "$@" %s
+""" % (quote(ctx.file.seed_runner.path), " ".join([quote(flag) for flag in flags]))
+    ctx.actions.run_shell(
+        inputs = depset(ctx.files.srcs + bound_files + (ctx.files.seed_runner if seed_cache or ctx.attr.windows_isolation else []) + [payload, manifest, stage] + ([ctx.file.mappings] if ctx.file.mappings else []), transitive = [tc.sdk]),
+        tools = [tc.dotnet],
+        outputs = [prepared],
+        resource_set = _qualification_resources if ctx.attr.resolve_references else None,
+        env = environment,
+        arguments = [tc.dotnet.path, payload.path, stage.path, prepared.path, manifest.path, tc.sdk_version, ctx.file.mappings.path if ctx.file.mappings else ""] + ctx.attr.projects,
+        command = command,
         mnemonic = "MSBuildSyncPrepare",
         progress_message = "Qualifying declared MSBuild graph %s" % ctx.label,
     )

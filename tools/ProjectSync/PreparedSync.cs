@@ -9,7 +9,7 @@ internal sealed record SyncStage(SyncStageFile[] Sources, SyncStageFile[] Runfil
 // the resulting declarations. Per-project SDK reuse belongs to QualificationCache.
 internal static class PreparedSync
 {
-    internal static void Stage(string manifest, string destination)
+    internal static void Stage(string manifest, string destination, bool copyRunfiles = false)
     {
         using var profile = SyncProfile.Measure("declared-source-staging");
         var data = JsonSerializer.Deserialize<SyncStage>(File.ReadAllText(manifest), new JsonSerializerOptions
@@ -24,7 +24,7 @@ internal static class PreparedSync
         {
             var root = Path.Combine(destination, directory);
             Directory.CreateDirectory(root);
-            var paths = files.Select(file => WorkspaceView.Safe(file.Path)).ToHashSet(StringComparer.Ordinal);
+            var paths = files.Select(file => WorkspaceView.Safe(file.Path)).ToHashSet(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
             if (paths.Count != files.Length)
             {
                 throw new InvalidDataException("Overlapping sync staging paths");
@@ -44,7 +44,7 @@ internal static class PreparedSync
                 var source = Path.GetFullPath(file.File);
                 var target = Path.Combine(root, file.Path);
                 Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-                if (links && file.Tree && Directory.Exists(source))
+                if (links && (file.Tree || copyRunfiles) && Directory.Exists(source))
                 {
                     MaterializeTree(file, source, target);
                 }
@@ -52,11 +52,11 @@ internal static class PreparedSync
                 {
                     Directory.CreateSymbolicLink(target, source);
                 }
-                else if (links && !file.Tree && File.Exists(source))
+                else if (links && !file.Tree && !copyRunfiles && File.Exists(source))
                 {
                     File.CreateSymbolicLink(target, source);
                 }
-                else if ((!links || file.Tree) && File.Exists(source) && !Directory.Exists(source))
+                else if (File.Exists(source))
                 {
                     SyncFiles.Copy(source, target);
                 }

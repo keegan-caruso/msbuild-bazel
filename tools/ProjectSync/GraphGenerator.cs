@@ -38,7 +38,7 @@ internal static class GraphGenerator
         }
     }
 
-    internal static void Run(string root, string sdk, string[] entries, bool check, string outputRoot, string configuration = "Release", string framework = "", WorkspaceView? view = null, bool packageBuild = false, string[]? packageInputs = null, GraphMappings? mappings = null, bool resolveReferences = false, QualificationOptions? qualificationCache = null, string? publicationRoot = null)
+    internal static void Run(string root, string sdk, string[] entries, bool check, string outputRoot, string configuration = "Release", string framework = "", WorkspaceView? view = null, bool packageBuild = false, string[]? packageInputs = null, GraphMappings? mappings = null, bool resolveReferences = false, QualificationOptions? qualificationCache = null, string? publicationRoot = null, bool singleNode = false)
     {
         if (resolveReferences && !packageBuild)
         {
@@ -402,7 +402,7 @@ internal static class GraphGenerator
             inputs.Values.SelectMany(paths => paths).Concat(shared), packageIdentities,
             node => inputs[ConfiguredProjectKey.Create(node.ProjectInstance)].Concat(shared), qualificationCache,
             node => JsonSerializer.Serialize(mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework"))),
-            qualificationCache is null ? [] : view?.GraphPackageDigests(), qualificationEnvironment) : null;
+            qualificationCache is null ? [] : view?.GraphPackageDigests(), qualificationEnvironment, singleNode) : null;
         var resolved = qualification?.Selections;
         var declarations = new SortedDictionary<string, object>(StringComparer.Ordinal);
         foreach (var group in graph.ProjectNodes.GroupBy(node => Relative(node.ProjectInstance.FullPath)))
