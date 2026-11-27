@@ -50,7 +50,7 @@ def main():
         (root / 'Directory.Build.props').write_text('<Project><PropertyGroup><DisableTransitiveProjectReferences>true</DisableTransitiveProjectReferences></PropertyGroup></Project>')
         (root / 'P0/Code.cs').write_text('public class P0 { public static int Value() => 1; } public enum E { First=40 }')
         project = root / 'P2/P2.csproj'
-        project.write_text(project.read_text().replace('</Project>', '<ItemGroup><ProjectReference Include="../P0/P0.csproj" ReferenceOutputAssembly="false" Targets="SourceFilesProjectOutputGroup" OutputItemType="ContractSources" /></ItemGroup><Target Name="UseContractSources" BeforeTargets="CoreCompile" DependsOnTargets="ResolveProjectReferences"><ItemGroup><ContractSources IsRooted="$([System.IO.Path]::IsPathRooted(\'%(ContractSources.OriginalItemSpec)\'))"/><Compile Include="@(ContractSources-&gt;WithMetadataValue(\'Extension\',\'.cs\')-&gt;WithMetadataValue(\'IsRooted\',\'false\'))" /></ItemGroup><WriteLinesToFile File="$(IntermediateOutputPath)source-group-observation.txt" Lines="@(ContractSources-&gt;\'%(Identity)|%(OriginalItemSpec)|%(IsRooted)\')" Overwrite="true"/></Target></Project>'))
+        project.write_text(project.read_text().replace('</Project>', '<ItemGroup><ProjectReference Include="../P0/P0.csproj" ReferenceOutputAssembly="false" Targets="SourceFilesProjectOutputGroup" OutputItemType="ContractSources" /></ItemGroup><Target Name="UseContractSources" BeforeTargets="CoreCompile" DependsOnTargets="ResolveProjectReferences"><ItemGroup><ContractSources IsRooted="$([System.IO.Path]::IsPathRooted(\'%(ContractSources.OriginalItemSpec)\'))"/><Compile Include="@(ContractSources-&gt;WithMetadataValue(\'Extension\',\'.cs\')-&gt;WithMetadataValue(\'IsRooted\',\'false\'))" /></ItemGroup><WriteLinesToFile File="$(IntermediateOutputPath)source-group-observation.txt" Lines="@(ContractSources-&gt;\'%(Identity)|%(OriginalItemSpec)|%(IsRooted)\')" Overwrite="true"/><WriteLinesToFile File="$(IntermediateOutputPath)source-group-execution-directory.txt" Lines="$(MSBuildProjectDirectory)" Overwrite="true"/></Target></Project>'))
         (root / 'P2/Code.cs').write_text('System.Console.WriteLine((int)E.First+P1.Value());')
         manifest, report, cache = base / 'contract.json', base / 'report.json', base / 'cache'
         manifest.write_text(json.dumps(contract))
@@ -62,7 +62,11 @@ def main():
             assert json.loads(report.read_text())['hits'] == hits, report.read_text()
             assert run(DOTNET, root / 'P2/bin/Release/net11.0/P2.dll').stdout.strip() == str(value)
             observed = (root / 'P2/obj/Release/net11.0/source-group-observation.txt').read_text()
-            assert f'{root / "P0/Code.cs"}|Code.cs|False' in observed.splitlines(), observed
+            # Absolute item identities belong to the evaluated workspace,
+            # which can be a short Windows view of the declared caller tree.
+            execution_directory = Path((root / 'P2/obj/Release/net11.0/source-group-execution-directory.txt').read_text().strip())
+            assert execution_directory.is_absolute() and execution_directory.name == 'P2', execution_directory
+            assert f'{execution_directory.parent / "P0/Code.cs"}|Code.cs|False' in observed.splitlines(), observed
             return {str(p.relative_to(root)): p.read_bytes() for node in contract['Projects'].values()
                     for directory in node['OutputDirectories'] for p in (root / directory).rglob('*')
                     if p.is_file() and p.suffix in ['.dll', '.pdb']}
