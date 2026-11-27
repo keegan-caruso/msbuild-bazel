@@ -100,7 +100,7 @@ class GraphSyncTests(unittest.TestCase):
         watched = [SDK / "sdk/11.0.100/MSBuild.dll",
             SDK / "sdk/11.0.100/Sdks/Microsoft.NET.Sdk/targets/Microsoft.PackageDependencyResolution.targets"]
         digests = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in watched}
-        links = set(Path(tempfile.gettempdir()).glob("msbuild-sdk-*"))
+        links = set(Path(tempfile.gettempdir()).glob("msbuild-view-*"))
         def stage(source, destination):
             # Read-only leaves need independent copies: tempfile's retry must
             # never clear an attribute on the immutable declared SDK inode.
@@ -122,7 +122,7 @@ class GraphSyncTests(unittest.TestCase):
             self.assertTrue(app["CompilerReferencesComplete"])
         self.assertEqual({path: path.stat().st_file_attributes for path in source_files}, attributes)
         self.assertEqual({path: hashlib.sha256(path.read_bytes()).hexdigest() for path in watched}, digests)
-        self.assertLessEqual(set(Path(tempfile.gettempdir()).glob("msbuild-sdk-*")), links)
+        self.assertLessEqual(set(Path(tempfile.gettempdir()).glob("msbuild-view-*")), links)
 
     def test_graph_is_the_only_default(self):
         self.sync()

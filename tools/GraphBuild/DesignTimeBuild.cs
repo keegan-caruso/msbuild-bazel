@@ -60,7 +60,7 @@ internal static class DesignTimeBuild
             return 1;
         }
         inputs.VerifyUnchangedInputs();
-        var sdk = Environment.GetEnvironmentVariable("DOTNET_ROOT")!;
+        var sdk = inputs.Files.Sdk;
         string Normalize(string value) => value.Replace(root, "{workspace}", StringComparison.Ordinal)
             .Replace(sdk, "{sdk}", StringComparison.Ordinal);
         var projects = graph.ProjectNodes.OrderBy(inputs.Relative, StringComparer.Ordinal).Select(node =>

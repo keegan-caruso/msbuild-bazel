@@ -101,6 +101,19 @@ python3 tests/graph_build/cross_host_recovery.py project /qualification \
   --rules "$PWD" --revision "$REVISION" --nonce "$NONCE" --seed /evidence/seed.json
 ```
 
+## Remote build execution
+
+The downloaded-SDK quickstart qualified ordinary graph and executable test actions over the Remote Execution API on Bazel **9.3.3** and SDK **11.0.100**. Separate Ubuntu 26.04.1 ARM64 client and executor guests used worker image digest `sha256:86d1c5d2ce11c9529a892fc428962f079a86cf968b2e1316cdea9106dee5f525`. The executor ran [NativeLink 1.9.0](https://github.com/TraceMachina/nativelink/releases/tag/v1.9.0) (Linux ARM64 archive SHA-256 `11142a64f0cc1a02a485e0e16dc22963f98505303eca4268488b384c296b9c64`) on a private guest network. It received the source, runner and SDK as Bazel action inputs. The worker had no client checkout mounted.
+
+Run the [qualification driver](../tests/graph_build/remote_execution.py) on a Linux ARM64 client with a compatible digest-pinned REAPI worker:
+
+```sh
+python3 tests/graph_build/remote_execution.py /tmp/new-rbe-results \
+  --bazel "$PWD/.tools/bin/bazelisk" --executor "$RBE_ENDPOINT"
+```
+
+It compares a local sandboxed build and remote-only execution for a cold build, a library body edit and a public API edit. The cold remote run disables cache reads. Edited graphs allow cache reads, and each must have a new action digest and execute remotely. The test runs in every phase. For each pair, all 18 application, library, test and reference products matched by SHA-256 and Unix mode. Both edits changed the library implementation; only the API edit changed its reference assembly. Qualification covers the three-project quickstart. NativeAOT, remote persistent workers, qualification caching and source-built SDK/runtime production require separate remote-execution gates.
+
 ## Native Linux x64 controls
 
 Native Ubuntu 26.04 x64 (SDK **11.0.100**, Bazel **9.3.2**, 4 CPUs / 6 GiB) passed all 4 owned builds/format, 5 style, 81 tooling, 19 artifact, and 63 ProjectSync tests (0 skips), plus 9 standalone broker/publication/transfer/integrity/ownership controls and zero-budget worker preparation.
@@ -193,6 +206,10 @@ SDK **11.0.100** / runtime **11.0.0** and Bazel **9.3.2**:
 
 Rosetta integration-test archive helper fails in GNU tar following Bazel symlinks (`Function not implemented`); direct quickstart passes without it (separate from `libarchive` extraction). Retained source-built SDK 10.0.100 and NativeAOT keep their own pins.
 
+## Test sharding
+
+Native macOS ARM64 with SDK **11.0.100** and Bazel **9.3.3** passed `python3 tests/graph_build/protocols.py --sharding`: both real MTP and VSTest suites ran every discovered case exactly once across three shards, including parameterized cases and a skip. Filtered runs exercised empty partitions; failure propagation and repeated Bazel test-cache hits also passed. MTP UID selection uses location-independent display names for partitioning because framework UIDs can change with the private assembly path. See [test configuration](api.md) for prerequisites. Windows and Linux sharding remain unqualified.
+
 ## Windows qualification in progress
 
 Native Windows Server 2025 x64 (10.0.26100, Azure Run Command/SYSTEM), SDK **11.0.100**, runtime **11.0.0**, MSBuild **18.12.2**, and Bazel **9.3.2** passed these scoped gates:
@@ -222,6 +239,8 @@ The upstream Bazel integration test runner opens its inputs in a physical runfil
 On Windows ARM64, ProjectSync staged a read-only producer and completed the tree membership and digest replay control while preserving the producer file. Run `python -m unittest discover -s tests/project_sync -p test_sync.py -k tree_contract_guards_membership_and_hashes_bytes` after building ProjectSync and GraphBuild.
 
 ProjectSync preserves short declared Windows SDK paths. For deeper roots, it uses an owned temporary directory link when that gives MSBuild a shorter path; disposal removes the link without traversing the SDK. This avoids Win32 import-condition failures in deep Bazel repository caches. With SDK 11.0.100 on native ARM64, the package-SDK fixture passed, and the deep-SDK compiler-qualification control verified complete references, source attributes, two critical SDK file digests and link cleanup. These controls require Windows symlink permission.
+
+Ordinary Windows graph actions use owned shorter workspace and SDK directory views when that reduces their paths. The views point to the original declared trees; the runner restores its previous working directory before removing the links without traversing their targets. This avoids MSBuild Copy treating long private package paths as missing. A native x64 control reproduced MSB3030 for a real 269-character input and copied identical bytes through a shorter view. With SDK 11.0.100, the combined graph-view and private protocol-staging controls passed all 12 real MTP/VSTest cases, including dependency-body invalidation, on native x64 with Bazel 9.3.2 and 9.3.3 and on native ARM64 with Bazel 9.3.2.
 
 Ordinary Windows ProjectSync compiler qualification uses disposable MSBuild worker processes so loaded task assemblies are released before its private package tree is deleted. On native x64 with SDK 11.0.100, the [real-task regression](../tests/project_sync/test_sync.py) reproduced the in-process DLL cleanup failure and passed with worker processes, preserving the source DLL and removing the private workspace.
 
@@ -253,7 +272,7 @@ SDK_WEB_CACHE_URL=http://cache:8080 bash scripts/bazel.sh test \
 python3 -m unittest discover -s tests/sdk_repository -v
 ```
 
-Rosetta controls establish emulated x64 behavior only. Current native x64 coverage: [SDK 11 matrix](#sdk-11-platform-qualification), [source-runtime](#complete-source-runtime-product), and [source-SDK](#native-ubuntu-2604-x64-sdk) (automatic workers and whole upstream graphs remain unqualified).
+Rosetta controls establish emulated x64 behavior only. Current native x64 coverage: [SDK 11 matrix](#sdk-11-platform-qualification), [source-runtime](#complete-source-runtime-product), and [source-SDK](#native-ubuntu-2604-x64-sdk) (whole upstream graphs remain unqualified; automatic workers have the separate [native gate](#linux-worker-qualification)).
 
 Native macOS ARM64 passed `//tests/integration:{quickstart,native_sdk}` (8.8.0 / 9.3.0, SDK **10.0.400**: catalog packages, Razor/Publish, app/tests, body/API ref checks, sync/check, strict-lock consumer; ordinary sandboxed actions, remote off) and all 24 SDK/runtime repo controls (9.3; also passed on Linux ARM64; `native_sdk` ready for native x64 but unrun in SDK 11 matrix).
 
@@ -543,10 +562,26 @@ Ubuntu 26.04 ARM64, SDK **10.0.400**, Bazel **9.3.2** (4 CPUs / 6 GiB, 2 jobs, 1
 
 `//tests/integration:worker_defaults` passes in **62.2 s** (unforced Build uses worker; body edit reuses 2 / compiles 1; target-only, opt-outs, Restore/Pack/Publish stay non-worker; rerun sync to adopt [automatic defaults](api.md#caching-and-workers)). See [SDK 11 matrix](#sdk-11-platform-qualification). ARM64 does not qualify x64, macOS workers, or RBE. Run `python3 tests/graph_build/acceptance.py OUTPUT --linux-workers`.
 
+Native Ubuntu 26.04.1 x64, SDK **11.0.100**, Bazel **9.3.3** and Bubblewrap **0.11.1** passed the [automatic-worker fixture at `f97acee`](https://github.com/keegan-caruso/msbuild-bazel/blob/f97acee9c2a0404f82c641183d2797b3e0d9814b/tests/integration/worker_defaults.sh). The three-project Build ran as an actual Bazel worker; a body edit reused two projects and compiled one. A target-only marker, Restore/Pack/Publish and both explicit opt-outs retained ordinary execution. The execution-platform capability still requires the explicit qualified-environment marker and working nested namespaces.
+
+With `--worker_sandboxing --experimental_worker_cancellation`, Ctrl-C during a reviewed target's live child returned exit **8**, terminated that child and published no graph report in **0.182 s**; the broker remained alive. The following changed-body action executed as a worker (not an action-cache hit) and printed the expected result. The complete integration process exited 0 in **65.49 s** (test body **61.43 s**). A separate real-broker control passed same-process JSON cancellation/retry, failed-publication isolation, idle-crash reclamation and lease cleanup. These timings describe one correctness run, not a performance comparison. Plain interruption without the opt-in flags and synchronous filesystem cancellation remain outside this gate; it does not qualify broad x64 retained-evaluation or upstream worker graphs.
+
+Reproduce on the qualified native Linux x64 host (the fixture supplies its own disposable consumer, execution-platform declaration and SDK selection):
+
+```sh
+bash scripts/setup.sh
+bash scripts/bazel.sh test //tests/integration:worker_defaults \
+  --nocache_test_results --test_output=errors --test_timeout=900 \
+  --jobs=2 --local_test_jobs=1
+bash scripts/dotnet.sh build tools/GraphBuild/GraphBuild.csproj -c Release
+RULES_MSBUILD_DOTNET_ROOT="$PWD/.tools/dotnet" \
+  python3 tests/graph_build/worker_lifecycle.py
+```
+
 ## Bounded native regression controls
 
 - **Streaming & publication**: 64 KiB buffers, 1 transfer budget/store (default 8); uploads verify staged payloads, downloads verify streamed digests + deduplicate; up to 2 async publications overlap serial capture and drain before exit.
-- **Worker bounds**: 1-hour active deadline, process-tree cancellation, **1,048,576-char** diagnostic tail (with truncation marker; oversized retained replies fail), 1 queued request; fake-child controls pass (synchronous FS ops noninterruptible; full Bazel sandbox cancellation unqualified).
+- **Worker bounds**: 1-hour active deadline, process-tree cancellation, **1,048,576-char** diagnostic tail (with truncation marker; oversized retained replies fail), 1 queued request; fake-child controls pass (synchronous FS ops noninterruptible; sandboxed Bazel cancellation has the scoped [native x64 gate](#linux-worker-qualification)).
 - **Qualification & mappings**: shares content/mode observations within each pre/post-Build phase (never across); immutable multi-owner path index; 63 ProjectSync controls pass on Ubuntu 26.04 x64 / SDK 11.0.100; mapping controls reject duplicate JSON keys and case-ambiguous fields (300 merged/explicit comparisons byte-identical).
 - **Shared path & tree helpers**: span-based relative-path validation (10,023 differential paths matched; 10,000 validations: 3,680,000 B → 0 B); `input_integrity.py` passes; shared tree traversal matches all 4 former callers across 32 cases; indexed layout selection + staged ZIP package extraction pass.
 
@@ -567,10 +602,10 @@ Streaming control fetches eight 8 MiB payloads with budget 2 (see [bounded cache
 
 ## Limits
 
-- Persistent workers require Bubblewrap + nested namespaces; broad worker/remote qualification is Linux ARM64 only (x64 source-runtime uses explicit worker strategy; auto x64 workers, macOS workers, and RBE unqualified).
+- Persistent workers require Bubblewrap + nested namespaces; broad worker qualification is Linux ARM64 only; native x64 automatic selection and opt-in sandboxed cancellation have the scoped [three-project gate](#linux-worker-qualification). macOS workers remain unqualified.
 - Unknown SDKs/workloads and whole-repo runtime/native parity are unqualified.
 - Custom task/analyzer/generator reads, package side effects, and output ownership require contracts; Build compiler selections do not qualify Pack/Publish.
 - Evaluation reuse is opt-in for reviewed compiler-only inputs (verification still reads bytes).
-- Sandboxing ≠ graph isolation: build trusted projects; exports reject links; HTTP publication lacks atomic divergent-writer guarantees; test sharding unsupported.
+- Sandboxing ≠ graph isolation: build trusted projects; exports reject links; HTTP publication lacks atomic divergent-writer guarantees; executable-test sharding remains unsupported.
 
 Run suites: `bash scripts/bazel.sh test //tests/integration:SUITE --test_output=errors` (fresh dirs, separate containers for recovery, reports outside Git). See [Contributing](../CONTRIBUTING.md) and the [versioned record](https://github.com/keegan-caruso/msbuild-bazel/blob/fa2764b55f630ae0462e836aa3163b0807f07f7f/docs/support.md).

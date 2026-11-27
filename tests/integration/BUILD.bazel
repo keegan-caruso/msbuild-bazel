@@ -1201,7 +1201,6 @@ integration_case(
     name = "worker_defaults_cases",
     target_compatible_with = [
         "@platforms//os:linux",
-        "@platforms//cpu:aarch64",
     ],
     test_runner = ":worker_defaults_runner",
     workspace_files = glob(["fixtures/worker/**"]),

@@ -26,4 +26,7 @@ use_repo(
     "build_bazel_bazel_.bazelversion",
 )
 
-register_toolchains("//msbuild:qualified_stable_paths_toolchain")
+register_toolchains(
+    "//msbuild:qualified_stable_paths_toolchain",
+    "//msbuild:qualified_stable_paths_x64_toolchain",
+)

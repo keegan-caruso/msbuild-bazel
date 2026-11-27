@@ -9,6 +9,7 @@ import subprocess
 import shutil
 import stat
 import tarfile
+import time
 import tempfile
 import unittest
 import unittest.mock
@@ -38,6 +39,14 @@ class ArtifactToolsTests(unittest.TestCase):
             request = dict(entry='app', assembly='App', data=[], testOptions=options)
             self.assertIn('Unknown test protocol', self.invoke('test-protocol', request, success=False))
 
+    def test_protocol_rejects_invalid_shard_environment(self):
+        request = dict(entry='app', assembly='App', data=[], testOptions=dict(protocol='mtp'))
+        for total, index in [('0', '0'), ('2', '-1'), ('2', '2'), ('bad', '0'), ('2', '')]:
+            with self.subTest(total=total, index=index), unittest.mock.patch.dict(os.environ,
+                    TEST_TOTAL_SHARDS=total, TEST_SHARD_INDEX=index):
+                self.assertIn('Invalid TEST_TOTAL_SHARDS/TEST_SHARD_INDEX',
+                              self.invoke('test-protocol', request, success=False))
+
     def test_legacy_run_command_is_rejected(self):
         self.assertIn('Expected layout/', self.invoke('run', {}, success=False))
 
@@ -49,6 +58,17 @@ class ArtifactToolsTests(unittest.TestCase):
             '<OutputType>Exe</OutputType><TargetFramework>net11.0</TargetFramework>'
             '<ImplicitUsings>enable</ImplicitUsings></PropertyGroup></Project>')
         (app / 'Program.cs').write_text("""
+if (args.Contains("hold")) { System.Threading.Thread.Sleep(60000); return 0; }
+if (Environment.GetEnvironmentVariable("DISCOVERY_PIPE_HOLD") is { } pidFile && args.Contains("--list-tests")) {
+    var childStart = new System.Diagnostics.ProcessStartInfo(OperatingSystem.IsWindows()
+        ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "ping.exe")
+        : Environment.GetEnvironmentVariable("DOTNET_HOST_PATH")!);
+    if (OperatingSystem.IsWindows()) { childStart.ArgumentList.Add("-t"); childStart.ArgumentList.Add("127.0.0.1"); }
+    else { childStart.ArgumentList.Add(System.Reflection.Assembly.GetExecutingAssembly().Location); childStart.ArgumentList.Add("hold"); }
+    using var child = System.Diagnostics.Process.Start(childStart)!;
+    File.WriteAllText(pidFile, child.Id.ToString());
+    return 0;
+}
 var host = Environment.GetEnvironmentVariable("DOTNET_ROOT");
 if (host != __HOST__) return 21;
 if (Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") != Path.Combine(host!, __DOTNET__)) return 22;
@@ -97,6 +117,22 @@ return 0;
             self.invoke('test-protocol', request)
             request['testOptions'] = dict(protocol='vstest', allowEmpty=True, runner='runner', adapters=['adapters'])
             self.invoke('test-protocol', request)
+        pid_file = self.root / 'discovery-child.pid'
+        request['testOptions'] = dict(protocol='mtp', allowEmpty=True)
+        started = time.monotonic()
+        try:
+            with unittest.mock.patch.dict(os.environ, RULES_MSBUILD_RUNFILES=str(runfiles),
+                    TEST_TMPDIR=str(test_tmp), TEST_TOTAL_SHARDS='2', TEST_SHARD_INDEX='0',
+                    DISCOVERY_PIPE_HOLD=str(pid_file)):
+                self.assertIn('output streams remained open after process exit',
+                              self.invoke('test-protocol', request, success=False))
+            self.assertLess(time.monotonic() - started, 15)
+        finally:
+            if pid_file.exists():
+                try:
+                    os.kill(int(pid_file.read_text()), 9)
+                except ProcessLookupError:
+                    pass
         self.assertEqual(list(test_tmp.iterdir()), [])
         for file in readonly:
             self.assertFalse(file.stat().st_mode & stat.S_IWRITE)

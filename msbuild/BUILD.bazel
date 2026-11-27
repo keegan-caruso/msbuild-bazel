@@ -32,7 +32,7 @@ filegroup(
     visibility = ["//:__pkg__"],
 )
 
-# Declaring this capability attests the qualified Ubuntu ARM64 environment and
+# Declaring this capability attests the qualified Ubuntu ARM64 or x64 environment and
 # working Bubblewrap/nested namespaces. It is not inferred from the target OS.
 constraint_setting(name = "stable_paths_environment")
 
@@ -50,6 +50,18 @@ toolchain(
     exec_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:aarch64",
+        ":qualified_linux_bwrap",
+    ],
+    toolchain = ":stable_paths_capability",
+    toolchain_type = ":stable_paths_toolchain_type",
+)
+
+# The x64 qualification is independent of the retained ARM64 binding.
+toolchain(
+    name = "qualified_stable_paths_x64_toolchain",
+    exec_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
         ":qualified_linux_bwrap",
     ],
     toolchain = ":stable_paths_capability",
