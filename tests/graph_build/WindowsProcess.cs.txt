@@ -1,0 +1,266 @@
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
+using System.Security.AccessControl;
+using System.Security.Principal;
+using System.Text;
+using System.Text.Json;
+using RulesMSBuild;
+using RulesMSBuild.GraphBuild;
+
+[SupportedOSPlatform("windows")]
+internal static class Controls
+{
+    private const int PipeBytes = 512 * 1024;
+    [DllImport("kernel32.dll")] private static extern IntPtr GetCurrentProcess();
+    [DllImport("kernel32.dll")] private static extern bool CloseHandle(IntPtr handle);
+    [DllImport("kernel32.dll")] private static extern uint GetCurrentThreadId();
+    [DllImport("user32.dll")] private static extern IntPtr GetThreadDesktop(uint thread);
+    [DllImport("user32.dll")] private static extern IntPtr GetProcessWindowStation();
+    [DllImport("advapi32.dll", SetLastError = true)] private static extern bool OpenProcessToken(IntPtr process, uint access, out IntPtr token);
+    [DllImport("advapi32.dll", SetLastError = true)] private static extern bool GetTokenInformation(IntPtr token, int kind, IntPtr data, int size, out int returned);
+
+    private static void Require(bool value, string message)
+    {
+        if (!value) throw new Exception(message);
+    }
+
+    private static void Denied(Action operation)
+    {
+        try { operation(); }
+        catch (UnauthorizedAccessException) { return; }
+        throw new Exception("Undeclared access succeeded");
+    }
+
+    private static string Token()
+    {
+        Require(OpenProcessToken(GetCurrentProcess(), 8, out var token), "Cannot query token");
+        try
+        {
+            var flag = Marshal.AllocHGlobal(4);
+            try { Require(GetTokenInformation(token, 29, flag, 4, out _) && Marshal.ReadInt32(flag) == 1, "Not AppContainer"); }
+            finally { Marshal.FreeHGlobal(flag); }
+            GetTokenInformation(token, 31, IntPtr.Zero, 0, out var size);
+            var data = Marshal.AllocHGlobal(size);
+            try
+            {
+                Require(GetTokenInformation(token, 31, data, size, out _), "Cannot query SID");
+                return new SecurityIdentifier(Marshal.ReadIntPtr(data)).Value;
+            }
+            finally { Marshal.FreeHGlobal(data); }
+        }
+        finally { CloseHandle(token); }
+    }
+
+    private static string Prove()
+    {
+        var sid = Token();
+        Require(sid == Environment.GetEnvironmentVariable("EXPECTED_SID"), "Wrong unique profile");
+        Require(File.ReadAllText("allowed.txt") == "declared input", "Declared input unavailable");
+        Denied(() => File.GetAttributes(@"C:\"));
+        foreach (var variable in new[] { "OUTSIDE_FILE", "OUTSIDE_SDK", "OTHER_WORKSPACE", "OTHER_SCRATCH" })
+            Denied(() => File.ReadAllText(Environment.GetEnvironmentVariable(variable)!));
+        var otherPermissions = new FileSecurity();
+        otherPermissions.SetAccessRuleProtection(true, false);
+        otherPermissions.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(Environment.GetEnvironmentVariable("EXPECTED_SID")!), FileSystemRights.FullControl, AccessControlType.Allow));
+        Denied(() => new FileInfo(Environment.GetEnvironmentVariable("OTHER_WORKSPACE")!).SetAccessControl(otherPermissions));
+        var sdk = new DirectoryInfo(Environment.GetEnvironmentVariable("DOTNET_ROOT")!);
+        var permissions = sdk.GetAccessControl(AccessControlSections.Access);
+        permissions.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(Environment.GetEnvironmentVariable("EXPECTED_SID")!), FileSystemRights.WriteData, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
+        Denied(() => sdk.SetAccessControl(permissions));
+        Denied(() => File.WriteAllText(Path.Combine(sdk.FullName, ".forbidden"), "forbidden"));
+        return sid;
+    }
+
+    private static async Task<int> Child(string[] args)
+    {
+        var sid = Prove();
+        if (args[0] == "linger")
+        {
+            File.WriteAllText("child-pid.txt", Environment.ProcessId.ToString());
+            Console.Out.Write(new string('O', 65536));
+            Console.Error.Write(new string('E', 65536));
+            while (true) { Console.Out.Write("tick\n"); await Task.Delay(25); }
+        }
+        if (args[0] == "spawn")
+        {
+            var start = new ProcessStartInfo(Path.Combine(Environment.GetEnvironmentVariable("DOTNET_ROOT")!, "dotnet.exe")) { UseShellExecute = false, CreateNoWindow = true };
+            foreach (var argument in new[] { "exec", typeof(Controls).Assembly.Location, "linger" }) start.ArgumentList.Add(argument);
+            using var child = Process.Start(start)!;
+            File.WriteAllText("parent-pid.txt", Environment.ProcessId.ToString());
+            await child.WaitForExitAsync();
+            return child.ExitCode;
+        }
+        File.WriteAllText(Environment.GetEnvironmentVariable("CASE_FILE")!, JsonSerializer.Serialize(new { sid, arguments = args[1..], value = Environment.GetEnvironmentVariable("ENV_PROOF") }));
+        Console.Out.Write(new string('O', PipeBytes));
+        Console.Error.Write(new string('E', PipeBytes));
+        return 0;
+    }
+
+    private static void Permissions(string path, params (SecurityIdentifier Sid, FileSystemRights Rights)[] grants)
+    {
+        var security = new DirectorySecurity();
+        security.SetAccessRuleProtection(true, false);
+        security.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(WindowsProcess.Owner), FileSystemRights.FullControl,
+            InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
+        foreach (var grant in grants) security.AddAccessRule(new FileSystemAccessRule(grant.Sid, grant.Rights,
+            InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
+        new DirectoryInfo(path).SetAccessControl(security);
+    }
+
+    private static int Copy(string source, string destination)
+    {
+        Directory.CreateDirectory(destination);
+        var count = 0;
+        foreach (var path in NoLinkTree.Entries(source, "Reparse point in fixture source: "))
+        {
+            var target = Path.Combine(destination, Path.GetRelativePath(source, path));
+            if (Directory.Exists(path)) Directory.CreateDirectory(target);
+            else { File.Copy(path, target); count++; }
+        }
+        return count;
+    }
+
+    private static Dictionary<string, string> EnvironmentFor(string root, WindowsProfile profile, string work, string other, string hostRoot, string sdkSource)
+    {
+        var scratch = root + "scratch-" + work;
+        return new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["SystemRoot"] = Environment.GetEnvironmentVariable("SystemRoot")!, ["WINDIR"] = Environment.GetEnvironmentVariable("WINDIR")!,
+            ["ComSpec"] = Path.Combine(Environment.SystemDirectory, "cmd.exe"), ["PATH"] = root + "sdk;" + Environment.SystemDirectory,
+            ["DOTNET_ROOT"] = root + "sdk", ["DOTNET_CLI_HOME"] = scratch, ["HOME"] = scratch, ["USERPROFILE"] = scratch,
+            ["APPDATA"] = scratch + "\\appdata", ["LOCALAPPDATA"] = scratch + "\\localappdata", ["PROGRAMFILES"] = scratch + "\\programfiles",
+            ["TEMP"] = scratch, ["TMP"] = scratch, ["SystemTemp"] = scratch, ["NUGET_PACKAGES"] = scratch + "\\packages",
+            ["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1", ["DOTNET_NOLOGO"] = "1", ["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1",
+            ["DOTNET_ADD_GLOBAL_TOOLS_TO_PATH"] = "false", ["DOTNET_GENERATE_ASPNET_CERTIFICATE"] = "false",
+            ["DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE"] = "true", ["DOTNET_CLI_USE_MSBUILD_SERVER"] = "false",
+            ["MSBUILDUSESERVER"] = "0", ["MSBUILDDISABLENODEREUSE"] = "1", ["DOTNET_EnableDiagnostics"] = "0",
+            ["EXPECTED_SID"] = profile.Identifier.Value, ["OUTSIDE_FILE"] = Path.Combine(hostRoot, "control", "secret.txt"),
+            ["OUTSIDE_SDK"] = Path.Combine(sdkSource, "sdk", "11.0.100", ".version"), ["OTHER_WORKSPACE"] = root + other + "\\secret.txt",
+            ["OTHER_SCRATCH"] = root + "scratch-" + other + "\\secret.txt",
+            ["CASE_FILE"] = "arguments.json", ["ENV_PROOF"] = "quotes\"; unicode 🧪; slash\\", ["DOTNET_CLI_UI_LANGUAGE"] = "en"
+        };
+    }
+
+    private static Task<int> Run(WindowsProfile profile, string root, string work, Dictionary<string, string> environment,
+        IEnumerable<string> arguments, CancellationToken cancellation, MemoryStream output, MemoryStream error, Action<int>? started = null) =>
+        WindowsProcess.Run(profile, "Local\\RulesMSBuild.TestJob." + Guid.NewGuid().ToString("N"), root + "sdk\\dotnet.exe", arguments,
+            root + work, environment, started ?? (_ => { }), cancellation, output, error);
+
+    private static async Task<int> Main(string[] args)
+    {
+        if (args[0] is "child" or "spawn" or "linger") return await Child(args);
+        var source = args[0]; var host = args[1]; var root = args[2]; var template = args[3];
+        var action = Path.Combine(host, "action");
+        var originalRootAcl = new DirectoryInfo(@"C:\").GetAccessControl().GetSecurityDescriptorSddlForm(AccessControlSections.Access);
+        Permissions(action);
+        var copies = Copy(source, Path.Combine(action, "sdk"));
+        Copy(AppContext.BaseDirectory, Path.Combine(action, "runner"));
+        using var first = new WindowsProfile("RulesMSBuild.Test." + Guid.NewGuid().ToString("N"));
+        using var second = new WindowsProfile("RulesMSBuild.Test." + Guid.NewGuid().ToString("N"));
+        Permissions(action, (first.Identifier, FileSystemRights.ReadAndExecute), (second.Identifier, FileSystemRights.ReadAndExecute));
+        foreach (var (name, profile) in new[] { ("workspace-a", first), ("workspace-b", second) })
+        {
+            var directory = Directory.CreateDirectory(Path.Combine(action, name)).FullName;
+            Permissions(directory, (profile.Identifier, FileSystemRights.Modify));
+            File.WriteAllText(Path.Combine(directory, "allowed.txt"), "declared input");
+            File.WriteAllText(Path.Combine(directory, "secret.txt"), "other action data");
+        }
+        foreach (var (name, profile) in new[] { ("workspace-a", first), ("workspace-b", second) })
+        {
+            var scratch = Directory.CreateDirectory(Path.Combine(action, "scratch-" + name)).FullName;
+            Permissions(scratch, (profile.Identifier, FileSystemRights.Modify));
+            foreach (var childName in new[] { "appdata", "localappdata", "programfiles" }) Directory.CreateDirectory(Path.Combine(scratch, childName));
+            File.WriteAllText(Path.Combine(scratch, "secret.txt"), "other action scratch");
+        }
+        // Immutable inputs stay above the low-integrity child even if the
+        // execution host's ambient temporary directory already has a low label.
+        using (var immutable = Process.Start(new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "icacls.exe"))
+        {
+            UseShellExecute = false, CreateNoWindow = true,
+            ArgumentList = { action, "/setintegritylevel", "(OI)(CI)M", "/T", "/Q" }
+        })!) { await immutable.WaitForExitAsync(); Require(immutable.ExitCode == 0, "Cannot label immutable fixture inputs"); }
+        foreach (var writable in new[] { "workspace-a", "workspace-b", "scratch-workspace-a", "scratch-workspace-b" })
+        using (var icacls = Process.Start(new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "icacls.exe"))
+        {
+            UseShellExecute = false, CreateNoWindow = true,
+            ArgumentList = { Path.Combine(action, writable), "/setintegritylevel", "(OI)(CI)L", "/T", "/Q" }
+        })!) { await icacls.WaitForExitAsync(); Require(icacls.ExitCode == 0, "Cannot label owned fixture tree"); }
+        var envA = EnvironmentFor(root, first, "workspace-a", "workspace-b", host, source);
+        var envB = EnvironmentFor(root, second, "workspace-b", "workspace-a", host, source);
+        var values = new[] { "space value", "quote\"value", "trailing\\", "double\\\\\"quote", "line\nbreak", "", "unicode 🧪" };
+        var command = new[] { "exec", root + "runner\\Harness.dll", "child" }.Concat(values).ToArray();
+        using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        using var output = new MemoryStream(); using var error = new MemoryStream();
+        var originalDesktop = GetThreadDesktop(GetCurrentThreadId());
+        var originalStation = GetProcessWindowStation();
+        var status = await Run(first, root, "workspace-a", envA, command, deadline.Token, output, error, _ =>
+        {
+            Require(GetThreadDesktop(GetCurrentThreadId()) == originalDesktop, "Caller desktop was not restored");
+            Require(GetProcessWindowStation() == originalStation, "Caller window station was not restored");
+        });
+        var diagnostic = Encoding.UTF8.GetString(error.ToArray());
+        Require(status == 0, "Native child failed: " + status + " " + diagnostic[..Math.Min(4096, diagnostic.Length)]);
+        Require(output.Length == PipeBytes && error.Length == PipeBytes, "Lost pipe output");
+        var proof = JsonDocument.Parse(File.ReadAllText(Path.Combine(action, "workspace-a", "arguments.json")));
+        Require(proof.RootElement.GetProperty("arguments").EnumerateArray().Select(value => value.GetString()).SequenceEqual(values), "Argument quoting changed values");
+        Require(proof.RootElement.GetProperty("value").GetString() == envA["ENV_PROOF"], "Environment changed values");
+        // Independent profiles cannot read each other's writable workspace.
+        using var outA = new MemoryStream(); using var errA = new MemoryStream();
+        using var outB = new MemoryStream(); using var errB = new MemoryStream();
+        using var gate = new Barrier(2);
+        var both = await Task.WhenAll(Task.Run(async () =>
+        {
+            gate.SignalAndWait(deadline.Token);
+            return await Run(first, root, "workspace-a", envA, command, deadline.Token, outA, errA);
+        }), Task.Run(async () =>
+        {
+            gate.SignalAndWait(deadline.Token);
+            return await Run(second, root, "workspace-b", envB, command, deadline.Token, outB, errB);
+        }));
+        Require(both.All(code => code == 0), "Concurrent profile control failed");
+        // Failure before ResumeThread must not leave a suspended child behind.
+        Process? suspended = null;
+        try
+        {
+            await Run(first, root, "workspace-a", envA, command, deadline.Token, outA, errA,
+                pid => { suspended = Process.GetProcessById(pid); throw new InvalidOperationException("callback control"); });
+            throw new Exception("Callback failure was not propagated");
+        }
+        catch (InvalidOperationException failure) when (failure.Message == "callback control") { }
+        using (suspended) Require(suspended is not null && suspended.WaitForExit(5000), "Suspended child escaped job cleanup");
+        // Cancel with a real descendant and active stdout/stderr streams.
+        using var cancel = new CancellationTokenSource();
+        using var cancelOut = new MemoryStream(); using var cancelErr = new MemoryStream();
+        var running = Run(first, root, "workspace-a", envA, ["exec", root + "runner\\Harness.dll", "spawn"], cancel.Token, cancelOut, cancelErr);
+        var childPid = Path.Combine(action, "workspace-a", "child-pid.txt");
+        while (!File.Exists(childPid)) { deadline.Token.ThrowIfCancellationRequested(); await Task.Delay(10); }
+        using var parent = Process.GetProcessById(int.Parse(File.ReadAllText(Path.Combine(action, "workspace-a", "parent-pid.txt"))));
+        using var child = Process.GetProcessById(int.Parse(File.ReadAllText(childPid)));
+        cancel.Cancel();
+        try { await running; throw new Exception("Cancellation was not propagated"); }
+        catch (OperationCanceledException) { }
+        Require(parent.WaitForExit(5000) && child.WaitForExit(5000), "Cancelled descendants survived");
+        Require(await Run(first, root, "workspace-a", envA, command, deadline.Token, outA, errA) == 0, "Recovery after cancellation failed");
+        // Run the standard SDK compiler and actual Exec task with the private SDK.
+        var workspace = Path.Combine(action, "workspace-a");
+        File.WriteAllText(Path.Combine(workspace, "Program.cs"), File.ReadAllText(template));
+        File.WriteAllText(Path.Combine(workspace, "Probe.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><UseSharedCompilation>false</UseSharedCompilation><NuGetAudit>false</NuGetAudit></PropertyGroup><Target Name=\"Boundary\" AfterTargets=\"Build\"><Exec Command=\"&quot;$(DOTNET_HOST_PATH)&quot; exec &quot;$(TargetPath)&quot;\" /></Target></Project>");
+        File.WriteAllText(Path.Combine(action, "NuGet.Config"), "<configuration><packageSources><clear /></packageSources></configuration>");
+        using var buildOut = new MemoryStream(); using var buildErr = new MemoryStream();
+        status = await Run(first, root, "workspace-a", envA, ["build", root + "workspace-a\\Probe.csproj", "--disable-build-servers", "-p:RestoreConfigFile=" + root + "NuGet.Config"], deadline.Token, buildOut, buildErr);
+        File.WriteAllBytes(Path.Combine(host, "control", "sdk-build.log"), buildOut.ToArray());
+        File.WriteAllBytes(Path.Combine(host, "control", "sdk-build.err"), buildErr.ToArray());
+        Require(status == 0 && File.Exists(Path.Combine(workspace, "sdk-proof.json")), "Private SDK Build/Exec failed: " + status);
+        Require(new DirectoryInfo(@"C:\").GetAccessControl().GetSecurityDescriptorSddlForm(AccessControlSections.Access) == originalRootAcl, "Root ACL changed");
+        File.WriteAllText(Path.Combine(host, "control", "result.json"), JsonSerializer.Serialize(new
+        {
+            copiedSdkFiles = copies, profiles = new[] { first.Identifier.Value, second.Identifier.Value },
+            argumentRoundtrip = true, environmentRoundtrip = true, pipeBytesPerStream = PipeBytes, callerDesktopRestored = true,
+            concurrentProfiles = true, crossWorkspaceReadsDenied = true, callbackFailureStoppedChild = true,
+            cancellationStoppedDescendants = true, recovery = true, privateSdkBuildExec = true, rootAclUnchanged = true
+        }));
+        return 0;
+    }
+}
