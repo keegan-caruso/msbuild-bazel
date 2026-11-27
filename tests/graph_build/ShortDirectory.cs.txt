@@ -1,0 +1,64 @@
+using RulesMSBuild;
+using System.Text.Json;
+
+var owner = Path.GetFullPath(args[0]);
+Directory.CreateDirectory(owner);
+var root = Path.Combine(owner, "source-" + new string('x', 80));
+Directory.CreateDirectory(root);
+File.WriteAllText(Path.Combine(root, "control.txt"), "owned");
+var original = Directory.GetCurrentDirectory();
+void Check(bool condition, string message) { if (!condition) throw new Exception(message); }
+if (!OperatingSystem.IsWindows())
+{
+    using (var directory = new ShortDirectory(root, workingDirectory: true))
+        Check(directory.Path == root && Directory.GetCurrentDirectory() == root, "Portable path changed");
+    Check(Directory.GetCurrentDirectory() == original, "Portable cwd not restored");
+    Console.WriteLine("PASS portable unchanged path/cwd; Windows lifecycle controls unrun");
+    return;
+}
+string stable;
+using (var first = new ShortDirectory(root))
+{
+    stable = first.Path;
+    Check(stable != root && stable.Length < root.Length, "Expected a shorter owned view");
+    using (var overlap = new ShortDirectory(root, workingDirectory: true))
+    {
+        Check(overlap.Path != stable && overlap.Path != root, "Overlap adopted occupied stable view");
+        Check(Directory.GetCurrentDirectory() == overlap.Path, "Unexpected working spelling");
+        Check(File.ReadAllText(Path.Combine(overlap.Path, "control.txt")) == "owned", "Overlap target differs");
+    }
+    Check(Directory.GetCurrentDirectory() == original && Directory.Exists(stable), "Overlap removed first owner view");
+    var parallel = await Task.WhenAll(Enumerable.Range(0, 2).Select(_ => Task.Run(() =>
+    {
+        using var overlap = new ShortDirectory(root);
+        Check(overlap.Path != stable, "Concurrent request adopted first owner's view");
+        Check(File.ReadAllText(Path.Combine(overlap.Path, "control.txt")) == "owned", "Concurrent target differs");
+        return overlap.Path;
+    })));
+    Check(parallel[0] != parallel[1] && parallel.All(path => !Directory.Exists(path)), "Concurrent cleanup differs");
+    Check(Directory.Exists(stable), "Concurrent cleanup removed first owner");
+}
+Check(!Directory.Exists(stable), "Stable creator did not clean its view");
+using (var next = new ShortDirectory(root)) Check(next.Path == stable, "Sequential execution spelling changed");
+Check(!Directory.Exists(stable), "Sequential view leaked");
+Directory.CreateDirectory(stable);
+File.WriteAllText(Path.Combine(stable, "preexisting.txt"), "retained");
+using (var occupied = new ShortDirectory(root)) Check(occupied.Path != stable, "Adopted preexisting ordinary path");
+Check(File.ReadAllText(Path.Combine(stable, "preexisting.txt")) == "retained", "Removed preexisting ordinary path");
+Directory.Delete(stable, recursive: true);
+var missing = Path.Combine(owner, "missing-owned-target");
+Directory.CreateSymbolicLink(stable, missing);
+using (var stale = new ShortDirectory(root)) Check(stale.Path != stable, "Adopted stale view");
+Check(new DirectoryInfo(stable).LinkTarget == missing, "Removed or changed stale view");
+Directory.Delete(stable);
+var otherRoot = Path.Combine(owner, "different-" + new string('y', 80));
+Directory.CreateDirectory(otherRoot);
+File.WriteAllText(Path.Combine(otherRoot, "control.txt"), "other");
+using (var first = new ShortDirectory(root))
+using (var other = new ShortDirectory(otherRoot))
+{
+    Check(first.Path != other.Path, "Different workspaces share a spelling");
+    Check(File.ReadAllText(Path.Combine(first.Path, "control.txt")) == "owned", "First target changed");
+    Check(File.ReadAllText(Path.Combine(other.Path, "control.txt")) == "other", "Other target changed");
+}
+Console.WriteLine(JsonSerializer.Serialize(new { passed = true, stable, root, controls = "sequential, overlapping, concurrent, preexisting, stale, unrelated, cwd restoration" }));

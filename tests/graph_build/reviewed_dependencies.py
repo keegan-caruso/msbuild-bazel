@@ -223,10 +223,10 @@ def tool_closure():
         print('PASS: analyzer dependency closures do not own application copies; replay, body and generator edits match fresh compilation')
 
 
-def private_copies():
+def private_copies(workspace_name='workspace', record_path=False):
     with tempfile.TemporaryDirectory(prefix='reviewed-private-copies-') as temporary:
         base = Path(temporary).resolve()
-        root = base / 'workspace'
+        root = base / workspace_name
         root.mkdir()
         fixture(root)
         (root / 'P2/P2.csproj').write_text((root / 'P2/P2.csproj').read_text().replace('<OutputType>Exe</OutputType>', ''))
@@ -234,7 +234,15 @@ def private_copies():
         props = root / 'Directory.Build.props'
         props.write_text(props.read_text().replace('</Project>', '<ItemDefinitionGroup><ProjectReference><Private>false</Private></ProjectReference></ItemDefinitionGroup></Project>'))
         mapping = base / 'mapping.json'
-        mapping.write_text(json.dumps({'projectDefaults': {'referenceBoundary': True}}))
+        bindings = {'projectDefaults': {'referenceBoundary': True}}
+        if record_path:
+            target = root / 'P0/Directory.Build.targets'
+            target.write_text('<Project><Target Name="RecordExecutionPath" BeforeTargets="CoreCompile">'
+                '<WriteLinesToFile File="$(IntermediateOutputPath)execution-path.txt" Lines="$(MSBuildProjectFullPath)" Overwrite="true" />'
+                '</Target></Project>')
+            bindings['projects'] = {'P0/P0.csproj': {'documents': {'P0/Directory.Build.targets': {
+                'sha256': hashlib.sha256(target.read_bytes()).hexdigest(), 'targets': ['RecordExecutionPath'], 'tasks': [], 'inputs': []}}}}
+        mapping.write_text(json.dumps(bindings))
         run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll', root,
             SDK / 'sdk/11.0.100', 'P2/P2.csproj', '--mappings', mapping)
         contract = root / 'graph.generated.json'
@@ -265,8 +273,26 @@ def private_copies():
         print('PASS: Private=false omits DLL copy ownership; replay/body outputs match fresh compilation and multi-target copy declarations remain empty')
 
 
+def short_view_lifecycle():
+    from xml.sax.saxutils import quoteattr
+    with tempfile.TemporaryDirectory(prefix='short-view-lifecycle-') as temporary:
+        root = Path(temporary).resolve()
+        (root / 'Program.cs').write_text((ROOT / 'tests/graph_build/ShortDirectory.cs.txt').read_text())
+        project = root / 'Probe.csproj'
+        project.write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType>'
+            '<TargetFramework>net11.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>'
+            '<EnableDefaultCompileItems>false</EnableDefaultCompileItems><UseAppHost>false</UseAppHost></PropertyGroup>'
+            '<ItemGroup><Compile Include="Program.cs" /><Compile Include=' + quoteattr(str(ROOT / 'tools/ShortDirectory.cs')) + ' /></ItemGroup></Project>')
+        run(DOTNET, 'build', project, '-c', 'Release', '--disable-build-servers', '-p:UseSharedCompilation=false', '-p:NuGetAudit=false')
+        print(run(DOTNET, root / 'bin/Release/net11.0/Probe.dll', root / 'owned').stdout.strip())
+
+
 if __name__ == '__main__':
     main()
     multitarget()
     tool_closure()
     private_copies()
+    # A harmless longer caller path previously crossed the random view's
+    # length threshold and invalidated every unchanged Windows project.
+    private_copies('workspace-with-private-copies', record_path=True)
+    short_view_lifecycle()
