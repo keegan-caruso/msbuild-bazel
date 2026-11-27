@@ -101,6 +101,19 @@ python3 tests/graph_build/cross_host_recovery.py project /qualification \
   --rules "$PWD" --revision "$REVISION" --nonce "$NONCE" --seed /evidence/seed.json
 ```
 
+## Remote build execution
+
+The downloaded-SDK quickstart qualified ordinary graph and executable test actions over the Remote Execution API on Bazel **9.3.3** and SDK **11.0.100**. Separate Ubuntu 26.04.1 ARM64 client and executor guests used worker image digest `sha256:86d1c5d2ce11c9529a892fc428962f079a86cf968b2e1316cdea9106dee5f525`. The executor ran [NativeLink 1.9.0](https://github.com/TraceMachina/nativelink/releases/tag/v1.9.0) (Linux ARM64 archive SHA-256 `11142a64f0cc1a02a485e0e16dc22963f98505303eca4268488b384c296b9c64`) on a private guest network. It received the source, runner and SDK as Bazel action inputs. The worker had no client checkout mounted.
+
+Run the [qualification driver](../tests/graph_build/remote_execution.py) on a Linux ARM64 client with a compatible digest-pinned REAPI worker:
+
+```sh
+python3 tests/graph_build/remote_execution.py /tmp/new-rbe-results \
+  --bazel "$PWD/.tools/bin/bazelisk" --executor "$RBE_ENDPOINT"
+```
+
+It compares a local sandboxed build and remote-only execution for a cold build, a library body edit and a public API edit. The cold remote run disables cache reads. Edited graphs allow cache reads, and each must have a new action digest and execute remotely. The test runs in every phase. For each pair, all 18 application, library, test and reference products matched by SHA-256 and Unix mode. Both edits changed the library implementation; only the API edit changed its reference assembly. Qualification covers the three-project quickstart. NativeAOT, remote persistent workers, qualification caching and source-built SDK/runtime production require separate remote-execution gates.
+
 ## Native Linux x64 controls
 
 Native Ubuntu 26.04 x64 (SDK **11.0.100**, Bazel **9.3.2**, 4 CPUs / 6 GiB) passed all 4 owned builds/format, 5 style, 81 tooling, 19 artifact, and 63 ProjectSync tests (0 skips), plus 9 standalone broker/publication/transfer/integrity/ownership controls and zero-budget worker preparation.
@@ -567,7 +580,7 @@ Streaming control fetches eight 8 MiB payloads with budget 2 (see [bounded cache
 
 ## Limits
 
-- Persistent workers require Bubblewrap + nested namespaces; broad worker/remote qualification is Linux ARM64 only (x64 source-runtime uses explicit worker strategy; auto x64 workers, macOS workers, and RBE unqualified).
+- Persistent workers require Bubblewrap + nested namespaces; broad worker/remote qualification is Linux ARM64 only (x64 source-runtime uses explicit worker strategy; auto x64 workers and macOS workers unqualified).
 - Unknown SDKs/workloads and whole-repo runtime/native parity are unqualified.
 - Custom task/analyzer/generator reads, package side effects, and output ownership require contracts; Build compiler selections do not qualify Pack/Publish.
 - Evaluation reuse is opt-in for reviewed compiler-only inputs (verification still reads bytes).
