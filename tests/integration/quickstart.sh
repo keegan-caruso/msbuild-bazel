@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-source "$(dirname -- "${BASH_SOURCE[0]}")/common.sh"
+source "$TEST_SRCDIR/$TEST_WORKSPACE/tests/integration/common.sh"
 case "$SDK_TEST_RID" in
     win-*)
         export MSYS2_ARG_CONV_EXCL='//;@'

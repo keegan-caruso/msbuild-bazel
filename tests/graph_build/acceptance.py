@@ -37,7 +37,10 @@ def main():
         print(f"PASS {name}", flush=True)
     for name, target in [("quickstart", "//tests/integration:quickstart")] + ([("workers", "//tests/integration:workers"), ("evaluation_worker", "//tests/integration:evaluation_worker"), ("worker_defaults", "//tests/integration:worker_defaults")] if args.linux_workers else []):
         with (args.directory / (name + ".log")).open("w") as log:
-            result = subprocess.run(bazel_startup("test", target, "--test_output=errors"), cwd=ROOT, env=local_env, stdout=log, stderr=subprocess.STDOUT)
+            # The upstream integration wrapper opens its runner and workspace by
+            # relative path in a physical runfiles tree.
+            command = bazel_startup("--windows_enable_symlinks", "test", "--enable_runfiles") if os.name == "nt" else bazel_startup("test")
+            result = subprocess.run([*command, target, "--test_output=errors"], cwd=ROOT, env=local_env, stdout=log, stderr=subprocess.STDOUT)
         if result.returncode:
             raise SystemExit(f"{name} failed; see {args.directory}")
         print(f"PASS native Bazel integration {name}", flush=True)
