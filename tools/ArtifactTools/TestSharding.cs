@@ -111,6 +111,20 @@ internal static class TestSharding
         {
             throw new InvalidDataException("Invalid discovered test name");
         }
+        if (Environment.GetEnvironmentVariable("TEST_SHARD_STATUS_FILE") is { } status)
+        {
+            File.WriteAllText(status, "");
+        }
+        if (options.Protocol == "vstest" && names.Length == 0 &&
+            start.ArgumentList.Any(argument => argument.StartsWith("/TestCaseFilter:", StringComparison.OrdinalIgnoreCase)))
+        {
+            // Some adapters expose data rows only during execution. A filtered
+            // discovery miss cannot distinguish those rows from a truly empty
+            // suite: execute the original filter once, preserving its zero-test
+            // policy, instead of broadening it or inventing success.
+            Console.WriteLine("VSTest filter was not resolved by discovery; only shard 0 executes the original filter");
+            return index == 0;
+        }
         if (names.Length == 0 && !options.AllowEmpty)
         {
             throw new InvalidDataException("No tests were discovered for sharding");
@@ -118,11 +132,8 @@ internal static class TestSharding
         // Framework UIDs may include the physical assembly path, which differs
         // in each shard's private staging directory. Partition by display name;
         // colliding display names stay together, but execute every distinct UID.
-        var selected = names.Where(name => BinaryPrimitives.ReadUInt32BigEndian(SHA256.HashData(Encoding.UTF8.GetBytes(options.Protocol == "mtp" ? identities[name] : name.ToUpperInvariant()))) % (uint)total == index).Order(StringComparer.Ordinal).ToArray();
-        if (Environment.GetEnvironmentVariable("TEST_SHARD_STATUS_FILE") is { } status)
-        {
-            File.WriteAllText(status, "");
-        }
+        var selected = names.Where(name => Partition(options.Protocol == "mtp" ? identities[name] : name.ToUpperInvariant(), total) == index)
+            .Order(StringComparer.Ordinal).ToArray();
         Console.WriteLine("Bazel shard " + index + "/" + total + ": selected " + selected.Length + " of " + names.Length + " discovered test identities");
         if (selected.Length == 0)
         {
@@ -148,20 +159,33 @@ internal static class TestSharding
         }
         else
         {
-            var filter = string.Join('|', selected.Select(name => "FullyQualifiedName=" + Escape(name)));
-            var position = start.ArgumentList.IndexOf("--");
-            start.ArgumentList.Insert(position < 0 ? start.ArgumentList.Count : position, "/TestCaseFilter:(" + filter + ")");
-            // The caller's filter constrained discovery; replace its execution
-            // option because VSTest accepts only one TestCaseFilter.
-            for (var i = start.ArgumentList.Count - 1; i >= 0; i--)
+            var selectedFilter = "(" + string.Join('|', selected.Select(name => "FullyQualifiedName=" + Escape(name))) + ")";
+            var existing = start.ArgumentList.Select((value, position) => (value, position))
+                .Where(argument => argument.value.StartsWith("/TestCaseFilter:", StringComparison.OrdinalIgnoreCase)).ToArray();
+            if (existing.Length > 1)
             {
-                if (start.ArgumentList[i].StartsWith("/TestCaseFilter:", StringComparison.OrdinalIgnoreCase) && start.ArgumentList[i] != "/TestCaseFilter:(" + filter + ")")
-                {
-                    start.ArgumentList.RemoveAt(i);
-                }
+                throw new InvalidDataException("Multiple VSTest filters are not supported");
+            }
+            if (existing.Length == 1)
+            {
+                // Parameterized rows can share an FQN but differ in display
+                // name or traits. Keep the caller's constraint at execution.
+                var original = existing[0].value["/TestCaseFilter:".Length..];
+                start.ArgumentList[existing[0].position] = "/TestCaseFilter:(" + original + ")&" + selectedFilter;
+            }
+            else
+            {
+                var position = start.ArgumentList.IndexOf("--");
+                start.ArgumentList.Insert(position < 0 ? start.ArgumentList.Count : position, "/TestCaseFilter:" + selectedFilter);
             }
         }
         return true;
+    }
+
+    private static int Partition(string identity, int total)
+    {
+        var digest = SHA256.HashData(Encoding.UTF8.GetBytes(identity));
+        return (int)(BinaryPrimitives.ReadUInt32BigEndian(digest) % (uint)total);
     }
 
     private static string Escape(string value) => string.Concat(value.Select(character => "\\()&|=!~".Contains(character) ? "\\" + character : character.ToString()));

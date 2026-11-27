@@ -103,6 +103,11 @@ def main():
                     bazel('test', '//:tests', '--test_output=errors', '--test_filter=' + filter_value, '--nocache_test_results')
                     filtered = [case for path in shard_reports for case in identities(ET.parse(path).getroot())]
                     assert len(filtered) == 1 and 'Passes' in filtered[0][1], filtered
+                    if protocol == 'vstest':
+                        bazel('test', '//:tests', '--test_output=errors', '--test_filter=DisplayName~1', '--nocache_test_results')
+                        rows = [case for path in shard_reports for case in identities(ET.parse(path).getroot())]
+                        assert len(rows) == 1 and 'n: 1' in rows[0][1], rows
+                        bazel('test', '//:tests', '--test_output=errors', '--test_filter=DisplayName~Absent', '--nocache_test_results', success=False)
                     bazel('test', '//:tests', '--test_output=errors', '--test_env=CASE=fail', '--nocache_test_results', success=False)
                     print('PASS:', protocol, 'three shards execute every case once; filter, empty shards, failures and cache reuse', flush=True)
                     continue
